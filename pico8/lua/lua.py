@@ -21,12 +21,10 @@ class Lua():
         self._parser = parser.Parser(version=version)
 
     def get_char_count(self):
-        if self._lexer is None:
-            return 0
-        return sum(len(t) for t in self._lexer.tokens_with_space)
+        return sum(len(t) for t in self._lexer._tokens)
 
     @classmethod
-    def from_lines(cls, lines, version=None):
+    def from_lines(cls, lines, version):
         """Produce a Lua data object from lines of Lua source.
 
         Args:

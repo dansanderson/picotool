@@ -146,10 +146,32 @@ if (a ~= 2) print("ok") end
 
 
 class TestLexer(unittest.TestCase):
+    def testTokenLength(self):
+        lxr = lexer.Lexer(version=4)
+        lxr._process_line('break')
+        self.assertEqual(1, len(lxr._tokens))
+        self.assertEqual(5, len(lxr._tokens[0]))
+
+    def testTokenRepr(self):
+        lxr = lexer.Lexer(version=4)
+        lxr._process_line('break')
+        self.assertEqual(1, len(lxr._tokens))
+        self.assertIn('line 0', repr(lxr._tokens[0]))
+        
+    def testTokenMatches(self):
+        lxr = lexer.Lexer(version=4)
+        lxr._process_line('break')
+        self.assertEqual(1, len(lxr._tokens))
+        self.assertTrue(lxr._tokens[0].matches(lexer.TokKeyword('break')))
+        self.assertTrue(lxr._tokens[0].matches(lexer.TokKeyword))
+        self.assertFalse(lxr._tokens[0].matches(lexer.TokKeyword('and')))
+        self.assertFalse(lxr._tokens[0].matches(lexer.TokSpace))
+        
     def testWhitespace(self):
         lxr = lexer.Lexer(version=4)
         lxr._process_line('    \n')
         self.assertEqual(2, len(lxr._tokens))
+        self.assertEqual(4, len(lxr._tokens[0]))
 
     def testOneKeyword(self):
         lxr = lexer.Lexer(version=4)
@@ -202,9 +224,9 @@ class TestLexer(unittest.TestCase):
 
     def testStringEscapes(self):
         lxr = lexer.Lexer(version=4)
-        lxr._process_line('"\\\n\\a\\b\\f\\n\\r\\t\\v\\\\\\"\\\'"\n')
+        lxr._process_line('"\\\n\\a\\b\\f\\n\\r\\t\\v\\\\\\"\\\'\\65"\n')
         self.assertEqual(2, len(lxr._tokens))
-        self.assertEqual(lexer.TokString('\n\a\b\f\n\r\t\v\\"\''),
+        self.assertEqual(lexer.TokString('\n\a\b\f\n\r\t\v\\"\'A'),
                          lxr._tokens[0])
 
     def testComment(self):
@@ -266,8 +288,34 @@ class TestLexer(unittest.TestCase):
             lxr._process_line(line)
         # TODO: test samples of tokens
 
-    # TODO: test lexer errors
+    def testLexerError(self):
+        lxr = lexer.Lexer(version=4)
+        try:
+            lxr._process_line('123 @ 456')
+            self.fail()
+        except lexer.LexerError as e:
+            txt = str(e)  # coverage test
+            self.assertEqual(1, e.lineno)
+            self.assertEqual(5, e.charno)
 
+    def testProcessLines(self):
+        lxr = lexer.Lexer(version=4)
+        lxr.process_lines([
+            'function foo()\n',
+            '  return 999\n',
+            'end\n'
+        ])
+        self.assertEqual(13, len(lxr._tokens))
 
+    def testTokensProperty(self):
+        lxr = lexer.Lexer(version=4)
+        lxr.process_lines([
+            'function foo()\n',
+            '  return 999\n',
+            'end\n'
+        ])
+        self.assertEqual(13, len(lxr.tokens))
+
+        
 if __name__ == '__main__':
     unittest.main()

@@ -172,7 +172,7 @@ class Lexer():
     manage tokens that span multiple lines.
     """
     
-    def __init__(self, version=None):
+    def __init__(self, version):
         """Initializer."""
         self._version = version
         self._tokens = []

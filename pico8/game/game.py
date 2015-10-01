@@ -11,12 +11,12 @@ __all__ = [
 import re
 
 from .. import util
-from ..lua import Lua
-from ..gfx import Gfx
-from ..gff import Gff
-from ..map import Map
-from ..sfx import Sfx
-from ..music import Music
+from ..lua.lua import Lua
+from ..gfx.gfx import Gfx
+from ..gff.gff import Gff
+from ..map.map import Map
+from ..sfx.sfx import Sfx
+from ..music.music import Music
 
 
 HEADER_TITLE_STR = 'pico-8 cartridge // http://www.pico-8.com\n'
@@ -64,15 +64,15 @@ class Game():
           A Game containing the game data.
     
         Raises:
-          InvalidP8Header
+          InvalidP8HeaderError
         """
         header_title_str = instr.readline()
         if header_title_str != HEADER_TITLE_STR:
-            raise InvalidP8Header()
+            raise InvalidP8HeaderError()
         header_version_str = instr.readline()
         version_m = HEADER_VERSION_RE.match(header_version_str)
         if version_m is None:
-            raise InvalidP8Header()
+            raise InvalidP8HeaderError()
         version = int(version_m.group(1))
     
         section = None
@@ -109,6 +109,6 @@ class Game():
                 new_game.music = Music.from_lines(
                     section_lines[section], version=version)
             else:
-                raise InvalidP8Section(section)
+                raise InvalidP8SectionError(section)
     
         return new_game

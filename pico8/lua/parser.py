@@ -24,3 +24,13 @@ class ParserError(util.InvalidP8DataError):
 class Node():
     """A base class for all AST nodes."""
     pass
+
+
+class Parser():
+    """The parser.
+    """
+    def __init__(self, version):
+        self._version = version
+
+    def process_tokens(self, tokens):
+        pass
