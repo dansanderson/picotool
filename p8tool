@@ -1,0 +1,8 @@
+#!/usr/bin/env python3
+
+import sys
+
+import pico8
+
+if __name__ == '__main__':
+   sys.exit(pico8.tool.main(sys.argv[1:]))
