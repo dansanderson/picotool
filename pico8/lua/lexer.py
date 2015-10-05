@@ -66,8 +66,14 @@ class Token():
         Args:
           other: The other Token to compare.
         """
+        value_equal = None
+        if (isinstance(self._data, TokKeyword) and
+            isinstance(self._other, TokKeyword)):
+            value_equal = self._data.lower() == other._data.lower()
+        else:
+            value_equal = self._data == other._data
         return (isinstance(self, other.__class__) and
-                self._data == other._data)
+                value_equal)
         
     
     def matches(self, other):
@@ -87,22 +93,22 @@ class Token():
 
 class TokSpace(Token):
     """A block of whitespace, not including newlines."""
-    pass
+    name = 'whitespace'
 
 
 class TokNewline(Token):
     """A single newline."""
-    pass
+    name = 'newline'
 
 
 class TokComment(Token):
     """A Lua comment, including the '--' characters."""
-    pass
+    name = 'comment'
 
 
 class TokString(Token):
     """A string literal."""
-    pass
+    name = 'string literal'
 
 
 class TokNumber(Token):
@@ -112,22 +118,22 @@ class TokNumber(Token):
     TokSymbol('-'), and a TokNumber(...) representing the non-negative
     number part.
     """
-    pass
+    name = 'number'
 
 
 class TokName(Token):
     """A variable or function name."""
-    pass
+    name = 'name'
 
 
 class TokKeyword(Token):
     """A Lua keyword."""
-    pass
+    name = 'keyword'
 
 
 class TokSymbol(Token):
     """A Lua symbol."""
-    pass
+    name = 'symbol'
 
 
 # A mapping of characters that can be escaped in Lua string literals using a

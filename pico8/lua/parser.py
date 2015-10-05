@@ -5,7 +5,42 @@ from . import lexer
 
 
 __all__ = [
+    'Parser',
     'ParserError',
+    'Node',
+    'Chunk',
+    'StatAssignment',
+    'StatFunctionCall',
+    'StatDo',
+    'StatWhile',
+    'StatRepeat',
+    'StatIf',
+    'StatForStep',
+    'StatForIn',
+    'StatFunction',
+    'StatLocalFunction',
+    'StatLocalAssignment',
+    'StatBreak',
+    'StatReturn',
+    'FunctionName',
+    'VarList',
+    'VarName',
+    'VarIndex',
+    'VarAttribute',
+    'NameList',
+    'ExpList',
+    'ExpValue',
+    'VarargDots',
+    'ExpBinOp',
+    'ExpUnOp',
+    'FunctionCall',
+    'FunctionCallMethod',
+    'Function',
+    'FunctionBody',
+    'TableConstructor',
+    'FieldOtherThing',
+    'FieldNamed',
+    'FieldExp',
 ]
 
 
@@ -22,106 +57,9 @@ class ParserError(util.InvalidP8DataError):
             self.msg, self.token.lineno, self.token.charno)
 
 
-class TokenBuffer():
-    """A buffered token stream.
-
-    The parser uses the token buffer for backtracking in an otherwise
-    non-rewindable token stream. A production calls accept() to match
-    terminal productions. If the full production needs to backtrack to
-    the beginning of the current production, it calls rewind(). Once a
-    full production is matched and it is no longer necessary to
-    backtrack, it calls advance(). advance() both sets the reset point
-    and truncates the buffer to free up memory.
-    """
-
-    # TODO: ability to configure TokenBuffer to skip whitespace, comments?
-    # TODO: need to better understand the needs of backtracking; one bookmark
-    #   might not be enough
-    
-    def __init__(self, token_iter):
-        """Initializer.
-
-        Args:
-          token_iter: An iterable that generates tokens.
-        """
-        self._token_iter = token_iter
-
-        # The position of the cursor. The cursor points to the next
-        # token, i.e. the token returned by peek() or matched by
-        # accept(). The value is an absolute index from the beginning
-        # of the token stream.
-        self._pos = 0
-
-        # The cursor position of the first item in the buffer.
-        self._bufpos = 0
-
-        # The token buffer.
-        self._tokenbuf = []
-
-    def _buffer_to_pos(self, pos):
-        """Load tokens from the token stream into the buffer.
-
-        Args:
-          pos: The absolute token position to buffer. Must be > self._bufpos.
-
-        Raises:
-          StopIteration: The token stream ran out of tokens before we reached
-            pos. Max pos = self._bufpos + len(self._tokenbuf).
-        """
-        assert pos > self._bufpos
-        while self._pos >= self._bufpos + len(self._tokenbuf):
-            new_tok = self._token_iter.__next__()
-            self._tokenbuf.append(new_tok)
-            
-    def peek(self):
-        """Return the token under the cursor.
-
-        Returns:
-          The token under the cursor, or None if there is no next token.
-        """
-        try:
-            self._buffer_to_pos(self._pos + 1)
-        except StopIteration:
-            return None
-        return self._tokenbuf[self._pos - self._bufpos]
-
-    def accept(self, tok_pattern):
-        """Match the token under the cursor, and advance the cursor if matched.
-
-        Args:
-          tok_pattern: The lexer.Token subclass or subclass instance
-            to match. If tok is a subclass, the current token matches
-            if it has the same subclass. If tok is an instance, the
-            current token matches if it has the same subclass and
-            equal data.
-
-        Returns:
-          The token under the cursor if it matches, otherwise None.
-        """
-        cur_tok = self.peek()
-        if cur_tok is not None and cur_tok.matches(tok_pattern):
-            self._pos += 1
-            return cur_tok
-        return None
-        
-    def rewind(self):
-        """Rewind the cursor to the last advance() call."""
-        self._pos = self._bufpos
-        
-    def advance(self):
-        """Advance the rewind position to the cursor.
-
-        The parser calls advance() when a production generates an AST
-        node. Prior to that point, the parser can call rewind() to
-        move the cursor back to the location of the previous call to
-        advance() (backtracking).
-        """
-        try:
-            self._buffer_to_pos(self._pos)
-        except StopIteration:
-            self._pos = self._bufpos + len(self._tokenbuf)
-        self._tokenbuf = self._tokenbuf[self._pos - self._bufpos:]
-        self._bufpos = self._pos
+class _Rollback(Exception):
+    """An internal exception for backtracking."""
+    pass
 
 
 class Node():
@@ -132,9 +70,6 @@ class Node():
 # These are all Node subclasses that initialize members with
 # (required) positional arguments. They are created and added to the
 # module's namespace in the loop below the list.
-#
-# TODO: capture newline tokens between statements (def of chunk?)
-# TODO: capture comment tokens as part of every node
 _ast_node_types = (
     ('Chunk', ('stats',)),
     ('StatAssignment', ('varlist', 'explist')),
@@ -162,24 +97,25 @@ _ast_node_types = (
     #   Var*, FunctionCall, Exp*
     ('ExpValue', ('value',)),
 
-    ('ExpDots', (,)),  # TODO: what is this called?
+    ('VarargDots', (,)),
     ('ExpBinOp', ('exp1', 'binop', 'exp2')),
     ('ExpUnOp', ('unop', 'exp')),
+
+    # args: None, ExpList, TableConstructor, str
     ('FunctionCall', ('exp_prefix', 'args')),
     ('FunctionCallMethod', ('exp_prefix', 'methodname', 'args')),
+
     ('Function', ('funcbody',)),
-
-    # parlist: [name, ... [, ExpDots]]
-    ('FunctionBody', ('parlist', 'block')),
-
+    ('FunctionBody', ('parlist', 'dots', 'block')),
     ('TableConstructor', ('fields',)),
-    ('FieldOtherThing', ('exp1', 'exp2')),  # TODO: what is this called?
-    ('FieldNamed', ('name', 'exp')),
+    ('FieldExpKey', ('key_exp', 'exp')),
+    ('FieldNamedKey', ('key_name', 'exp')),
     ('FieldExp', ('exp')),
 )
 for (name, fields) in _ast_node_types:
-    def node_init(self, prefix_space_tokens=None, *args):
-        self._prefix_space_tokens = prefix_space_tokens
+    def node_init(self, start=None, end=None, *args):
+        self._start_token_pos = pos
+        self._end_token_pos = end
         if len(args) != len(fields):
             raise TypeError(
                 'Initializer for {} requires {} fields, saw {}'.format(
@@ -200,10 +136,62 @@ class Parser():
           version: The Pico-8 data version from the game file header.
         """
         self._version = version
-        self._buf = None
+        self._tokens = None
+        self._pos = None
+        
+    def _peek(self):
+        """Return the token under the cursor.
+
+        Returns:
+          The token under the cursor, or None if there is no next token.
+        """
+        if self._pos < len(self._tokens):
+            return self._tokens[self._pos]
+        return None
+
+    def _accept(self, tok_pattern):
+        """Match the token under the cursor, and advance the cursor if matched.
+
+        If tok_pattern is not TokSpace, TokNewline, or TokComment,
+        this method consumes all whitespace, newline, and comment
+        tokens prior to the matched token, and returns them with the
+        token. If the first non-space token does not match, the cursor
+        returns to where it was before the call.
+
+        Args:
+          tok_pattern: The lexer.Token subclass or subclass instance
+            to match. If tok is a subclass, the current token matches
+            if it has the same subclass. If tok is an instance, the
+            current token matches if it has the same subclass and
+            equal data.
+
+        Returns:
+          If the token under the cursor matches, returns the token. Otherwise
+          None.
+        """
+        start_pos = self._pos
+        cur_tok = self._peek()
+
+        if (not isinstance(tok_pattern, lexer.TokSpace) and
+            not isinstance(tok_pattern, lexer.TokNewline) and
+            not isinstance(tok_pattern, lexer.TokComment)):
+            while True:
+                if (not cur_tok.matches(lexer.TokSpace) and
+                    not cur_tok.matches(lexer.TokNewline) and
+                    not cur_tok.matches(lexer.TokComment)):
+                    break
+                self._pos += 1
+                cur_tok = self._peek()
+            
+        if cur_tok is not None and cur_tok.matches(tok_pattern):
+            self._pos += 1
+            return cur_tok
+
+        self._pos = start_pos
+        return None
 
     def _expect(self, tok_pattern):
-        """Accept a token, or raise a ParserError if not found.
+        """Accepts a token, or raises a ParserError if not found.
 
         Args:
           tok_pattern: The lexer.Token subclass or subclass instance
@@ -219,30 +207,56 @@ class Parser():
         if tok is not None:
             return tok
         if isinstance(tok_pattern, type):
-            # TODO: Nicer error message instead of "TokFoo".
-            raise ParserError('Expected {}'.format(tok_pattern.__name__),
-                              token=self._buf.peek())
-        raise ParserError('Expected {}'.format(tok_pattern.data),
-                          token=self._buf.peek())
+            name = getattr(tok_pattern, 'name', tok_pattern.__name__)
+            raise ParserError('Expected {}'.format(name),
+                              token=self._peek())
+        raise ParserError('Expected {}'.format(tok_pattern._data),
+                          token=self._peek())
 
-    def _spaces(self):
-        """Accept zero or more whitespace, newline, and comment tokens.
+    def _assert(self, node_or_none, desc):
+        """Asserts that a node parsed, or raises a ParserError.
+
+        Args:
+          node_or_none: The result of a parsing function.
 
         Returns:
-          A list of zero or more whitespace, newline, and comment tokens.
+          The node, if not None.
+
+        Raises:
+          ParserError: The node is None.
         """
-        space_tokens = []
-        while True:
-            tok = self._buf.accept(lexer.TokSpace)
-            if tok is None:
-                tok = self._buf.accept(lexer.TokNewline)
-            if tok is None:
-                self._buf.accept(lexer.TokComment)
-            if tok is None:
-                break
-            space_tokens.append(tok)
-        return space_tokens
-        
+        if node_or_none is not None:
+            return node_or_none
+        raise ParserError(desc, token=self._peek())
+
+    def _accept_or_rollback(self, tok_pattern):
+        """Accept a token, or raise _Rollback.
+
+        It's up to the caller to remember the old cursor position and
+        roll it back.
+
+        See _accept() for a description.
+
+        Raises:
+          _Rollback: The tok_pattern did not match.
+        """
+        tok = self._accept(tok_pattern)
+        if tok is None:
+            raise _Rollback()
+        return tok
+
+    def _assert_or_rollback(self, node_or_none):
+        """Asserts that a noe parsed, or raises _Rollback.
+
+        See _assert().
+
+        Raises:
+          _Rollback: The node is None.
+        """
+        if node_or_none is None:
+            raise _Rollback()
+        return node_or_none
+    
     def _chunk(self):
         """Parse a chunk / block.
         
@@ -251,6 +265,7 @@ class Parser():
         Returns:
           Chunk(stats)
         """
+        pos = self._pos
         stats = []
         while True:
             stat = self._stat()
@@ -260,7 +275,7 @@ class Parser():
         laststat = self._laststat()
         if laststat is not None:
             stats.append(laststat)
-        return Chunk(stats)
+        return Chunk(start=pos, end=self._pos, stats)
 
     def _stat(self):
         """Parse a stat.
@@ -290,22 +305,111 @@ class Parser():
           StatLocalFunction(funcname, funcbody)
           StatLocalAssignment(namelist, explist)
         """
+        pos = self._pos
+        
         varlist = self._varlist()
         if varlist is not None:
             self._expect(lexer.TokSymbol('='))
-            explist = self._explist
-            if explist is None:
-                raise ParserError('Expected expression in assignment',
-                                  token=self._buf.peek())
-            return StatAssignment(varlist, explist)
+            explist = self._assert(self._explist(),
+                                   'Expected expression in assignment')
+            return StatAssignment(start=pos, end=self._pos, varlist, explist)
 
         functioncall = self._functioncall()
         if functioncall is not None:
-            return StatFunctionCall(functioncall)
+            return StatFunctionCall(start=pos, end=self._pos, functioncall)
 
-        do_tok = self._read(
-        pass
+        if self._accept(lexer.TokKeyword('do')) is not None:
+            block = self._assert(self._block(), 'block in do')
+            self._expect(lexer.TokKeyword('end'))
+            return StatDo(start=pos, end=self._pos, block)
 
+        if self._accept(lexer.TokKeyword('while')) is not None:
+            exp = self._assert(self._exp(), 'exp in while')
+            self._expect(lexer.TokKeyword('do'))
+            block = self._assert(self._chunk(), 'block in while')
+            self._expect(lexer.TokKeyword('end'))
+            return StatWhile(start=pos, end=self._pos, exp, block)
+
+        if self._accept(lexer.TokKeyword('repeat')) is not None:
+            block = self._assert(self._chunk(),
+                                 'block in repeat')
+            self._expect(lexer.TokKeyword('until'))
+            exp = self._assert(self._exp(),
+                               'expression in repeat')
+            return StatRepeat(start=pos, end=self._pos, block, exp)
+
+        if self._accept(lexer.TokKeyword('if')) is not None:
+            exp_block_pairs = []
+            exp = self._exp()
+            self._expect(lexer.TokKeyword('then'))
+            block = self._block()
+            self._assert(block, 'Expected block in if')
+            exp_block_pairs.append((exp, block))
+            while self._accept(lexer.TokKeyword('elseif')) is not None:
+                exp = self._exp()
+                self._expect(lexer.TokKeyword('then'))
+                block = self._block()
+                self._assert(block, 'Expected block in elseif')
+                exp_block_pairs.append((exp, block))
+            if self._accept(lexer.TokKeyword('else')) is not None:
+                block = self._block()
+                self._assert(block, 'Expected block in else')
+                exp_block_pairs.append((None, block))
+            self._expect(lexer.TokKeyword('end'))
+            return StatIf(start=pos, end=self._pos, exp_block_pairs)
+
+        if self._accept(lexer.TokKeyword('for')) is not None:
+            for_pos = self._pos
+            try:
+                name = self._accept_or_rollback(lexer.TokName)
+                self._accept_or_rollback(lexer.TokSymbol('='))
+                exp_init = self._assert_or_rollback(self._exp())
+                self._accept_or_rollback(lexer.TokSymbol(','))
+                exp_end = self._assert_or_rollback(self._exp())
+                exp_step = None
+                if self._accept(lexer.TokSymbol(',')):
+                    exp_step = self._assert_or_rollback(self._exp())
+                self._accept_or_rollback(lexer.TokKeyword('do'))
+                block = self._assert_or_rollback(self._chunk())
+                self._accept_or_rollback(lexer.TokKeyword('end'))
+                return StatForStep(start=pos, end=self._pos,
+                                   name, exp_init, exp_end, exp_step, block)
+            except _Rollback:
+                self._pos = for_pos
+                
+            namelist = self._assert(self._namelist(), 'namelist in for-in')
+            self._expect(lexer.TokKeyword('in'))
+            explist = self._assert(self._explist(), 'explist in for-in')
+            self._expect(lexer.TokKeyword('do'))
+            block = self._assert(self._chunk(), 'block in for-in')
+            self._expect(lexer.TokKeyword('end'))
+            return StatForIn(start=pos, end=self._pos, namelist, explist, block)
+
+        if self._accept(lexer.TokKeyword('function')) is not None:
+            funcname = self._assert(self._funcname(), 'funcname in function')
+            funcbody = self._assert(self._funcbody(), 'funcbody in function')
+            return StatFunction(start=pos, end=self._pos, funcname, funcbody)
+
+        if self._accept(lexer.TokKeyword('local')) is not None:
+            if self._accept(lexer.TokKeyword('function')) is not None:
+                funcname = self._expect(lexer.TokName,
+                                        'name in local function')
+                funcbody = self._assert(self._funcbody(),
+                                        'funcbody in local function')
+                return StatLocalFunction(start=pos, end=self._pos,
+                                         funcname, funcbody)
+            namelist = self._assert(self._namelist(),
+                                    'namelist in local assignment')
+            explist = None
+            if self._accept(lexer.TokSymbol('=')) is not None:
+                explist = self._assert(self._explist(),
+                                       'explist in local assignment')
+            return StatLocalAssignment(start=pos, end=self._pos,
+                                       namelist, explist)
+
+        self._pos = pos
+        return None
+        
     def _laststat(self):
         """Parse a laststat.
 
@@ -315,7 +419,14 @@ class Parser():
           StatBreak()
           StatReturn(explist)
         """
-        pass
+        pos = self._pos
+        if self._accept(lexer.TokKeyword('break')) is not None:
+            return StatBreak(start=pos, end=self._pos)
+        if self._accept(lexer.TokKeyword('return')) is not None:
+            explist = self._explist()
+            return StatReturn(start=pos, end=self._pos, explist)
+        self._pos = pos
+        return None
 
     def _funcname(self):
         """Parse a funcname.
@@ -325,7 +436,20 @@ class Parser():
         Returns:
           FunctionName(namepath, methodname)
         """
-        pass
+        pos = self._pos
+        namepath = []
+        methodname = None
+        
+        name = self._accept(lexer.TokName)
+        if name is None:
+            return None
+        namepath.append(name)
+        while self._accept(lexer.TokSymbol('.')) is not None:
+            namepath.append(self._expect(lexer.TokName))
+        if self._accept(lexer.TokSymbol(':')) is not None:
+            methodname = self._expect(lexer.TokName)
+
+        return FunctionName(start=pos, end=self._pos, namepath, methodname)
 
     def _varlist(self):
         """Parse a varlist.
@@ -335,7 +459,15 @@ class Parser():
         Returns:
           VarList(vars)
         """
-        pass
+        pos = self._pos
+        _vars = []
+        var = self._var()
+        if var is None:
+            return None
+        _vars.append(var)
+        while self._accept(lexer.TokSymbol(',')) is not None:
+            _vars.append(self._assert(self._var(), 'var in varlist'))
+        return VarList(start=pos, end=self._pos, _vars)
 
     def _var(self):
         """Parse a var.
@@ -347,7 +479,23 @@ class Parser():
           VarIndex(exp_prefix, exp_index)
           VarAttribute(exp_prefix, attr_name)
         """
-        pass
+        pos = self._pos
+
+        name = self._accept(lexer.TokName)
+        if name is not None:
+            return VarName(start=pos, end=self._pos, name)
+        self._pos = pos
+
+        exp_prefix = self.assert_(self._prefixexp(),
+                                  'prefixexp in var')
+        if self._accept(lexer.TokSymbol('[')) is not None:
+            exp_index = self._assert(self._exp(), 'exp index in var')
+            self._expect(lexer.TokSymbol(']'))
+            return VarIndex(start=pos, end=self._pos, exp_prefix, exp_index)
+                
+        self._expect(lexer.TokSymbol('.'))
+        attr_name = self._expect(lexer.TokName)
+        return VarAttribute(start=pos, end=self._pos, exp_prefix, attr_name)
 
     def _namelist(self):
         """Parse a namelist.
@@ -357,7 +505,16 @@ class Parser():
         Returns:
           NameList(names)
         """
-        pass
+        pos = self._pos
+        names = []
+        name = self._accept(lexer.TokName)
+        if name is None:
+            return None
+        names.append(name)
+        while self._accept(lexer.TokSymbol(',')) is not None:
+            names.append(self._expect(lexer.TokName))
+            
+        return NameList(start=pos, end=self._pos, names)
 
     def _explist(self):
         """Parse an explist.
@@ -367,7 +524,18 @@ class Parser():
         Returns:
           ExpList(exps)
         """
-        pass
+        pos = self._pos
+        exps = []
+        while True:
+            exp = self._exp()
+            if exp is None:
+                break
+            exps.append(exp)
+            if self._accept(lexer.TokSymbol(',')) is None:
+                break
+        if len(exps) == 0:
+            return None
+        return ExpList(start=pos, end=self._pos, exps)
 
     def _exp(self):
         """Parse an exp.
@@ -377,11 +545,52 @@ class Parser():
 
         Returns:
           ExpValue(value)
-          ExpDots()
+          VarargDots()
           ExpBinOp(exp1, binop, exp2)
           ExpUnOp(unop, exp)
         """
-        pass
+        pos = self._pos
+        if self._accept(lexer.TokKeyword('nil')) is not None:
+            return ExpValue(start=pos, end=self._pos, None)
+        if self._accept(lexer.TokKeyword('false')) is not None:
+            return ExpValue(start=pos, end=self._pos, False)
+        if self._accept(lexer.TokKeyword('true')) is not None:
+            return ExpValue(start=pos, end=self._pos, True)
+        val = self._accept(lexer.TokNumber)
+        if val is not None:
+            return ExpValue(start=pos, end=self._pos, val._data)
+        val = self._accept(lexer.TokString)
+        if val is not None:
+            return ExpValue(start=pos, end=self._pos, val._data)
+        if self._accept(lexer.TokSymbol('...')) is not None:
+            return VarargDots(start=pos, end=self._pos)
+        val = self._function()
+        if val is not None:
+            return ExpValue(start=pos, end=self._pos, val)
+        val = self._prefixexp()
+        if val is not None:
+            return ExpValue(start=pos, end=self._pos, val)
+        val = self._tableconstructor()
+        if val is not None:
+            return ExpValue(start=pos, end=self._pos, val)
+        
+        # TODO: Is "exp binop exp" what is meant by left recursion? What to do?
+        # exp1 = self._exp()
+        # if exp1 is not None:
+        #     binop_pats = ([lexer.TokSymbol(sym) for sym in []] +
+        #                   [lexer.TokKeyword('and'), lexer.TokKeyword('or')])
+        #     for pat in binop_pats:
+        #         binop = self._accept(pat)
+        #         if binop is not None:
+        #             exp2 = self._assert(self._exp(), 'exp2 in binop')
+        #             return ExpBinOp(start=pos, end=self._pos, exp1, binop, exp2)
+
+        unop = self._accept(lexer.TokSymbol('-'))
+        if unop is None:
+            unop = self._accept(lexer.TokKeyword('not'))
+            if unop is None:
+                unop = self._expect(lexer.TokSymbol('#'))
+        return ExpUnOp(start=pos, end=self._pos, unop, exp)
     
     def _prefixexp(self):
         """Parse a prefixexp.
@@ -395,11 +604,23 @@ class Parser():
           VarAttribute(exp_prefix, attr_name)
           FunctionCall(exp_prefix, args)
           ExpValue(value)
-          ExpDots()
+          VarargDots()
           ExpBinOp(exp1, binop, exp2)
           ExpUnOp(unop, exp)
         """
-        pass
+        pos = self._pos
+        try:
+            return self._assert_or_rollback(self._var())
+        except _Rollback:
+            self._pos = pos
+        try:
+            return self._assert_or_rollback(self._functioncall())
+        except _Rollback:
+            self._pos = pos
+        self._expect(lexer.TokSymbol('('))
+        exp = self._assert(self._exp(), 'exp in (...)')
+        self._expect(lexer.TokSymbol(')'))
+        return exp
 
     def _functioncall(self):
         """Parse a functioncall.
@@ -410,9 +631,36 @@ class Parser():
 
         Returns:
           FunctionCall(exp_prefix, args)
+          FunctionCallMethod(exp_prefix, methodname, args)
         """
-        pass
-    
+        pos = self._pos
+        exp_prefix = self._assert(self._prefixexp(),
+                                  'prefixexp in functioncall')
+        methodname = None
+        if self._accept(lexer.TokSymbol(':')):
+            methodname = self._expect(lexer.TokName)
+
+        if self._accept(lexer.TokSymbol('(')):
+            explist = self._explist()
+            self._expect(lexer.TokSymbol(')'))
+            if methodname:
+                return FunctionCallMethod(start=pos, end=self._pos, exp_prefix,
+                                          method, explist)
+            return FunctionCall(start=pos, end=self._pos, exp_prefix, explist)
+
+        tableconstructor = self._tableconstructor()
+        if tableconstructor is not None:
+            if methodname:
+                return FunctionCallMethod(start=pos, end=self._pos, exp_prefix,
+                                          methodname, tableconstructor)
+            return FunctionCall(start=pos, end=self._pos, exp_prefix, explist)
+        
+        string_lit = self._expect(lexer.TokString)._data
+        if methodname:
+            return FunctionCallMethod(start=pos, end=self._pos, exp_prefix,
+                                      methodname, string_lit)
+        return FunctionCall(start=pos, end=self._pos, exp_prefix, string_lit)
+        
     def _function(self):
         """Parse a function.
 
@@ -421,7 +669,11 @@ class Parser():
         Returns:
           Function(funcbody)
         """
-        pass
+        pos = self._pos
+        if self._accept(lexer.TokKeyword('function')):
+            funcbody = self._assert(self._funcbody(), 'funcbody in function')
+            return Function(start=pos, end=self._pos, funcbody)
+        return None
 
     def _funcbody(self):
         """Parse a funcbody.
@@ -431,9 +683,27 @@ class Parser():
 	parlist ::= namelist [`,´ `...´] | `...´
 
         Returns:
-          FunctionBody(parlist, block)
+          FunctionBody(parlist, dots, block)
         """
-        pass
+        pos = self._pos
+        if self._accept(lexer.TokSymbol('(')) is None:
+            return None
+
+        namelist = self._namelist()
+        dots = None
+        if namelist is not None:
+            if self._accept(lexer.TokSymbol(',')) is not None:
+                dots = self._expect(lexer.TokSymbol('...'))
+        else:
+            dots = self._accept(lexer.TokSymbol('...'))
+        if dots is not None:
+            dots = VarargDots()
+
+        self._expect(lexer.TokSymbol(')'))
+        block = self._assert(self._chunk(), 'block in funcbody')
+        self._expect(lexer.TokKeyword('end'))
+            
+        return FunctionBody(start=pos, end=self._pos, namelist, dots, block)
 
     def _tableconstructor(self):
         """Parse a tableconstructor.
@@ -447,7 +717,22 @@ class Parser():
         Returns:
           TableConstructor(fields)
         """
-        pass
+        pos = self._pos
+        if self._accept(lexer.TokSymbol('{')) is None:
+            return None
+
+        fields = []
+        field = self._field()
+        while field is not None:
+            fields.append(field)
+            if (self._accept(lexer.TokSymbol(',')) is not None or
+                self._accept(lexer.TokSymbol(';')) is not None):
+                field = self._field()
+        if self._accept(lexer.TokSymbol(',')) is None:
+            self._accept(lexer.TokSymbol(';'))
+
+        self._expect(lexer.TokSymbol('}'))
+        return TableConstructor(start=pos, end=self._pos, fields)
 
     def _field(self):
         """Parse a field.
@@ -455,16 +740,38 @@ class Parser():
         field ::= `[´ exp `]´ `=´ exp | Name `=´ exp | exp
 
         Returns:
-          FieldOtherThing(exp1, exp2)
-          FieldNamed(name, exp)
+          FieldExpKey(key_exp, exp)
+          FieldNamedKey(key_name, exp)
           FieldExp(exp)
         """
-        pass
+        pos = self._pos
+        if self._accept(lexer.TokSymbol('[')):
+            key_exp = self._assert(self._exp(), 'exp key in field')
+            self._expect(lexer.TokSymbol(']'))
+            self._expect(lexer.TokSymbol('='))
+            exp = self._assert(self._exp(), 'exp value in field')
+            return FieldExpKey(start=pos, end=self._pos, key_exp, exp)
+
+        key_name = self._accept(lexer.TokName)
+        if (key_name is not None and
+            self._accept(lexer.TokSymbol('=')) is not None):
+            exp = self._assert(self._exp(), 'exp value in field')
+            return FieldNamedKey(start=pos, end=self._pos, key_name, exp)
+        self._pos = pos
+        
+        exp = self._assert(self._exp(), 'exp value in field')
+        return FieldExp(start=pos, end=self._pos, exp)
         
     def process_tokens(self, tokens):
-        """
+        """Process a list of tokens into an AST.
+
+        This method must be single-threaded. To process multiple
+        tokens in multiple threads, use one Parser instance per
+        thread.
+
         Args:
-          tokens: An iterable of lexer.Token objects.
+          tokens: An iterable of lexer.Token objects. All tokens will
+            be loaded into memory for processing.
 
         Returns:
           The root Node of the AST.
@@ -472,5 +779,7 @@ class Parser():
         Raises:
           ParserError: Some pattern of tokens did not match the grammar.
         """
-        self._buf = TokenBuffer(tokens)
-        return self._chunk(TokenBuffer(tokens))
+        self._tokens = list(tokens)
+        self._pos = 0
+        ast = self._assert(self._chunk(), 'input to be a program')
+        return ast
