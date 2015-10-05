@@ -173,7 +173,11 @@ class Lexer():
     """
     
     def __init__(self, version):
-        """Initializer."""
+        """Initializer.
+
+        Args:
+          version: The Pico-8 data version from the game file header.
+        """
         self._version = version
         self._tokens = []
         self._cur_lineno = 0
