@@ -36,5 +36,5 @@ class Lua():
         """
         result = Lua(version)
         result._lexer.process_lines(lines)
-        result._parser.process_tokens(result._lexer.tokens)
+        # result._parser.process_tokens(result._lexer.tokens)
         return result
