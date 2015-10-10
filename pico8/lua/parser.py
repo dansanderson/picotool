@@ -23,6 +23,7 @@ __all__ = [
     'StatBreak',
     'StatReturn',
     'FunctionName',
+    'FunctionArgs',
     'VarList',
     'VarName',
     'VarIndex',
@@ -57,11 +58,6 @@ class ParserError(util.InvalidP8DataError):
             self.msg, self.token._lineno, self.token._charno)
 
 
-class _Rollback(Exception):
-    """An internal exception for backtracking."""
-    pass
-
-
 class Node():
     """A base class for all AST nodes."""
     pass
@@ -93,10 +89,12 @@ _ast_node_types = (
     ('NameList', ('names',)),
     ('ExpList', ('exps',)),
 
+    # TODO: rewrite expression parsing so that the AST captures associativity.
+    # (See _exp_binop). Right now, all binary operators chain left to right.
+    #
     # value: None, False, True, number, string, Function, TableConstructor,
     #   Var*, FunctionCall, Exp*
     ('ExpValue', ('value',)),
-
     ('VarargDots', ()),
     ('ExpBinOp', ('exp1', 'binop', 'exp2')),
     ('ExpUnOp', ('unop', 'exp')),
@@ -125,6 +123,13 @@ for (name, fields) in _ast_node_types:
     cls = type(name, (Node,), {'__init__': node_init})
     globals()[name] = cls
 
+
+# (!= is PICO-8 specific.)
+BINOP_PATS = ([lexer.TokSymbol(sym) for sym in [
+    '<', '>', '<=', '>=', '~=', '!=', '==' '..', '+', '-', '*', '/', '%', '^'
+]] + [lexer.TokKeyword('and'), lexer.TokKeyword('or')])
+
+    
     
 class Parser():
     """The parser."""
@@ -231,34 +236,6 @@ class Parser():
             return node_or_none
         raise ParserError(desc, token=self._peek())
 
-    def _accept_or_rollback(self, tok_pattern):
-        """Accept a token, or raise _Rollback.
-
-        It's up to the caller to remember the old cursor position and
-        roll it back.
-
-        See _accept() for a description.
-
-        Raises:
-          _Rollback: The tok_pattern did not match.
-        """
-        tok = self._accept(tok_pattern)
-        if tok is None:
-            raise _Rollback()
-        return tok
-
-    def _assert_or_rollback(self, node_or_none):
-        """Asserts that a noe parsed, or raises _Rollback.
-
-        See _assert().
-
-        Raises:
-          _Rollback: The node is None.
-        """
-        if node_or_none is None:
-            raise _Rollback()
-        return node_or_none
-    
     def _chunk(self):
         """Parse a chunk / block.
         
@@ -273,10 +250,14 @@ class Parser():
             stat = self._stat()
             if stat is None:
                 break
+            if self._accept(lexer.TokSymbol(';')) is not None:
+                stat._end_token_pos = self._pos
             stats.append(stat)
         laststat = self._laststat()
         if laststat is not None:
             stats.append(laststat)
+        if self._accept(lexer.TokSymbol(';')) is not None:
+            laststat._end_token_pos = self._pos
         return Chunk(stats, start=pos, end=self._pos)
 
     def _stat(self):
@@ -362,22 +343,22 @@ class Parser():
 
         if self._accept(lexer.TokKeyword('for')) is not None:
             for_pos = self._pos
-            try:
-                name = self._accept_or_rollback(lexer.TokName)
-                self._accept_or_rollback(lexer.TokSymbol('='))
-                exp_init = self._assert_or_rollback(self._exp())
-                self._accept_or_rollback(lexer.TokSymbol(','))
-                exp_end = self._assert_or_rollback(self._exp())
+
+            name = self._accept(lexer.TokName)
+            eq_sym = self._accept(lexer.TokSymbol('='))
+            if eq_sym is not None:
+                exp_init = self._assert(self._exp(), 'exp-init in for')
+                self._expect(lexer.TokSymbol(','))
+                exp_end = self._assert(self._exp(), 'exp-end in for')
                 exp_step = None
                 if self._accept(lexer.TokSymbol(',')):
-                    exp_step = self._assert_or_rollback(self._exp())
-                self._accept_or_rollback(lexer.TokKeyword('do'))
-                block = self._assert_or_rollback(self._chunk())
-                self._accept_or_rollback(lexer.TokKeyword('end'))
+                    exp_step = self._assert(self._exp(), 'exp-step in for')
+                self._expect(lexer.TokKeyword('do'))
+                block = self._assert(self._chunk(), 'block in for')
+                self._expect(lexer.TokKeyword('end'))
                 return StatForStep(name, exp_init, exp_end, exp_step, block,
                                    start=pos, end=self._pos)
-            except _Rollback:
-                self._pos = for_pos
+            self._pos = for_pos
                 
             namelist = self._assert(self._namelist(), 'namelist in for-in')
             self._expect(lexer.TokKeyword('in'))
@@ -488,7 +469,6 @@ class Parser():
             return VarName(name, start=pos, end=self._pos)
         self._pos = pos
 
-        # TODO: BUG, recursive definition
         exp_prefix = self._assert(self._prefixexp(),
                                   'prefixexp in var')
         if self._accept(lexer.TokSymbol('[')) is not None:
@@ -543,13 +523,63 @@ class Parser():
     def _exp(self):
         """Parse an exp.
 
-        exp ::=  nil | false | true | Number | String | `...´ | function | 
-		 prefixexp | tableconstructor | exp binop exp | unop exp
+        exp ::= exp_term exp_binop
 
         Returns:
           ExpValue(value)
           VarargDots()
+          ExpUnOp(unop, exp)
           ExpBinOp(exp1, binop, exp2)
+        """
+        pos = self._pos
+        exp_term = self._assert(self._exp_term())
+        return self._exp_binop(exp_term)
+
+    def _exp_binop(self, exp_first):
+        """Parse the recursive part of a binary-op expression.
+
+        exp_binop ::= binop exp_term exp_binop | <empty>
+
+        Args:
+          exp_first: The already-made first argument to the operator.
+
+        Returns:
+          ExpBinOp(exp_first, binop, exp_term, exp_binop)
+          exp_first
+        """
+        pos = self._pos
+
+        # TODO: rewrite binary expression parsing so that the AST captures
+        # associativity:
+        #   or
+        #   and
+        #   < > <= >= ~= != ==
+        #   .. (right associative)
+        #   + -
+        #   * / %
+        #   not # - (unary)
+        #   ^ (right associative)
+
+        for pat in BINOP_PATS:
+            binop = self._accept(pat)
+            if binop is not None:
+                exp_second = self._assert(self._exp_term(), 'exp2 in binop')
+                this_binop = ExpBinOp(exp_first, binop, exp_second,
+                                      start=pos, end=self._pos)
+                return self._exp_binop(this_binop)
+
+        self._pos = pos
+        return exp_first
+        
+    def _exp_term(self):
+        """Parse a non-recursive expression term.
+
+        exp_term ::=  nil | false | true | Number | String | `...´ | function | 
+                      prefixexp | tableconstructor | unop exp
+
+        Returns:
+          ExpValue(value)
+          VarargDots()
           ExpUnOp(unop, exp)
         """
         pos = self._pos
@@ -577,22 +607,12 @@ class Parser():
         if val is not None:
             return ExpValue(val, start=pos, end=self._pos)
         
-        # TODO: Is "exp binop exp" what is meant by left recursion? What to do?
-        # exp1 = self._exp()
-        # if exp1 is not None:
-        #     binop_pats = ([lexer.TokSymbol(sym) for sym in []] +
-        #                   [lexer.TokKeyword('and'), lexer.TokKeyword('or')])
-        #     for pat in binop_pats:
-        #         binop = self._accept(pat)
-        #         if binop is not None:
-        #             exp2 = self._assert(self._exp(), 'exp2 in binop')
-        #             return ExpBinOp(exp1, binop, exp2, start=pos, end=self._pos)
-
         unop = self._accept(lexer.TokSymbol('-'))
         if unop is None:
             unop = self._accept(lexer.TokKeyword('not'))
             if unop is None:
                 unop = self._expect(lexer.TokSymbol('#'))
+        exp = self._assert(self._exp(), 'exp after unary op')
         return ExpUnOp(unop, exp, start=pos, end=self._pos)
     
     def _prefixexp(self):
@@ -600,70 +620,125 @@ class Parser():
 
         prefixexp ::= var | functioncall | `(´ exp `)´
 
+        functioncall ::=  prefixexp args | prefixexp `:´ Name args
+
+        args ::=  `(´ [explist] `)´ | tableconstructor | String
+
+        This expands to:
+
+        prefixexp ::= Name | prefixexp '[' exp ']' | prefixexp '.' Name |
+                      prefixexp args | prefixexp ':' Name args | '(' exp ')'
+
+        Or:
+
+        prefixexp ::= Name prefixexp_recur |
+                      '(' exp ')' prefixexp_recur
+
         Returns:
           VarList(vars)
           VarName(name)
           VarIndex(exp_prefix, exp_index)
           VarAttribute(exp_prefix, attr_name)
           FunctionCall(exp_prefix, args)
+          FunctionCallMethod(exp_prefix, methodname, args)
           ExpValue(value)
           VarargDots()
           ExpBinOp(exp1, binop, exp2)
           ExpUnOp(unop, exp)
         """
         pos = self._pos
-        try:
-            return self._assert_or_rollback(self._var())
-        except _Rollback:
-            self._pos = pos
-        try:
-            return self._assert_or_rollback(self._functioncall())
-        except _Rollback:
-            self._pos = pos
+        name = self._accept(lexer.TokName)
+        if name is not None:
+            return self._prefixexp_recur(
+                VarName(name, start=pos, end=self._pos))
+        
         self._expect(lexer.TokSymbol('('))
-        exp = self._assert(self._exp(), 'exp in (...)')
+        # (exp can be None.)
+        exp = self._exp()
         self._expect(lexer.TokSymbol(')'))
-        return exp
+        return self._prefixexp_recur(exp)
 
+    def _prefiexexp_recur(self, prefixexp_first):
+        """Parse the recurring part of a prefixexp.
+
+        prefixexp_recur ::= '[' exp ']' prefixexp_recur |   # VarIndex
+                            '.' Name prefixexp_recur |      # VarAttribute
+                            args prefixexp_recur |          # FunctionCall
+                            ':' Name args prefixexp_recur | # FunctionCallMethod
+                            <empty>
+
+        Args:
+          prefixexp_first: The first part of the prefixexp.
+
+        Returns:
+          VarIndex(exp_prefix, exp_index)
+          VarAttribute(exp_prefix, attr_name)
+          FunctionCall(exp_prefix, args)
+          FunctionCallMethod(exp_prefix, methodname, args)
+          prefixexp_first
+        """
+        pos = self._pos
+        if self._accept(lexer.TokSymbol('[')) is not None:
+            exp = self._assert(self._exp(), 'exp in prefixexp index')
+            self._expect(lexer.TokSymbol(']'))
+            return self._prefixexp_recur(VarIndex(prefixexp_first, exp,
+                                                  start=pos, end=self._pos))
+        if self._accept(lexer.TokSymbol('.')) is not None:
+            name = self._expect(lexer.TokName)
+            return self._prefixexp_recur(VarAttribute(prefixexp_first, name,
+                                                      start=pos, end=self._pos))
+        args = self._args()
+        if args is not None:
+            return self._prefixexp_recur(FunctionCall(prefixexp_first, args,
+                                                      start=pos, end=self._pos))
+        if self._accept(lexer.TokSymbol(':')) is not None:
+            name = self._expect(lexer.TokName)
+            args = self._assert(self._args(), 'args for method call')
+            return self._prefixexp_recur(
+                FunctionCallMethod(prefixexp_first, name, args,
+                                   start=pos, end=self._pos))
+        return prefixexp_first
+    
     def _functioncall(self):
         """Parse a functioncall.
-
-        functioncall ::=  prefixexp args | prefixexp `:´ Name args
-
-        args ::=  `(´ [explist] `)´ | tableconstructor | String
 
         Returns:
           FunctionCall(exp_prefix, args)
           FunctionCallMethod(exp_prefix, methodname, args)
         """
         pos = self._pos
-        exp_prefix = self._assert(self._prefixexp(),
-                                  'prefixexp in functioncall')
-        methodname = None
-        if self._accept(lexer.TokSymbol(':')):
-            methodname = self._expect(lexer.TokName)
 
+        full_exp = self._assert(self._prefixexp(),
+                                'prefixexp in functioncall')
+        if (not isinstance(full_exp, FunctionCall) and
+            not isinstance(full_exp, FunctionCallMethod)):
+            raise ParserError('exp is not a functioncall', token=self._peek())
+        return full_exp
+
+    def _args(self):
+        """Parse functioncall args.
+
+        Returns:
+          ExpList(exps)
+          TableConstructor(fields)
+          str
+          None
+        """
+        pos = self._pos
         if self._accept(lexer.TokSymbol('(')):
             explist = self._explist()
             self._expect(lexer.TokSymbol(')'))
-            if methodname:
-                return FunctionCallMethod(exp_prefix, method, explist,
-                                          start=pos, end=self._pos)
-            return FunctionCall(exp_prefix, explist, start=pos, end=self._pos)
+            return explist
 
         tableconstructor = self._tableconstructor()
         if tableconstructor is not None:
-            if methodname:
-                return FunctionCallMethod(exp_prefix, methodname,
-                                          tableconstructor,
-                                          start=pos, end=self._pos)
-            return FunctionCall(exp_prefix, explist, start=pos, end=self._pos)
+            return tableconstructor
         
-        string_lit = self._expect(lexer.TokString)._data
-        if methodname:
-            return FunctionCallMethod(exp_prefix, methodname, string_lit,
-                                      start=pos, end=self._pos)
-        return FunctionCall(exp_prefix, string_lit, start=pos, end=self._pos)
+        string_lit = self._accept(lexer.TokString)
+        if string_lit is not None:
+            return string_lit._data
+        
+        return None
         
     def _function(self):
         """Parse a function.
