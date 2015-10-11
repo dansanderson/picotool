@@ -101,9 +101,52 @@ class TestParser(unittest.TestCase):
         self.assertIsNone(node)
         self.assertEqual(0, p._pos)
     
-    #def testExpValue(self):
+    def testExpValueNil(self):
+        p = get_parser('nil')
+        node = p._exp()
+        self.assertIsNotNone(node)
+        self.assertTrue(isinstance(node, parser.ExpValue))
+        self.assertEqual(None, node.value)
+
+    def testExpValueFalse(self):
+        p = get_parser('false')
+        node = p._exp()
+        self.assertIsNotNone(node)
+        self.assertTrue(isinstance(node, parser.ExpValue))
+        self.assertEqual(False, node.value)
+
+    def testExpValueTrue(self):
+        p = get_parser('true')
+        node = p._exp()
+        self.assertIsNotNone(node)
+        self.assertTrue(isinstance(node, parser.ExpValue))
+        self.assertEqual(True, node.value)
+
+    def testExpValueNumber(self):
+        p = get_parser('123.45')
+        node = p._exp()
+        self.assertIsNotNone(node)
+        self.assertTrue(isinstance(node, parser.ExpValue))
+        self.assertEqual('123.45', node.value)
+        
+    def testExpValueString(self):
+        p = get_parser('"string literal"')
+        node = p._exp()
+        self.assertIsNotNone(node)
+        self.assertTrue(isinstance(node, parser.ExpValue))
+        self.assertEqual('string literal', node.value)
+        
+    def testExpValueDots(self):
+        p = get_parser('...')
+        node = p._exp()
+        self.assertIsNotNone(node)
+        self.assertTrue(isinstance(node, parser.VarargDots))
+        
+    #def testExpValueFunction(self):
     #    pass
-    #def testExpVarargDots(self):
+    #def testExpValuePrefixExp(self):
+    #    pass
+    #def testExpValueTableConstructor(self):
     #    pass
     #def testExpUnOp(self):
     #    pass

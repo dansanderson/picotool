@@ -531,7 +531,7 @@ class Parser():
           ExpBinOp(exp1, binop, exp2)
         """
         pos = self._pos
-        exp_term = self._assert(self._exp_term())
+        exp_term = self._assert(self._exp_term(), 'term in exp')
         return self._exp_binop(exp_term)
 
     def _exp_binop(self, exp_first):
