@@ -108,19 +108,20 @@ _ast_node_types = (
     ('TableConstructor', ('fields',)),
     ('FieldExpKey', ('key_exp', 'exp')),
     ('FieldNamedKey', ('key_name', 'exp')),
-    ('FieldExp', ('exp')),
+    ('FieldExp', ('exp',)),
 )
 for (name, fields) in _ast_node_types:
     def node_init(self, *args, **kwargs):
         self._start_token_pos = kwargs.get('start')
         self._end_token_pos = kwargs.get('end')
-        if len(args) != len(fields):
+        if len(args) != len(self._fields):
             raise TypeError(
                 'Initializer for {} requires {} fields, saw {}'.format(
-                    name, len(fields), len(args)))
-        for i in range(len(fields)):
-            setattr(self, fields[i], args[i])
-    cls = type(name, (Node,), {'__init__': node_init})
+                    self._name, len(self._fields), len(args)))
+        for i in range(len(self._fields)):
+            setattr(self, self._fields[i], args[i])
+    cls = type(name, (Node,), {'__init__': node_init,
+                               '_name': name, '_fields': fields})
     globals()[name] = cls
 
 
