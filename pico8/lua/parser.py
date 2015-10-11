@@ -531,7 +531,9 @@ class Parser():
           ExpBinOp(exp1, binop, exp2)
         """
         pos = self._pos
-        exp_term = self._assert(self._exp_term(), 'term in exp')
+        exp_term = self._exp_term()
+        if exp_term is None:
+            return None
         return self._exp_binop(exp_term)
 
     def _exp_binop(self, exp_first):
@@ -610,7 +612,9 @@ class Parser():
         if unop is None:
             unop = self._accept(lexer.TokKeyword('not'))
             if unop is None:
-                unop = self._expect(lexer.TokSymbol('#'))
+                unop = self._accept(lexer.TokSymbol('#'))
+                if unop is None:
+                    return None
         exp = self._assert(self._exp(), 'exp after unary op')
         return ExpUnOp(unop, exp, start=pos, end=self._pos)
     
@@ -651,13 +655,15 @@ class Parser():
             return self._prefixexp_recur(
                 VarName(name, start=pos, end=self._pos))
         
-        self._expect(lexer.TokSymbol('('))
-        # (exp can be None.)
-        exp = self._exp()
-        self._expect(lexer.TokSymbol(')'))
-        return self._prefixexp_recur(exp)
+        if self._accept(lexer.TokSymbol('(')) is not None:
+            # (exp can be None.)
+            exp = self._exp()
+            self._expect(lexer.TokSymbol(')'))
+            return self._prefixexp_recur(exp)
 
-    def _prefiexexp_recur(self, prefixexp_first):
+        return None
+
+    def _prefixexp_recur(self, prefixexp_first):
         """Parse the recurring part of a prefixexp.
 
         prefixexp_recur ::= '[' exp ']' prefixexp_recur |   # VarIndex

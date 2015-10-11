@@ -141,18 +141,40 @@ class TestParser(unittest.TestCase):
         node = p._exp()
         self.assertIsNotNone(node)
         self.assertTrue(isinstance(node, parser.VarargDots))
-        
+
+    def testExpValueErr(self):
+        p = get_parser('break')
+        node = p._exp()
+        self.assertIsNone(node)
+
+    def testExpUnOpHash(self):
+        p = get_parser('#foo')
+        node = p._exp()
+        self.assertIsNotNone(node)
+        self.assertTrue(isinstance(node, parser.ExpUnOp))
+        self.assertEqual('#', node.unop._data)
+        self.assertTrue(isinstance(node.exp.value, parser.VarName))
+        self.assertEqual(lexer.TokName('foo'), node.exp.value.name)
+
+    def testExpUnOpMinus(self):
+        p = get_parser('-45')
+        node = p._exp()
+        self.assertIsNotNone(node)
+        self.assertTrue(isinstance(node, parser.ExpUnOp))
+        self.assertEqual('-', node.unop._data)
+        self.assertTrue(isinstance(node.exp, parser.ExpValue))
+        self.assertEqual('45', node.exp.value)
+
+    #def testExpBinOp(self):
+    #    pass
+    #def testExpBinOpChain(self):
+    #    pass
+
     #def testExpValueFunction(self):
     #    pass
     #def testExpValuePrefixExp(self):
     #    pass
     #def testExpValueTableConstructor(self):
-    #    pass
-    #def testExpUnOp(self):
-    #    pass
-    #def testExpBinOp(self):
-    #    pass
-    #def testExpBinOpChain(self):
     #    pass
 
     #def testExpList(self):
