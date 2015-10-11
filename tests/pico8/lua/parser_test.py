@@ -169,23 +169,113 @@ class TestParser(unittest.TestCase):
         p = get_parser('1 + 2')
         node = p._exp()
         self.assertIsNotNone(node)
+        self.assertEqual(5, p._pos)
         
     def testExpBinOpChain(self):
         p = get_parser('1 + 2 * 3 - 4 / 5..6^7 > 8 != foo')
         node = p._exp()
         self.assertIsNotNone(node)
+        self.assertEqual(29, p._pos)
+        self.assertEqual('foo', node.exp2.value.name._data)
+        self.assertEqual('!=', node.binop._data)
+        self.assertEqual('8', node.exp1.exp2.value)
+        self.assertEqual('>', node.exp1.binop._data)
+        self.assertEqual('7', node.exp1.exp1.exp2.value)
+        self.assertEqual('^', node.exp1.exp1.binop._data)
+        self.assertEqual('6', node.exp1.exp1.exp1.exp2.value)
+        self.assertEqual('..', node.exp1.exp1.exp1.binop._data)
+        self.assertEqual('5', node.exp1.exp1.exp1.exp1.exp2.value)
+        self.assertEqual('/', node.exp1.exp1.exp1.exp1.binop._data)
+        self.assertEqual('4', node.exp1.exp1.exp1.exp1.exp1.exp2.value)
+        self.assertEqual('-', node.exp1.exp1.exp1.exp1.exp1.binop._data)
+        self.assertEqual('3', node.exp1.exp1.exp1.exp1.exp1.exp1.exp2.value)
+        self.assertEqual('*', node.exp1.exp1.exp1.exp1.exp1.exp1.binop._data)
+        self.assertEqual('2', node.exp1.exp1.exp1.exp1.exp1.exp1.exp1.exp2.value)
+        self.assertEqual('+', node.exp1.exp1.exp1.exp1.exp1.exp1.exp1.binop._data)
+        self.assertEqual('1', node.exp1.exp1.exp1.exp1.exp1.exp1.exp1.exp1.value)
 
-    #def testExpValueFunction(self):
-    #    pass
+    def testExpList(self):
+        p = get_parser('1, 2, 3 - 4, 5..6^7, foo')
+        node = p._explist()
+        self.assertIsNotNone(node)
+        self.assertEqual(21, p._pos)
+        self.assertEqual(5, len(node.exps))
+        self.assertEqual('1', node.exps[0].value)
+        self.assertEqual('2', node.exps[1].value)
+        self.assertEqual('3', node.exps[2].exp1.value)
+        self.assertEqual('-', node.exps[2].binop._data)
+        self.assertEqual('4', node.exps[2].exp2.value)
+        self.assertEqual('5', node.exps[3].exp1.exp1.value)
+        self.assertEqual('..', node.exps[3].exp1.binop._data)
+        self.assertEqual('6', node.exps[3].exp1.exp2.value)
+        self.assertEqual('^', node.exps[3].binop._data)
+        self.assertEqual('7', node.exps[3].exp2.value)
+        self.assertEqual('foo', node.exps[4].value.name._data)
+
+    def testPrefixExpName(self):
+        p = get_parser('foo')
+        node = p._prefixexp()
+        self.assertIsNotNone(node)
+        self.assertEqual(1, p._pos)
+        
+    def testPrefixExpParenExp(self):
+        p = get_parser('(2 + 3)')
+        node = p._prefixexp()
+        self.assertIsNotNone(node)
+        self.assertEqual(7, p._pos)
+        self.assertTrue(isinstance(node, parser.ExpBinOp))
+        self.assertEqual('2', node.exp1.value)
+        self.assertEqual('+', node.binop._data)
+        self.assertEqual('3', node.exp2.value)
+        
+    def testPrefixExpIndex(self):
+        p = get_parser('foo[4 + 5]')
+        node = p._prefixexp()
+        self.assertIsNotNone(node)
+        self.assertEqual(8, p._pos)
+        self.assertTrue(isinstance(node, parser.VarIndex))
+        self.assertEqual('foo', node.exp_prefix.name._data)
+        self.assertEqual('4', node.exp_index.exp1.value)
+        self.assertEqual('+', node.exp_index.binop._data)
+        self.assertEqual('5', node.exp_index.exp2.value)
+        
+    def testPrefixExpAttribute(self):
+        p = get_parser('foo.bar')
+        node = p._prefixexp()
+        self.assertIsNotNone(node)
+        self.assertEqual(3, p._pos)
+        self.assertTrue(isinstance(node, parser.VarAttribute))
+        self.assertEqual('foo', node.exp_prefix.name._data)
+        self.assertEqual('bar', node.attr_name._data)
+
+    def testPrefixExpChain(self):
+        p = get_parser('(1+2)[foo].bar.baz')
+        node = p._prefixexp()
+        self.assertIsNotNone(node)
+        self.assertEqual(12, p._pos)
+        self.assertTrue(isinstance(node, parser.VarAttribute))
+        self.assertEqual('baz', node.attr_name._data)
+        self.assertTrue(isinstance(node.exp_prefix, parser.VarAttribute))
+        self.assertEqual('bar', node.exp_prefix.attr_name._data)
+        self.assertTrue(isinstance(node.exp_prefix.exp_prefix, parser.VarIndex))
+        self.assertEqual('foo', node.exp_prefix.exp_prefix.exp_index.value.name._data)
+        self.assertTrue(isinstance(node.exp_prefix.exp_prefix.exp_prefix, parser.ExpBinOp))
+        self.assertEqual('1', node.exp_prefix.exp_prefix.exp_prefix.exp1.value)
+        self.assertEqual('+', node.exp_prefix.exp_prefix.exp_prefix.binop._data)
+        self.assertEqual('2', node.exp_prefix.exp_prefix.exp_prefix.exp2.value)
+
+    def testFuncname(self):
+        pass
+    def testPrefixExpFunctionCall(self):
+        pass
+    def testPrefixExpMethodCall(self):
+        pass
+    def testFunctionCall(self):
+        pass
+
     #def testExpValuePrefixExp(self):
     #    pass
-    #def testExpValueTableConstructor(self):
-    #    pass
 
-    #def testExpList(self):
-    #    pass
-    #def testPrefixExp(self):
-    #    pass
     
     #def testFieldExpKey(self):
     #    pass
@@ -195,19 +285,19 @@ class TestParser(unittest.TestCase):
     #    pass
     #def testTableConstructor(self):
     #    pass
+    #def testExpValueTableConstructor(self):
+    #    pass
     #def testFuncBody(self):
     #    pass
     #def testFunction(self):
     #    pass
     #def testArgs(self):
     #    pass
-    #def testFunctionCall(self):
+    #def testExpValueFunction(self):
     #    pass
     #def testVar(self):
     #    pass
     #def testVarList(self):
-    #    pass
-    #def testFuncname(self):
     #    pass
 
     def testLastStatOK(self):

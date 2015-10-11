@@ -90,7 +90,8 @@ _ast_node_types = (
     ('ExpList', ('exps',)),
 
     # TODO: rewrite expression parsing so that the AST captures associativity.
-    # (See _exp_binop). Right now, all binary operators chain left to right.
+    # (See _exp_binop). Right now, all binary operators chain right to left:
+    # 1 + 2 - 3 => ExpBinOp(ExpBinOp(1, +, 2), -, 3)
     #
     # value: None, False, True, number (as str), string, Function,
     #   TableConstructor, Var*, FunctionCall, Exp*
@@ -127,7 +128,7 @@ for (name, fields) in _ast_node_types:
 
 # (!= is PICO-8 specific.)
 BINOP_PATS = ([lexer.TokSymbol(sym) for sym in [
-    '<', '>', '<=', '>=', '~=', '!=', '==' '..', '+', '-', '*', '/', '%', '^'
+    '<', '>', '<=', '>=', '~=', '!=', '==', '..', '+', '-', '*', '/', '%', '^'
 ]] + [lexer.TokKeyword('and'), lexer.TokKeyword('or')])
 
     
