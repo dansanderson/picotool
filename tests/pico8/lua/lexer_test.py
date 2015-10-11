@@ -189,7 +189,7 @@ class TestLexer(unittest.TestCase):
         lxr = lexer.Lexer(version=4)
         lxr._process_line('...\n')
         self.assertEqual(2, len(lxr._tokens))
-        self.assertEqual(lexer.TokKeyword('...'), lxr._tokens[0])
+        self.assertEqual(lexer.TokSymbol('...'), lxr._tokens[0])
 
     def testStringDoubleQuotes(self):
         lxr = lexer.Lexer(version=4)
@@ -277,7 +277,7 @@ class TestLexer(unittest.TestCase):
         lxr = lexer.Lexer(version=4)
         lxr._process_line('-1.234567890e-6\n')
         self.assertEqual(3, len(lxr._tokens))
-        self.assertEqual(lexer.TokKeyword('-'),
+        self.assertEqual(lexer.TokSymbol('-'),
                          lxr._tokens[0])
         self.assertEqual(lexer.TokNumber('1.234567890e-6'),
                          lxr._tokens[1])

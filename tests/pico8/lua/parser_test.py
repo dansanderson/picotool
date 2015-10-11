@@ -23,6 +23,48 @@ class TestParser(unittest.TestCase):
         txt = str(parser.ParserError(
             'msg', lexer.Token('x', lineno=1, charno=2)))
 
+    def testCursorPeek(self):
+        p = get_parser('break name 7.42 -- Comment text\n"string literal" ==')
+        self.assertEqual(0, p._pos)
+        self.assertEqual('break', p._peek()._data)
+        self.assertEqual(0, p._pos)
+
+    def testCursorAccept(self):
+        p = get_parser('break name 7.42 -- Comment text\n"string literal" ==')
+        self.assertEqual(0, p._pos)
+        self.assertIsNone(p._accept(lexer.TokName))
+        self.assertIsNone(p._accept(lexer.TokKeyword('and')))
+        self.assertIsNotNone(p._accept(lexer.TokKeyword('break')))
+        self.assertEqual(1, p._pos)
+        self.assertIsNotNone(p._accept(lexer.TokName))
+        self.assertIsNotNone(p._accept(lexer.TokNumber))
+        self.assertIsNotNone(p._accept(lexer.TokString))
+        self.assertIsNotNone(p._accept(lexer.TokSymbol('==')))
+        self.assertEqual(11, p._pos)
+
+    def testCursorExpect(self):
+        p = get_parser('break name 7.42 -- Comment text\n"string literal" ==')
+        self.assertEqual(0, p._pos)
+        self.assertRaises(parser.ParserError,
+                          p._expect, lexer.TokKeyword('and'))
+        self.assertEqual(0, p._pos)
+        tok_break = p._expect(lexer.TokKeyword('break'))
+        self.assertEqual('break', tok_break._data)
+        self.assertEqual(1, p._pos)
+        tok_name = p._expect(lexer.TokName)
+        self.assertEqual('name', tok_name._data)
+        self.assertEqual(3, p._pos)  # "break, space, name"
+
+    def testAssert(self):
+        p = get_parser('break name 7.42 -- Comment text\n"string literal" ==')
+        self.assertEqual('DUMMY', p._assert('DUMMY', 'test assert'))
+        try:
+            p._assert(None, 'test assert')
+            self.fail()
+        except parser.ParserError as e:
+            self.assertEqual('test assert', e.msg)
+            self.assertEqual('break', e.token._data)
+
     def testLastStatOK(self):
         p = get_parser('break')
         node = p._laststat()

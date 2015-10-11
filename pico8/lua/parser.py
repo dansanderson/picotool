@@ -177,20 +177,18 @@ class Parser():
           None.
         """
         start_pos = self._pos
-        cur_tok = self._peek()
 
-        if (cur_tok is not None and
-            not isinstance(tok_pattern, lexer.TokSpace) and
-            not isinstance(tok_pattern, lexer.TokNewline) and
-            not isinstance(tok_pattern, lexer.TokComment)):
-            while True:
-                if (not cur_tok.matches(lexer.TokSpace) and
-                    not cur_tok.matches(lexer.TokNewline) and
-                    not cur_tok.matches(lexer.TokComment)):
-                    break
-                self._pos += 1
-                cur_tok = self._peek()
-            
+        # Find the first non-space token (unless accepting a space).
+        while True:
+            cur_tok = self._peek()
+            if (cur_tok is None or
+                cur_tok.matches(tok_pattern) or
+                (not isinstance(cur_tok, lexer.TokSpace) and
+                 not isinstance(cur_tok, lexer.TokNewline) and
+                 not isinstance(cur_tok, lexer.TokComment))):
+                break
+            self._pos += 1
+        
         if cur_tok is not None and cur_tok.matches(tok_pattern):
             self._pos += 1
             return cur_tok
@@ -211,7 +209,7 @@ class Parser():
         Raises:
           ParserError: The pattern doesn't match the next token.
         """
-        tok = self._buf.accept(tok_pattern)
+        tok = self._accept(tok_pattern)
         if tok is not None:
             return tok
         if isinstance(tok_pattern, type):
