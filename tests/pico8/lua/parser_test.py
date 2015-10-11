@@ -305,11 +305,23 @@ class TestParser(unittest.TestCase):
         self.assertEqual('method', node.methodname._data)
     
     def testArgsExpList(self):
-        pass
+        p = get_parser('(foo, bar, baz)')
+        node = p._args()
+        self.assertIsNotNone(node)
+        self.assertEqual(9, p._pos)
+        self.assertEqual(3, len(node.exps))
+        
     def testArgsString(self):
-        pass
-    def testArgsEmpty(self):
-        pass
+        p = get_parser('"string literal"')
+        node = p._args()
+        self.assertIsNotNone(node)
+        self.assertEqual(1, p._pos)
+        self.assertEqual('string literal', node)
+    
+    def testArgsNone(self):
+        p = get_parser('')
+        node = p._args()
+        self.assertIsNone(node)
     
     def testPrefixExpFunctionCall(self):
         pass
