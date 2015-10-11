@@ -509,13 +509,15 @@ class Parser():
         """
         pos = self._pos
         exps = []
+        exp = self._exp()
+        if exp is None:
+            return None
+        exps.append(exp)
         while True:
-            exp = self._exp()
-            if exp is None:
-                break
-            exps.append(exp)
             if self._accept(lexer.TokSymbol(',')) is None:
                 break
+            exp = self._assert(self._exp(), 'exp after comma')
+            exps.append(exp)
         if len(exps) == 0:
             return None
         return ExpList(exps, start=pos, end=self._pos)

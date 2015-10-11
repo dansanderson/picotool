@@ -212,6 +212,17 @@ class TestParser(unittest.TestCase):
         self.assertEqual('7', node.exps[3].exp2.value)
         self.assertEqual('foo', node.exps[4].value.name._data)
 
+    def testExpListErr(self):
+        p = get_parser('break')
+        node = p._explist()
+        self.assertIsNone(node)
+        self.assertEqual(0, p._pos)
+
+    def testExpListIncompleteErr(self):
+        p = get_parser('1, 2,')
+        self.assertRaises(parser.ParserError,
+                          p._explist)
+
     def testPrefixExpName(self):
         p = get_parser('foo')
         node = p._prefixexp()
@@ -272,6 +283,12 @@ class TestParser(unittest.TestCase):
         self.assertTrue(isinstance(node, parser.FunctionName))
         self.assertEqual('foo', node.namepath[0]._data)
         self.assertIsNone(node.methodname)
+
+    def testFuncnameErr(self):
+        p = get_parser('123')
+        node = p._funcname()
+        self.assertIsNone(node)
+        self.assertEqual(0, p._pos)
         
     def testFuncnamePath(self):
         p = get_parser('foo.bar.baz')
@@ -363,8 +380,14 @@ class TestParser(unittest.TestCase):
         self.assertIsNone(node)
         self.assertEqual(0, p._pos)
 
-    #def testExpValuePrefixExp(self):
-    #    pass
+    def testExpValuePrefixExp(self):
+        p = get_parser('foo.bar')
+        node = p._exp()
+        self.assertIsNotNone(node)
+        self.assertEqual(3, p._pos)
+        self.assertTrue(isinstance(node.value, parser.VarAttribute))
+        self.assertEqual('foo', node.value.exp_prefix.name._data)
+        self.assertEqual('bar', node.value.attr_name._data)
     
     #def testFieldExpKey(self):
     #    pass
@@ -405,7 +428,8 @@ class TestParser(unittest.TestCase):
     #    pass
     #def testChunk(self):
     #    pass
-
+    #def testProcessTokens(self):
+    #    pass
 
 if __name__ == '__main__':
     unittest.main()
