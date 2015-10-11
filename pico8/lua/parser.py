@@ -718,7 +718,8 @@ class Parser():
                                 'prefixexp in functioncall')
         if (not isinstance(full_exp, FunctionCall) and
             not isinstance(full_exp, FunctionCallMethod)):
-            raise ParserError('exp is not a functioncall', token=self._peek())
+            self._pos = pos
+            return None
         return full_exp
 
     def _args(self):

@@ -324,11 +324,44 @@ class TestParser(unittest.TestCase):
         self.assertIsNone(node)
     
     def testPrefixExpFunctionCall(self):
-        pass
+        p = get_parser('fname(foo, bar, baz)')
+        node = p._prefixexp()
+        self.assertIsNotNone(node)
+        self.assertEqual(10, p._pos)
+        self.assertEqual('fname', node.exp_prefix.name._data)
+        self.assertEqual(3, len(node.args.exps))
+        
     def testPrefixExpFunctionCallMethod(self):
-        pass
+        p = get_parser('obj:method(foo, bar, baz)')
+        node = p._prefixexp()
+        self.assertIsNotNone(node)
+        self.assertEqual(12, p._pos)
+        self.assertEqual('obj', node.exp_prefix.name._data)
+        self.assertEqual('method', node.methodname._data)
+        self.assertEqual(3, len(node.args.exps))
+        
     def testFunctionCall(self):
-        pass
+        p = get_parser('fname(foo, bar, baz)')
+        node = p._functioncall()
+        self.assertIsNotNone(node)
+        self.assertEqual(10, p._pos)
+        self.assertEqual('fname', node.exp_prefix.name._data)
+        self.assertEqual(3, len(node.args.exps))
+
+    def testFunctionCallMethod(self):
+        p = get_parser('obj:method(foo, bar, baz)')
+        node = p._functioncall()
+        self.assertIsNotNone(node)
+        self.assertEqual(12, p._pos)
+        self.assertEqual('obj', node.exp_prefix.name._data)
+        self.assertEqual('method', node.methodname._data)
+        self.assertEqual(3, len(node.args.exps))
+
+    def testFunctionCallErr(self):
+        p = get_parser('foo + 7')
+        node = p._functioncall()
+        self.assertIsNone(node)
+        self.assertEqual(0, p._pos)
 
     #def testExpValuePrefixExp(self):
     #    pass
