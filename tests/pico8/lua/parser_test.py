@@ -165,10 +165,15 @@ class TestParser(unittest.TestCase):
         self.assertTrue(isinstance(node.exp, parser.ExpValue))
         self.assertEqual('45', node.exp.value)
 
-    #def testExpBinOp(self):
-    #    pass
-    #def testExpBinOpChain(self):
-    #    pass
+    def testExpBinOp(self):
+        p = get_parser('1 + 2')
+        node = p._exp()
+        self.assertIsNotNone(node)
+        
+    def testExpBinOpChain(self):
+        p = get_parser('1 + 2 * 3 - 4 / 5..6^7 > 8 != foo')
+        node = p._exp()
+        self.assertIsNotNone(node)
 
     #def testExpValueFunction(self):
     #    pass

@@ -92,8 +92,8 @@ _ast_node_types = (
     # TODO: rewrite expression parsing so that the AST captures associativity.
     # (See _exp_binop). Right now, all binary operators chain left to right.
     #
-    # value: None, False, True, number, string, Function, TableConstructor,
-    #   Var*, FunctionCall, Exp*
+    # value: None, False, True, number (as str), string, Function,
+    #   TableConstructor, Var*, FunctionCall, Exp*
     ('ExpValue', ('value',)),
     ('VarargDots', ()),
     ('ExpBinOp', ('exp1', 'binop', 'exp2')),
