@@ -265,17 +265,61 @@ class TestParser(unittest.TestCase):
         self.assertEqual('2', node.exp_prefix.exp_prefix.exp_prefix.exp2.value)
 
     def testFuncname(self):
+        p = get_parser('foo')
+        node = p._funcname()
+        self.assertIsNotNone(node)
+        self.assertEqual(1, p._pos)
+        self.assertTrue(isinstance(node, parser.FunctionName))
+        self.assertEqual('foo', node.namepath[0]._data)
+        self.assertIsNone(node.methodname)
+        
+    def testFuncnamePath(self):
+        p = get_parser('foo.bar.baz')
+        node = p._funcname()
+        self.assertIsNotNone(node)
+        self.assertEqual(5, p._pos)
+        self.assertTrue(isinstance(node, parser.FunctionName))
+        self.assertEqual('foo', node.namepath[0]._data)
+        self.assertEqual('bar', node.namepath[1]._data)
+        self.assertEqual('baz', node.namepath[2]._data)
+        self.assertIsNone(node.methodname)
+        
+    def testFuncnameMethod(self):
+        p = get_parser('foo:method')
+        node = p._funcname()
+        self.assertIsNotNone(node)
+        self.assertEqual(3, p._pos)
+        self.assertTrue(isinstance(node, parser.FunctionName))
+        self.assertEqual('foo', node.namepath[0]._data)
+        self.assertEqual('method', node.methodname._data)
+
+    def testFuncnamePathAndMethod(self):
+        p = get_parser('foo.bar.baz:method')
+        node = p._funcname()
+        self.assertIsNotNone(node)
+        self.assertEqual(7, p._pos)
+        self.assertTrue(isinstance(node, parser.FunctionName))
+        self.assertEqual('foo', node.namepath[0]._data)
+        self.assertEqual('bar', node.namepath[1]._data)
+        self.assertEqual('baz', node.namepath[2]._data)
+        self.assertEqual('method', node.methodname._data)
+    
+    def testArgsExpList(self):
         pass
+    def testArgsString(self):
+        pass
+    def testArgsEmpty(self):
+        pass
+    
     def testPrefixExpFunctionCall(self):
         pass
-    def testPrefixExpMethodCall(self):
+    def testPrefixExpFunctionCallMethod(self):
         pass
     def testFunctionCall(self):
         pass
 
     #def testExpValuePrefixExp(self):
     #    pass
-
     
     #def testFieldExpKey(self):
     #    pass
@@ -287,11 +331,11 @@ class TestParser(unittest.TestCase):
     #    pass
     #def testExpValueTableConstructor(self):
     #    pass
+    #def testArgsTableConstructor(self):
+    #    pass
     #def testFuncBody(self):
     #    pass
     #def testFunction(self):
-    #    pass
-    #def testArgs(self):
     #    pass
     #def testExpValueFunction(self):
     #    pass
