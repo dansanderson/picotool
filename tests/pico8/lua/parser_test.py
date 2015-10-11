@@ -65,6 +65,81 @@ class TestParser(unittest.TestCase):
             self.assertEqual('test assert', e.msg)
             self.assertEqual('break', e.token._data)
 
+    def testNameListOneOK(self):
+        p = get_parser('name1')
+        node = p._namelist()
+        self.assertIsNotNone(node)
+        self.assertEqual(1, p._pos)
+        self.assertTrue(isinstance(node, parser.NameList))
+        self.assertEqual('name1', node.names[0]._data)
+        self.assertEqual(1, len(node.names))
+
+    def testNameListOneWithMoreOK(self):
+        p = get_parser('name1 + name2')
+        node = p._namelist()
+        self.assertIsNotNone(node)
+        self.assertEqual(1, p._pos)
+        self.assertTrue(isinstance(node, parser.NameList))
+        self.assertEqual('name1', node.names[0]._data)
+        self.assertEqual(1, len(node.names))
+
+    def testNameListMultipleOK(self):
+        p = get_parser('name1,name2,   name3, name4')
+        node = p._namelist()
+        self.assertIsNotNone(node)
+        self.assertTrue(isinstance(node, parser.NameList))
+        self.assertEqual(9, p._pos)
+        self.assertEqual(4, len(node.names))
+        self.assertEqual('name1', node.names[0]._data)
+        self.assertEqual('name2', node.names[1]._data)
+        self.assertEqual('name3', node.names[2]._data)
+        self.assertEqual('name4', node.names[3]._data)
+        
+    def testNameListErr(self):
+        p = get_parser('123.45 name1')
+        node = p._namelist()
+        self.assertIsNone(node)
+        self.assertEqual(0, p._pos)
+    
+    #def testExpValue(self):
+    #    pass
+    #def testExpVarargDots(self):
+    #    pass
+    #def testExpUnOp(self):
+    #    pass
+    #def testExpBinOp(self):
+    #    pass
+    #def testExpBinOpChain(self):
+    #    pass
+
+    #def testExpList(self):
+    #    pass
+    #def testPrefixExp(self):
+    #    pass
+    
+    #def testFieldExpKey(self):
+    #    pass
+    #def testFieldNamedKey(self):
+    #    pass
+    #def testFieldExp(self):
+    #    pass
+    #def testTableConstructor(self):
+    #    pass
+    #def testFuncBody(self):
+    #    pass
+    #def testFunction(self):
+    #    pass
+    #def testArgs(self):
+    #    pass
+    #def testFunctionCall(self):
+    #    pass
+    #def testVar(self):
+    #    pass
+    #def testVarList(self):
+    #    pass
+    #def testFuncname(self):
+    #    pass
+
     def testLastStatOK(self):
         p = get_parser('break')
         node = p._laststat()
@@ -76,6 +151,11 @@ class TestParser(unittest.TestCase):
         p = get_parser('name')
         node = p._laststat()
         self.assertIsNone(node)
+
+    #def testStat(self):
+    #    pass
+    #def testChunk(self):
+    #    pass
 
 
 if __name__ == '__main__':
