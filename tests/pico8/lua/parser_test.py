@@ -389,18 +389,83 @@ class TestParser(unittest.TestCase):
         self.assertEqual('foo', node.value.exp_prefix.name._data)
         self.assertEqual('bar', node.value.attr_name._data)
     
-    #def testFieldExpKey(self):
-    #    pass
-    #def testFieldNamedKey(self):
-    #    pass
-    #def testFieldExp(self):
-    #    pass
-    #def testTableConstructor(self):
-    #    pass
-    #def testExpValueTableConstructor(self):
-    #    pass
-    #def testArgsTableConstructor(self):
-    #    pass
+    def testFieldExpKey(self):
+        p = get_parser('[1] = 2')
+        node = p._field()
+        self.assertIsNotNone(node)
+        self.assertEqual(7, p._pos)
+        self.assertTrue(isinstance(node, parser.FieldExpKey))
+        self.assertEqual('1', node.key_exp.value)
+        self.assertEqual('2', node.exp.value)
+        
+    def testFieldNamedKey(self):
+        p = get_parser('foo = 3')
+        node = p._field()
+        self.assertIsNotNone(node)
+        self.assertEqual(5, p._pos)
+        self.assertTrue(isinstance(node, parser.FieldNamedKey))
+        self.assertEqual('foo', node.key_name._data)
+        self.assertEqual('3', node.exp.value)
+        
+    def testFieldExp(self):
+        p = get_parser('foo')
+        node = p._field()
+        self.assertIsNotNone(node)
+        self.assertEqual(1, p._pos)
+        self.assertTrue(isinstance(node, parser.FieldExp))
+        self.assertEqual('foo', node.exp.value.name._data)
+        
+    def testTableConstructor(self):
+        p = get_parser('{[1]=2,foo=3;4}')
+        node = p._tableconstructor()
+        self.assertIsNotNone(node)
+        self.assertEqual(13, p._pos)
+        self.assertTrue(isinstance(node, parser.TableConstructor))
+        self.assertEqual(3, len(node.fields))
+
+        self.assertTrue(isinstance(node.fields[0], parser.FieldExpKey))
+        self.assertEqual('1', node.fields[0].key_exp.value)
+        self.assertEqual('2', node.fields[0].exp.value)
+
+        self.assertTrue(isinstance(node.fields[1], parser.FieldNamedKey))
+        self.assertEqual('foo', node.fields[1].key_name._data)
+        self.assertEqual('3', node.fields[1].exp.value)
+
+        self.assertTrue(isinstance(node.fields[2], parser.FieldExp))
+        self.assertEqual('4', node.fields[2].exp.value)
+
+    def testTableConstructorTrailingSep(self):
+        p = get_parser('{5,}')
+        node = p._tableconstructor()
+        self.assertIsNotNone(node)
+        self.assertEqual(4, p._pos)
+        self.assertEqual(1, len(node.fields))
+        self.assertEqual('5', node.fields[0].exp.value)
+
+    def testTableConstructorEmpty(self):
+        p = get_parser('{   }')
+        node = p._tableconstructor()
+        self.assertIsNotNone(node)
+        self.assertEqual(3, p._pos)
+        self.assertTrue(isinstance(node, parser.TableConstructor))
+        self.assertEqual([], node.fields)
+        
+    def testExpValueTableConstructor(self):
+        p = get_parser('{5,}')
+        node = p._exp()
+        self.assertIsNotNone(node)
+        self.assertEqual(4, p._pos)
+        self.assertEqual(1, len(node.value.fields))
+        self.assertEqual('5', node.value.fields[0].exp.value)
+        
+    def testArgsTableConstructor(self):
+        p = get_parser('{5,}')
+        node = p._args()
+        self.assertIsNotNone(node)
+        self.assertEqual(4, p._pos)
+        self.assertEqual(1, len(node.fields))
+        self.assertEqual('5', node.fields[0].exp.value)
+
     #def testFuncBody(self):
     #    pass
     #def testFunction(self):

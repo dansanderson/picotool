@@ -811,13 +811,14 @@ class Parser():
 
         fields = []
         field = self._field()
-        while field is not None:
+        if field is not None:
             fields.append(field)
-            if (self._accept(lexer.TokSymbol(',')) is not None or
-                self._accept(lexer.TokSymbol(';')) is not None):
-                field = self._field()
-        if self._accept(lexer.TokSymbol(',')) is None:
-            self._accept(lexer.TokSymbol(';'))
+        while (self._accept(lexer.TokSymbol(',')) is not None or
+               self._accept(lexer.TokSymbol(';')) is not None):
+            field = self._field()
+            if field is None:
+                break
+            fields.append(field)
 
         self._expect(lexer.TokSymbol('}'))
         return TableConstructor(fields, start=pos, end=self._pos)
@@ -847,8 +848,11 @@ class Parser():
             return FieldNamedKey(key_name, exp, start=pos, end=self._pos)
         self._pos = pos
         
-        exp = self._assert(self._exp(), 'exp value in field')
-        return FieldExp(exp, start=pos, end=self._pos)
+        exp = self._exp()
+        if exp is not None:
+            return FieldExp(exp, start=pos, end=self._pos)
+
+        return None
         
     def process_tokens(self, tokens):
         """Process a list of tokens into an AST.
