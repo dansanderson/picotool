@@ -466,8 +466,34 @@ class TestParser(unittest.TestCase):
         self.assertEqual(1, len(node.fields))
         self.assertEqual('5', node.fields[0].exp.value)
 
-    #def testFuncBody(self):
-    #    pass
+    def testFuncBodyEmptyParList(self):
+        p = get_parser('() return end')
+        node = p._funcbody()
+        self.assertIsNotNone(node)
+        self.assertEqual(6, p._pos)
+        # TODO: parlist, dots, block
+
+    def testFuncBodyParList(self):
+        p = get_parser('(foo, bar) return end')
+        node = p._funcbody()
+        self.assertIsNotNone(node)
+        self.assertEqual(10, p._pos)
+        # TODO: parlist, dots, block
+
+    def testFuncBodyParListWithDots(self):
+        p = get_parser('(foo, bar, ...) return end')
+        node = p._funcbody()
+        self.assertIsNotNone(node)
+        self.assertEqual(10, p._pos)
+        # TODO: parlist, dots, block
+
+    def testFuncBodyParListOnlyDots(self):
+        p = get_parser('(...) return end')
+        node = p._funcbody()
+        self.assertIsNotNone(node)
+        self.assertEqual(7, p._pos)
+        # TODO: parlist, dots, block
+
     #def testFunction(self):
     #    pass
     #def testExpValueFunction(self):
@@ -477,13 +503,32 @@ class TestParser(unittest.TestCase):
     #def testVarList(self):
     #    pass
 
-    def testLastStatOK(self):
+    def testLastStatBreak(self):
         p = get_parser('break')
         node = p._laststat()
+        self.assertIsNotNone(node)
+        self.assertEqual(1, p._pos)
         self.assertTrue(isinstance(node, parser.StatBreak))
         self.assertEqual(0, node._start_token_pos)
         self.assertEqual(1, node._end_token_pos)
-        
+
+    def testLastStatReturnNoExp(self):
+        p = get_parser('return')
+        node = p._laststat()
+        self.assertIsNotNone(node)
+        self.assertEqual(1, p._pos)
+        self.assertTrue(isinstance(node, parser.StatReturn))
+        self.assertEqual(0, len(node.explist))
+
+    def testLastStatReturnExps(self):
+        p = get_parser('return 1, 2, 3')
+        node = p._laststat()
+        self.assertIsNotNone(node)
+        self.assertEqual(9, p._pos)
+        self.assertTrue(isinstance(node, parser.StatReturn))
+        self.assertEqual(3, len(node.explist))
+        # TODO: exps
+
     def testLastStatErr(self):
         p = get_parser('name')
         node = p._laststat()
