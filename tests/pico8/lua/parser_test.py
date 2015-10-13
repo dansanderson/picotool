@@ -610,8 +610,86 @@ class TestParser(unittest.TestCase):
         node = p._laststat()
         self.assertIsNone(node)
 
-    #def testStat(self):
-    #    pass
+    def testStatAssignment(self):
+        p = get_parser('foo, bar, baz = 1, 2, 3')
+        node = p._laststat()
+        self.assertIsNotNone(node)
+        self.assertEqual(17, p._pos)
+        # TODO: varlist, explist
+        
+    def testStatFunctionCall(self):
+        p = get_parser('foo(1, 2, 3)')
+        node = p._laststat()
+        self.assertIsNotNone(node)
+        self.assertEqual(10, p._pos)
+        # TODO: functioncall
+        
+    def testStatDo(self):
+        p = get_parser('do break return end')
+        node = p._laststat()
+        self.assertIsNotNone(node)
+        self.assertEqual(7, p._pos)
+        # TODO: block
+        
+    def testStatWhile(self):
+        p = get_parser('while true do break return end')
+        node = p._laststat()
+        self.assertIsNotNone(node)
+        self.assertEqual(11, p._pos)
+        # TODO: exp, block
+        
+    def testStatRepeat(self):
+        p = get_parser('repeat break return until true')
+        node = p._laststat()
+        self.assertIsNotNone(node)
+        self.assertEqual(9, p._pos)
+        # TODO: block, exp
+        
+    def testStatIf(self):
+        p = get_parser('if true then break return end')
+        node = p._laststat()
+        self.assertIsNotNone(node)
+        self.assertEqual(11, p._pos)
+    def testStatIfElse(self):
+        p = get_parser('if true then break else return end')
+        node = p._laststat()
+        self.assertIsNotNone(node)
+        self.assertEqual(13, p._pos)
+    def testStatIfElseIf(self):
+        p = get_parser('if true then break elseif false then return end')
+        node = p._laststat()
+        self.assertIsNotNone(node)
+        self.assertEqual(17, p._pos)
+    def testStatIfElseIfElse(self):
+        p = get_parser('if true then break elseif false then break else return end')
+        node = p._laststat()
+        self.assertIsNotNone(node)
+        self.assertEqual(21, p._pos)
+    def testStatForStep(self):
+        p = get_parser('')
+        node = p._laststat()
+        self.assertIsNotNone(node)
+        self.assertEqual(1, p._pos)
+    def testStatForIn(self):
+        p = get_parser('')
+        node = p._laststat()
+        self.assertIsNotNone(node)
+        self.assertEqual(1, p._pos)
+    def testStatFunction(self):
+        p = get_parser('')
+        node = p._laststat()
+        self.assertIsNotNone(node)
+        self.assertEqual(1, p._pos)
+    def testStatLocalFunction(self):
+        p = get_parser('')
+        node = p._laststat()
+        self.assertIsNotNone(node)
+        self.assertEqual(1, p._pos)
+    def testStatLocalAssignment(self):
+        p = get_parser('')
+        node = p._laststat()
+        self.assertIsNotNone(node)
+        self.assertEqual(1, p._pos)
     #def testChunk(self):
     #    pass
     #def testProcessTokens(self):
