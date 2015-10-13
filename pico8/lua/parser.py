@@ -469,8 +469,9 @@ class Parser():
             return VarName(name, start=pos, end=self._pos)
         self._pos = pos
 
-        exp_prefix = self._assert(self._prefixexp(),
-                                  'prefixexp in var')
+        exp_prefix = self._prefixexp()
+        if exp_prefix is None:
+            return None
         if self._accept(lexer.TokSymbol('[')) is not None:
             exp_index = self._assert(self._exp(), 'exp index in var')
             self._expect(lexer.TokSymbol(']'))
@@ -494,8 +495,15 @@ class Parser():
         if name is None:
             return None
         names.append(name)
+        last_pos = self._pos
         while self._accept(lexer.TokSymbol(',')) is not None:
-            names.append(self._expect(lexer.TokName))
+            name = self._accept(lexer.TokName)
+            if name is None:
+                # Don't eat the trailing separator if there is one.
+                self._pos = last_pos
+                break
+            names.append(name)
+            last_pos = self._pos
             
         return NameList(names, start=pos, end=self._pos)
 
@@ -716,10 +724,10 @@ class Parser():
         """
         pos = self._pos
 
-        full_exp = self._assert(self._prefixexp(),
-                                'prefixexp in functioncall')
-        if (not isinstance(full_exp, FunctionCall) and
-            not isinstance(full_exp, FunctionCallMethod)):
+        full_exp = self._prefixexp()
+        if (full_exp is None or
+            (not isinstance(full_exp, FunctionCall) and
+             not isinstance(full_exp, FunctionCallMethod))):
             self._pos = pos
             return None
         return full_exp

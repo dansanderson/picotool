@@ -484,7 +484,7 @@ class TestParser(unittest.TestCase):
         p = get_parser('(foo, bar, ...) return end')
         node = p._funcbody()
         self.assertIsNotNone(node)
-        self.assertEqual(10, p._pos)
+        self.assertEqual(13, p._pos)
         # TODO: parlist, dots, block
 
     def testFuncBodyParListOnlyDots(self):
@@ -518,7 +518,7 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(node)
         self.assertEqual(1, p._pos)
         self.assertTrue(isinstance(node, parser.StatReturn))
-        self.assertEqual(0, len(node.explist))
+        self.assertIsNone(node.explist)
 
     def testLastStatReturnExps(self):
         p = get_parser('return 1, 2, 3')
@@ -526,7 +526,7 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(node)
         self.assertEqual(9, p._pos)
         self.assertTrue(isinstance(node, parser.StatReturn))
-        self.assertEqual(3, len(node.explist))
+        self.assertEqual(3, len(node.explist.exps))
         # TODO: exps
 
     def testLastStatErr(self):
