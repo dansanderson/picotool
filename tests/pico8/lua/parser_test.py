@@ -494,10 +494,27 @@ class TestParser(unittest.TestCase):
         self.assertEqual(7, p._pos)
         # TODO: parlist, dots, block
 
-    #def testFunction(self):
-    #    pass
-    #def testExpValueFunction(self):
-    #    pass
+    def testFunctionNoArgs(self):
+        p = get_parser('function() return end')
+        node = p._function()
+        self.assertIsNotNone(node)
+        self.assertEqual(7, p._pos)
+        # TODO: funcbody
+
+    def testFunctionFancyArgs(self):
+        p = get_parser('function(foo, bar, ...) return end')
+        node = p._function()
+        self.assertIsNotNone(node)
+        self.assertEqual(14, p._pos)
+        # TODO: funcbody
+        
+    def testExpValueFunction(self):
+        p = get_parser('function() return end')
+        node = p._exp()
+        self.assertIsNotNone(node)
+        self.assertEqual(7, p._pos)
+        # TODO: funcbody
+        
     #def testVar(self):
     #    pass
     #def testVarList(self):
