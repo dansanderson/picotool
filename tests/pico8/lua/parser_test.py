@@ -471,54 +471,114 @@ class TestParser(unittest.TestCase):
         node = p._funcbody()
         self.assertIsNotNone(node)
         self.assertEqual(6, p._pos)
-        # TODO: parlist, dots, block
+        self.assertEqual(None, node.parlist)
+        self.assertEqual(None, node.dots)
+        self.assertEqual(1, len(node.block.stats))
+        self.assertTrue(isinstance(node.block.stats[0], parser.StatReturn))
 
     def testFuncBodyParList(self):
         p = get_parser('(foo, bar) return end')
         node = p._funcbody()
         self.assertIsNotNone(node)
         self.assertEqual(10, p._pos)
-        # TODO: parlist, dots, block
+        self.assertEqual(2, len(node.parlist.names))
+        self.assertEqual('foo', node.parlist.names[0]._data)
+        self.assertEqual('bar', node.parlist.names[1]._data)
+        self.assertEqual(None, node.dots)
+        self.assertEqual(1, len(node.block.stats))
+        self.assertTrue(isinstance(node.block.stats[0], parser.StatReturn))
 
     def testFuncBodyParListWithDots(self):
         p = get_parser('(foo, bar, ...) return end')
         node = p._funcbody()
         self.assertIsNotNone(node)
         self.assertEqual(13, p._pos)
-        # TODO: parlist, dots, block
+        self.assertEqual(2, len(node.parlist.names))
+        self.assertEqual('foo', node.parlist.names[0]._data)
+        self.assertEqual('bar', node.parlist.names[1]._data)
+        self.assertTrue(isinstance(node.dots, parser.VarargDots))
+        self.assertEqual(1, len(node.block.stats))
+        self.assertTrue(isinstance(node.block.stats[0], parser.StatReturn))
 
     def testFuncBodyParListOnlyDots(self):
         p = get_parser('(...) return end')
         node = p._funcbody()
         self.assertIsNotNone(node)
         self.assertEqual(7, p._pos)
-        # TODO: parlist, dots, block
+        self.assertEqual(None, node.parlist)
+        self.assertTrue(isinstance(node.dots, parser.VarargDots))
+        self.assertEqual(1, len(node.block.stats))
+        self.assertTrue(isinstance(node.block.stats[0], parser.StatReturn))
 
     def testFunctionNoArgs(self):
         p = get_parser('function() return end')
         node = p._function()
         self.assertIsNotNone(node)
         self.assertEqual(7, p._pos)
-        # TODO: funcbody
+        self.assertEqual(None, node.funcbody.parlist)
+        self.assertEqual(None, node.funcbody.dots)
+        self.assertEqual(1, len(node.funcbody.block.stats))
+        self.assertTrue(isinstance(node.funcbody.block.stats[0],
+                                   parser.StatReturn))
 
     def testFunctionFancyArgs(self):
         p = get_parser('function(foo, bar, ...) return end')
         node = p._function()
         self.assertIsNotNone(node)
         self.assertEqual(14, p._pos)
-        # TODO: funcbody
+        self.assertEqual(2, len(node.funcbody.parlist.names))
+        self.assertEqual('foo', node.funcbody.parlist.names[0]._data)
+        self.assertEqual('bar', node.funcbody.parlist.names[1]._data)
+        self.assertTrue(isinstance(node.funcbody.dots, parser.VarargDots))
+        self.assertEqual(1, len(node.funcbody.block.stats))
+        self.assertTrue(isinstance(node.funcbody.block.stats[0],
+                                   parser.StatReturn))
         
     def testExpValueFunction(self):
         p = get_parser('function() return end')
         node = p._exp()
         self.assertIsNotNone(node)
         self.assertEqual(7, p._pos)
-        # TODO: funcbody
+        self.assertEqual(None, node.value.funcbody.parlist)
+        self.assertEqual(None, node.value.funcbody.dots)
+        self.assertEqual(1, len(node.value.funcbody.block.stats))
+        self.assertTrue(isinstance(node.value.funcbody.block.stats[0],
+                                   parser.StatReturn))
         
-    #def testVar(self):
-    #    pass
-    #def testVarList(self):
-    #    pass
+    def testVarName(self):
+        p = get_parser('foo')
+        node = p._var()
+        self.assertIsNotNone(node)
+        self.assertEqual(1, p._pos)
+        self.assertEqual('foo', node.name._data)
+        
+    def testVarIndex(self):
+        p = get_parser('bar[7]')
+        node = p._var()
+        self.assertIsNotNone(node)
+        self.assertEqual(4, p._pos)
+        self.assertEqual('bar', node.exp_prefix.name._data)
+        self.assertEqual('7', node.exp_index.value)
+        
+    def testVarAttribute(self):
+        p = get_parser('baz.bat')
+        node = p._var()
+        self.assertIsNotNone(node)
+        self.assertEqual(3, p._pos)
+        self.assertEqual('baz', node.exp_prefix.name._data)
+        self.assertEqual('bat', node.attr_name._data)
+    
+    def testVarList(self):
+        p = get_parser('foo, bar[7], baz.bat')
+        node = p._varlist()
+        self.assertIsNotNone(node)
+        self.assertEqual(12, p._pos)
+        self.assertEqual(3, len(node.vars))
+        self.assertEqual('foo', node.vars[0].name._data)
+        self.assertEqual('bar', node.vars[1].exp_prefix.name._data)
+        self.assertEqual('7', node.vars[1].exp_index.value)
+        self.assertEqual('baz', node.vars[2].exp_prefix.name._data)
+        self.assertEqual('bat', node.vars[2].attr_name._data)
 
     def testLastStatBreak(self):
         p = get_parser('break')
@@ -544,7 +604,6 @@ class TestParser(unittest.TestCase):
         self.assertEqual(9, p._pos)
         self.assertTrue(isinstance(node, parser.StatReturn))
         self.assertEqual(3, len(node.explist.exps))
-        # TODO: exps
 
     def testLastStatErr(self):
         p = get_parser('name')

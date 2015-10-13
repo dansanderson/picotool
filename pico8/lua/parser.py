@@ -462,24 +462,12 @@ class Parser():
           VarIndex(exp_prefix, exp_index)
           VarAttribute(exp_prefix, attr_name)
         """
-        pos = self._pos
-
-        name = self._accept(lexer.TokName)
-        if name is not None:
-            return VarName(name, start=pos, end=self._pos)
-        self._pos = pos
-
         exp_prefix = self._prefixexp()
-        if exp_prefix is None:
-            return None
-        if self._accept(lexer.TokSymbol('[')) is not None:
-            exp_index = self._assert(self._exp(), 'exp index in var')
-            self._expect(lexer.TokSymbol(']'))
-            return VarIndex(exp_prefix, exp_index, start=pos, end=self._pos)
-                
-        self._expect(lexer.TokSymbol('.'))
-        attr_name = self._expect(lexer.TokName)
-        return VarAttribute(exp_prefix, attr_name, start=pos, end=self._pos)
+        if (isinstance(exp_prefix, VarName) or
+            isinstance(exp_prefix, VarAttribute) or
+            isinstance(exp_prefix, VarIndex)):
+            return exp_prefix
+        return None
 
     def _namelist(self):
         """Parse a namelist.
