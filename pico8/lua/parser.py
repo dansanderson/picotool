@@ -296,13 +296,15 @@ class Parser():
             explist = self._assert(self._explist(),
                                    'Expected expression in assignment')
             return StatAssignment(varlist, explist, start=pos, end=self._pos)
-
+        self._pos = pos
+        
         functioncall = self._functioncall()
         if functioncall is not None:
             return StatFunctionCall(functioncall, start=pos, end=self._pos)
+        self._pos = pos
 
         if self._accept(lexer.TokKeyword('do')) is not None:
-            block = self._assert(self._block(), 'block in do')
+            block = self._assert(self._chunk(), 'block in do')
             self._expect(lexer.TokKeyword('end'))
             return StatDo(block, start=pos, end=self._pos)
 
@@ -325,17 +327,17 @@ class Parser():
             exp_block_pairs = []
             exp = self._exp()
             self._expect(lexer.TokKeyword('then'))
-            block = self._block()
+            block = self._chunk()
             self._assert(block, 'Expected block in if')
             exp_block_pairs.append((exp, block))
             while self._accept(lexer.TokKeyword('elseif')) is not None:
                 exp = self._exp()
                 self._expect(lexer.TokKeyword('then'))
-                block = self._block()
+                block = self._chunk()
                 self._assert(block, 'Expected block in elseif')
                 exp_block_pairs.append((exp, block))
             if self._accept(lexer.TokKeyword('else')) is not None:
-                block = self._block()
+                block = self._chunk()
                 self._assert(block, 'Expected block in else')
                 exp_block_pairs.append((None, block))
             self._expect(lexer.TokKeyword('end'))
@@ -375,8 +377,7 @@ class Parser():
 
         if self._accept(lexer.TokKeyword('local')) is not None:
             if self._accept(lexer.TokKeyword('function')) is not None:
-                funcname = self._expect(lexer.TokName,
-                                        'name in local function')
+                funcname = self._expect(lexer.TokName)
                 funcbody = self._assert(self._funcbody(),
                                         'funcbody in local function')
                 return StatLocalFunction(funcname, funcbody,

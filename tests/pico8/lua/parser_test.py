@@ -365,6 +365,11 @@ class TestParser(unittest.TestCase):
         self.assertEqual('fname', node.exp_prefix.name._data)
         self.assertEqual(3, len(node.args.exps))
 
+        p = get_parser('foo(1, 2, 3)')
+        node = p._functioncall()
+        self.assertIsNotNone(node)
+        self.assertEqual(10, p._pos)
+
     def testFunctionCallMethod(self):
         p = get_parser('obj:method(foo, bar, baz)')
         node = p._functioncall()
@@ -612,84 +617,116 @@ class TestParser(unittest.TestCase):
 
     def testStatAssignment(self):
         p = get_parser('foo, bar, baz = 1, 2, 3')
-        node = p._laststat()
+        node = p._stat()
         self.assertIsNotNone(node)
         self.assertEqual(17, p._pos)
         # TODO: varlist, explist
         
     def testStatFunctionCall(self):
         p = get_parser('foo(1, 2, 3)')
-        node = p._laststat()
+        node = p._stat()
         self.assertIsNotNone(node)
         self.assertEqual(10, p._pos)
         # TODO: functioncall
         
     def testStatDo(self):
-        p = get_parser('do break return end')
-        node = p._laststat()
+        p = get_parser('do break end')
+        node = p._stat()
         self.assertIsNotNone(node)
-        self.assertEqual(7, p._pos)
+        self.assertEqual(5, p._pos)
         # TODO: block
         
     def testStatWhile(self):
-        p = get_parser('while true do break return end')
-        node = p._laststat()
+        p = get_parser('while true do break end')
+        node = p._stat()
         self.assertIsNotNone(node)
-        self.assertEqual(11, p._pos)
+        self.assertEqual(9, p._pos)
         # TODO: exp, block
         
     def testStatRepeat(self):
-        p = get_parser('repeat break return until true')
-        node = p._laststat()
+        p = get_parser('repeat break until true')
+        node = p._stat()
         self.assertIsNotNone(node)
-        self.assertEqual(9, p._pos)
+        self.assertEqual(7, p._pos)
         # TODO: block, exp
         
     def testStatIf(self):
-        p = get_parser('if true then break return end')
-        node = p._laststat()
+        p = get_parser('if true then break end')
+        node = p._stat()
         self.assertIsNotNone(node)
-        self.assertEqual(11, p._pos)
+        self.assertEqual(9, p._pos)
+        # TODO: exp_block_pairs
+        
     def testStatIfElse(self):
         p = get_parser('if true then break else return end')
-        node = p._laststat()
+        node = p._stat()
         self.assertIsNotNone(node)
         self.assertEqual(13, p._pos)
+        # TODO: exp_block_pairs
+
     def testStatIfElseIf(self):
         p = get_parser('if true then break elseif false then return end')
-        node = p._laststat()
+        node = p._stat()
         self.assertIsNotNone(node)
         self.assertEqual(17, p._pos)
+        # TODO: exp_block_pairs
+        
     def testStatIfElseIfElse(self):
         p = get_parser('if true then break elseif false then break else return end')
-        node = p._laststat()
+        node = p._stat()
         self.assertIsNotNone(node)
         self.assertEqual(21, p._pos)
+        # TODO: exp_block_pairs
+
     def testStatForStep(self):
-        p = get_parser('')
-        node = p._laststat()
+        p = get_parser('for foo=1,3 do break end')
+        node = p._stat()
         self.assertIsNotNone(node)
-        self.assertEqual(1, p._pos)
+        self.assertEqual(13, p._pos)
+        # TODO: name, exp_init, exp_end, exp_step, block
+
+    def testStatForStep(self):
+        p = get_parser('for foo=1,3,10 do break end')
+        node = p._stat()
+        self.assertIsNotNone(node)
+        self.assertEqual(15, p._pos)
+        # TODO: name, exp_init, exp_end, exp_step, block
+
     def testStatForIn(self):
-        p = get_parser('')
-        node = p._laststat()
+        p = get_parser('for foo, bar in 1, 3 do break end')
+        node = p._stat()
         self.assertIsNotNone(node)
-        self.assertEqual(1, p._pos)
+        self.assertEqual(19, p._pos)
+        # TODO: namelist, explist, block
+        
     def testStatFunction(self):
-        p = get_parser('')
-        node = p._laststat()
+        p = get_parser('function foo(a, b, c) break end')
+        node = p._stat()
         self.assertIsNotNone(node)
-        self.assertEqual(1, p._pos)
+        self.assertEqual(16, p._pos)
+        # TODO: funcname, funcbody
+        
     def testStatLocalFunction(self):
-        p = get_parser('')
-        node = p._laststat()
+        p = get_parser('local function foo(a, b, c) break end')
+        node = p._stat()
         self.assertIsNotNone(node)
-        self.assertEqual(1, p._pos)
+        self.assertEqual(18, p._pos)
+        # TODO: funcname, funcbody
+        
     def testStatLocalAssignment(self):
-        p = get_parser('')
-        node = p._laststat()
+        p = get_parser('local foo, bar, baz')
+        node = p._stat()
         self.assertIsNotNone(node)
-        self.assertEqual(1, p._pos)
+        self.assertEqual(9, p._pos)
+        # TODO: namelist, explist
+        
+    def testStatLocalAssignmentWithValues(self):
+        p = get_parser('local foo, bar, baz = 1, 2, 3')
+        node = p._stat()
+        self.assertIsNotNone(node)
+        self.assertEqual(19, p._pos)
+        # TODO: namelist, explist
+        
     #def testChunk(self):
     #    pass
     #def testProcessTokens(self):
