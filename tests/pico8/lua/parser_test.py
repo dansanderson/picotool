@@ -8,11 +8,15 @@ from pico8.lua import lexer
 from pico8.lua import parser
 
 
-def get_parser(s):
+def get_tokens(s):
     lxr = lexer.Lexer(version=4)
     lxr.process_lines([(l + '\n') for l in s.split('\n')])
+    return lxr.tokens
+
+
+def get_parser(s):
     p = parser.Parser(version=4)
-    p._tokens = lxr.tokens
+    p._tokens = get_tokens(s)
     p._pos = 0
     return p
     
