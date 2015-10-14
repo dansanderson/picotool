@@ -292,10 +292,12 @@ class Parser():
         
         varlist = self._varlist()
         if varlist is not None:
-            self._expect(lexer.TokSymbol('='))
-            explist = self._assert(self._explist(),
-                                   'Expected expression in assignment')
-            return StatAssignment(varlist, explist, start=pos, end=self._pos)
+            # (Missing '=' is not a fatal error because varlist might also match
+            # the beginning of a functioncall.)
+            if self._accept(lexer.TokSymbol('=')) is not None:
+                explist = self._assert(self._explist(),
+                                       'Expected expression in assignment')
+                return StatAssignment(varlist, explist, start=pos, end=self._pos)
         self._pos = pos
         
         functioncall = self._functioncall()

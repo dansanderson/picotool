@@ -8,6 +8,73 @@ from pico8.lua import lexer
 from pico8.lua import parser
 
 
+LUA_SAMPLE = '''
+-- game of life: v1
+-- by dddaaannn
+
+alive_color = 7
+width = 128
+height = 128
+
+board_i = 1
+boards = {{}, {}}
+
+cls()
+for y=1,height do
+  boards[1][y] = {}
+  boards[2][y] = {}
+  for x=1,width do
+    boards[1][y][x] = 0
+    boards[2][y][x] = 0
+  end
+end
+  
+-- draw an r pentomino
+boards[1][60][64] = 1
+boards[1][60][65] = 1
+boards[1][61][63] = 1
+boards[1][61][64] = 1
+boards[1][62][64] = 1
+
+function get(bi,x,y)
+  if ((x < 1) or (x > width) or (y < 1) or (y > height)) then
+    return 0
+  end
+  return boards[bi][y][x]
+end
+
+while true do
+  for y=1,height do
+    for x=1,width do
+      pset(x-1,y-1,boards[board_i][y][x] * alive_color)
+    end
+  end
+  flip()
+
+  other_i = (board_i % 2) + 1
+  for y=1,height do
+    for x=1,width do       
+      neighbors = (
+        get(board_i,x-1,y-1) +
+        get(board_i,x,y-1) +
+        get(board_i,x+1,y-1) +
+        get(board_i,x-1,y) +
+        get(board_i,x+1,y) +
+        get(board_i,x-1,y+1) +
+        get(board_i,x,y+1) +
+        get(board_i,x+1,y+1))
+      if ((neighbors == 3) or
+          ((boards[board_i][y][x] == 1) and neighbors == 2)) then
+        boards[other_i][y][x] = 1
+      else
+        boards[other_i][y][x] = 0
+      end
+    end
+  end
+  board_i = other_i
+end
+'''
+
 def get_tokens(s):
     lxr = lexer.Lexer(version=4)
     lxr.process_lines([(l + '\n') for l in s.split('\n')])
@@ -731,10 +798,19 @@ class TestParser(unittest.TestCase):
         self.assertEqual(19, p._pos)
         # TODO: namelist, explist
         
-    #def testChunk(self):
-    #    pass
-    #def testProcessTokens(self):
-    #    pass
+    def testChunk(self):
+        p = get_parser(LUA_SAMPLE)
+        node = p._chunk()
+        self.assertIsNotNone(node)
+        self.assertEqual(43, p._pos)
+        # TODO: stats
+    
+    def testProcessTokens(self):
+        tokens = get_tokens(LUA_SAMPLE)
+        p = parser.Parser(version=4)
+        p.process_tokens(tokens)
+        # TODO: p.root
+        
 
 if __name__ == '__main__':
     unittest.main()
