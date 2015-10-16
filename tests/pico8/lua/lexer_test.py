@@ -252,13 +252,6 @@ class TestLexer(unittest.TestCase):
         self.assertEqual(lexer.TokNumber('1234567890'),
                          lxr._tokens[0])
 
-    def testNumberHex(self):
-        lxr = lexer.Lexer(version=4)
-        lxr._process_line('0x1234567890abcdef\n')
-        self.assertEqual(2, len(lxr._tokens))
-        self.assertEqual(lexer.TokNumber('0x1234567890abcdef'),
-                         lxr._tokens[0])
-
     def testNumberDecimal(self):
         lxr = lexer.Lexer(version=4)
         lxr._process_line('1.234567890\n')
@@ -281,6 +274,20 @@ class TestLexer(unittest.TestCase):
                          lxr._tokens[0])
         self.assertEqual(lexer.TokNumber('1.234567890e-6'),
                          lxr._tokens[1])
+
+    def testNumberHex(self):
+        lxr = lexer.Lexer(version=4)
+        lxr._process_line('0x1234567890abcdef\n')
+        self.assertEqual(2, len(lxr._tokens))
+        self.assertEqual(lexer.TokNumber('0x1234567890abcdef'),
+                         lxr._tokens[0])
+
+    def testNumberHexWithFrac(self):
+        lxr = lexer.Lexer(version=4)
+        lxr._process_line('0x1234567890abcdef.1bbf\n')
+        self.assertEqual(2, len(lxr._tokens))
+        self.assertEqual(lexer.TokNumber('0x1234567890abcdef.1bbf'),
+                         lxr._tokens[0])
 
     def testValidLuaNoErrors(self):
         lxr = lexer.Lexer(version=4)

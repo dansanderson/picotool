@@ -167,11 +167,12 @@ _TOKEN_MATCHERS.extend([
     (re.compile(symbol), TokSymbol) for symbol in [
     r'\+', '-', r'\*', '/', '%', r'\^', '#',
     '==', '~=', '!=', '<=', '>=', '<', '>', '=',
+    r'\+=', '-=', r'\*=', '/=', '%=',
     r'\(', r'\)', '{', '}', r'\[', r'\]', ';', ':', ',',
     r'\.\.\.', r'\.\.', r'\.']])
 _TOKEN_MATCHERS.extend([
     (re.compile(r'[a-zA-Z_][a-zA-Z0-9_]*'), TokName),
-    (re.compile(r'0[xX][0-9a-fA-F]+'), TokNumber),
+    (re.compile(r'0[xX][0-9a-fA-F]+(\.[0-9a-fA-F]+)?'), TokNumber),
     (re.compile(r'[0-9]+(\.[0-9]+)?([eE]-?[0-9]+)?'), TokNumber)])
 
 
