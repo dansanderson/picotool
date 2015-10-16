@@ -95,7 +95,7 @@ class TestParser(unittest.TestCase):
     def testCursorPeek(self):
         p = get_parser('break name 7.42 -- Comment text\n"string literal" ==')
         self.assertEqual(0, p._pos)
-        self.assertEqual('break', p._peek()._data)
+        self.assertEqual('break', p._peek().value)
         self.assertEqual(0, p._pos)
 
     def testCursorAccept(self):
@@ -118,10 +118,10 @@ class TestParser(unittest.TestCase):
                           p._expect, lexer.TokKeyword('and'))
         self.assertEqual(0, p._pos)
         tok_break = p._expect(lexer.TokKeyword('break'))
-        self.assertEqual('break', tok_break._data)
+        self.assertEqual('break', tok_break.value)
         self.assertEqual(1, p._pos)
         tok_name = p._expect(lexer.TokName)
-        self.assertEqual('name', tok_name._data)
+        self.assertEqual('name', tok_name.value)
         self.assertEqual(3, p._pos)  # "break, space, name"
 
     def testAssert(self):
@@ -132,7 +132,7 @@ class TestParser(unittest.TestCase):
             self.fail()
         except parser.ParserError as e:
             self.assertEqual('test assert', e.msg)
-            self.assertEqual('break', e.token._data)
+            self.assertEqual('break', e.token.value)
 
     def testNameListOneOK(self):
         p = get_parser('name1')
@@ -140,7 +140,7 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(node)
         self.assertEqual(1, p._pos)
         self.assertTrue(isinstance(node, parser.NameList))
-        self.assertEqual('name1', node.names[0]._data)
+        self.assertEqual('name1', node.names[0].value)
         self.assertEqual(1, len(node.names))
 
     def testNameListOneWithMoreOK(self):
@@ -149,7 +149,7 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(node)
         self.assertEqual(1, p._pos)
         self.assertTrue(isinstance(node, parser.NameList))
-        self.assertEqual('name1', node.names[0]._data)
+        self.assertEqual('name1', node.names[0].value)
         self.assertEqual(1, len(node.names))
 
     def testNameListMultipleOK(self):
@@ -159,10 +159,10 @@ class TestParser(unittest.TestCase):
         self.assertTrue(isinstance(node, parser.NameList))
         self.assertEqual(9, p._pos)
         self.assertEqual(4, len(node.names))
-        self.assertEqual('name1', node.names[0]._data)
-        self.assertEqual('name2', node.names[1]._data)
-        self.assertEqual('name3', node.names[2]._data)
-        self.assertEqual('name4', node.names[3]._data)
+        self.assertEqual('name1', node.names[0].value)
+        self.assertEqual('name2', node.names[1].value)
+        self.assertEqual('name3', node.names[2].value)
+        self.assertEqual('name4', node.names[3].value)
         
     def testNameListErr(self):
         p = get_parser('123.45 name1')
@@ -221,7 +221,7 @@ class TestParser(unittest.TestCase):
         node = p._exp()
         self.assertIsNotNone(node)
         self.assertTrue(isinstance(node, parser.ExpUnOp))
-        self.assertEqual('#', node.unop._data)
+        self.assertEqual('#', node.unop.value)
         self.assertTrue(isinstance(node.exp.value, parser.VarName))
         self.assertEqual(lexer.TokName('foo'), node.exp.value.name)
 
@@ -230,7 +230,7 @@ class TestParser(unittest.TestCase):
         node = p._exp()
         self.assertIsNotNone(node)
         self.assertTrue(isinstance(node, parser.ExpUnOp))
-        self.assertEqual('-', node.unop._data)
+        self.assertEqual('-', node.unop.value)
         self.assertTrue(isinstance(node.exp, parser.ExpValue))
         self.assertEqual('45', node.exp.value)
 
@@ -245,22 +245,22 @@ class TestParser(unittest.TestCase):
         node = p._exp()
         self.assertIsNotNone(node)
         self.assertEqual(29, p._pos)
-        self.assertEqual('foo', node.exp2.value.name._data)
-        self.assertEqual('!=', node.binop._data)
+        self.assertEqual('foo', node.exp2.value.name.value)
+        self.assertEqual('!=', node.binop.value)
         self.assertEqual('8', node.exp1.exp2.value)
-        self.assertEqual('>', node.exp1.binop._data)
+        self.assertEqual('>', node.exp1.binop.value)
         self.assertEqual('7', node.exp1.exp1.exp2.value)
-        self.assertEqual('^', node.exp1.exp1.binop._data)
+        self.assertEqual('^', node.exp1.exp1.binop.value)
         self.assertEqual('6', node.exp1.exp1.exp1.exp2.value)
-        self.assertEqual('..', node.exp1.exp1.exp1.binop._data)
+        self.assertEqual('..', node.exp1.exp1.exp1.binop.value)
         self.assertEqual('5', node.exp1.exp1.exp1.exp1.exp2.value)
-        self.assertEqual('/', node.exp1.exp1.exp1.exp1.binop._data)
+        self.assertEqual('/', node.exp1.exp1.exp1.exp1.binop.value)
         self.assertEqual('4', node.exp1.exp1.exp1.exp1.exp1.exp2.value)
-        self.assertEqual('-', node.exp1.exp1.exp1.exp1.exp1.binop._data)
+        self.assertEqual('-', node.exp1.exp1.exp1.exp1.exp1.binop.value)
         self.assertEqual('3', node.exp1.exp1.exp1.exp1.exp1.exp1.exp2.value)
-        self.assertEqual('*', node.exp1.exp1.exp1.exp1.exp1.exp1.binop._data)
+        self.assertEqual('*', node.exp1.exp1.exp1.exp1.exp1.exp1.binop.value)
         self.assertEqual('2', node.exp1.exp1.exp1.exp1.exp1.exp1.exp1.exp2.value)
-        self.assertEqual('+', node.exp1.exp1.exp1.exp1.exp1.exp1.exp1.binop._data)
+        self.assertEqual('+', node.exp1.exp1.exp1.exp1.exp1.exp1.exp1.binop.value)
         self.assertEqual('1', node.exp1.exp1.exp1.exp1.exp1.exp1.exp1.exp1.value)
 
     def testExpList(self):
@@ -272,14 +272,14 @@ class TestParser(unittest.TestCase):
         self.assertEqual('1', node.exps[0].value)
         self.assertEqual('2', node.exps[1].value)
         self.assertEqual('3', node.exps[2].exp1.value)
-        self.assertEqual('-', node.exps[2].binop._data)
+        self.assertEqual('-', node.exps[2].binop.value)
         self.assertEqual('4', node.exps[2].exp2.value)
         self.assertEqual('5', node.exps[3].exp1.exp1.value)
-        self.assertEqual('..', node.exps[3].exp1.binop._data)
+        self.assertEqual('..', node.exps[3].exp1.binop.value)
         self.assertEqual('6', node.exps[3].exp1.exp2.value)
-        self.assertEqual('^', node.exps[3].binop._data)
+        self.assertEqual('^', node.exps[3].binop.value)
         self.assertEqual('7', node.exps[3].exp2.value)
-        self.assertEqual('foo', node.exps[4].value.name._data)
+        self.assertEqual('foo', node.exps[4].value.name.value)
 
     def testExpListErr(self):
         p = get_parser('break')
@@ -305,7 +305,7 @@ class TestParser(unittest.TestCase):
         self.assertEqual(7, p._pos)
         self.assertTrue(isinstance(node, parser.ExpBinOp))
         self.assertEqual('2', node.exp1.value)
-        self.assertEqual('+', node.binop._data)
+        self.assertEqual('+', node.binop.value)
         self.assertEqual('3', node.exp2.value)
         
     def testPrefixExpIndex(self):
@@ -314,9 +314,9 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(node)
         self.assertEqual(8, p._pos)
         self.assertTrue(isinstance(node, parser.VarIndex))
-        self.assertEqual('foo', node.exp_prefix.name._data)
+        self.assertEqual('foo', node.exp_prefix.name.value)
         self.assertEqual('4', node.exp_index.exp1.value)
-        self.assertEqual('+', node.exp_index.binop._data)
+        self.assertEqual('+', node.exp_index.binop.value)
         self.assertEqual('5', node.exp_index.exp2.value)
         
     def testPrefixExpAttribute(self):
@@ -325,8 +325,8 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(node)
         self.assertEqual(3, p._pos)
         self.assertTrue(isinstance(node, parser.VarAttribute))
-        self.assertEqual('foo', node.exp_prefix.name._data)
-        self.assertEqual('bar', node.attr_name._data)
+        self.assertEqual('foo', node.exp_prefix.name.value)
+        self.assertEqual('bar', node.attr_name.value)
 
     def testPrefixExpChain(self):
         p = get_parser('(1+2)[foo].bar.baz')
@@ -334,14 +334,14 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(node)
         self.assertEqual(12, p._pos)
         self.assertTrue(isinstance(node, parser.VarAttribute))
-        self.assertEqual('baz', node.attr_name._data)
+        self.assertEqual('baz', node.attr_name.value)
         self.assertTrue(isinstance(node.exp_prefix, parser.VarAttribute))
-        self.assertEqual('bar', node.exp_prefix.attr_name._data)
+        self.assertEqual('bar', node.exp_prefix.attr_name.value)
         self.assertTrue(isinstance(node.exp_prefix.exp_prefix, parser.VarIndex))
-        self.assertEqual('foo', node.exp_prefix.exp_prefix.exp_index.value.name._data)
+        self.assertEqual('foo', node.exp_prefix.exp_prefix.exp_index.value.name.value)
         self.assertTrue(isinstance(node.exp_prefix.exp_prefix.exp_prefix, parser.ExpBinOp))
         self.assertEqual('1', node.exp_prefix.exp_prefix.exp_prefix.exp1.value)
-        self.assertEqual('+', node.exp_prefix.exp_prefix.exp_prefix.binop._data)
+        self.assertEqual('+', node.exp_prefix.exp_prefix.exp_prefix.binop.value)
         self.assertEqual('2', node.exp_prefix.exp_prefix.exp_prefix.exp2.value)
 
     def testFuncname(self):
@@ -350,7 +350,7 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(node)
         self.assertEqual(1, p._pos)
         self.assertTrue(isinstance(node, parser.FunctionName))
-        self.assertEqual('foo', node.namepath[0]._data)
+        self.assertEqual('foo', node.namepath[0].value)
         self.assertIsNone(node.methodname)
 
     def testFuncnameErr(self):
@@ -365,9 +365,9 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(node)
         self.assertEqual(5, p._pos)
         self.assertTrue(isinstance(node, parser.FunctionName))
-        self.assertEqual('foo', node.namepath[0]._data)
-        self.assertEqual('bar', node.namepath[1]._data)
-        self.assertEqual('baz', node.namepath[2]._data)
+        self.assertEqual('foo', node.namepath[0].value)
+        self.assertEqual('bar', node.namepath[1].value)
+        self.assertEqual('baz', node.namepath[2].value)
         self.assertIsNone(node.methodname)
         
     def testFuncnameMethod(self):
@@ -376,8 +376,8 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(node)
         self.assertEqual(3, p._pos)
         self.assertTrue(isinstance(node, parser.FunctionName))
-        self.assertEqual('foo', node.namepath[0]._data)
-        self.assertEqual('method', node.methodname._data)
+        self.assertEqual('foo', node.namepath[0].value)
+        self.assertEqual('method', node.methodname.value)
 
     def testFuncnamePathAndMethod(self):
         p = get_parser('foo.bar.baz:method')
@@ -385,10 +385,10 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(node)
         self.assertEqual(7, p._pos)
         self.assertTrue(isinstance(node, parser.FunctionName))
-        self.assertEqual('foo', node.namepath[0]._data)
-        self.assertEqual('bar', node.namepath[1]._data)
-        self.assertEqual('baz', node.namepath[2]._data)
-        self.assertEqual('method', node.methodname._data)
+        self.assertEqual('foo', node.namepath[0].value)
+        self.assertEqual('bar', node.namepath[1].value)
+        self.assertEqual('baz', node.namepath[2].value)
+        self.assertEqual('method', node.methodname.value)
     
     def testArgsExpList(self):
         p = get_parser('(foo, bar, baz)')
@@ -414,7 +414,7 @@ class TestParser(unittest.TestCase):
         node = p._prefixexp()
         self.assertIsNotNone(node)
         self.assertEqual(10, p._pos)
-        self.assertEqual('fname', node.exp_prefix.name._data)
+        self.assertEqual('fname', node.exp_prefix.name.value)
         self.assertEqual(3, len(node.args.explist.exps))
 
     def testPrefixExpFunctionCallValueArgs(self):
@@ -434,8 +434,8 @@ class TestParser(unittest.TestCase):
         node = p._prefixexp()
         self.assertIsNotNone(node)
         self.assertEqual(12, p._pos)
-        self.assertEqual('obj', node.exp_prefix.name._data)
-        self.assertEqual('method', node.methodname._data)
+        self.assertEqual('obj', node.exp_prefix.name.value)
+        self.assertEqual('method', node.methodname.value)
         self.assertEqual(3, len(node.args.explist.exps))
         
     def testFunctionCall(self):
@@ -443,7 +443,7 @@ class TestParser(unittest.TestCase):
         node = p._functioncall()
         self.assertIsNotNone(node)
         self.assertEqual(10, p._pos)
-        self.assertEqual('fname', node.exp_prefix.name._data)
+        self.assertEqual('fname', node.exp_prefix.name.value)
         self.assertEqual(3, len(node.args.explist.exps))
 
     def testFunctionCallValueArgs(self):
@@ -463,8 +463,8 @@ class TestParser(unittest.TestCase):
         node = p._functioncall()
         self.assertIsNotNone(node)
         self.assertEqual(12, p._pos)
-        self.assertEqual('obj', node.exp_prefix.name._data)
-        self.assertEqual('method', node.methodname._data)
+        self.assertEqual('obj', node.exp_prefix.name.value)
+        self.assertEqual('method', node.methodname.value)
         self.assertEqual(3, len(node.args.explist.exps))
 
     def testFunctionCallErr(self):
@@ -479,8 +479,8 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(node)
         self.assertEqual(3, p._pos)
         self.assertTrue(isinstance(node.value, parser.VarAttribute))
-        self.assertEqual('foo', node.value.exp_prefix.name._data)
-        self.assertEqual('bar', node.value.attr_name._data)
+        self.assertEqual('foo', node.value.exp_prefix.name.value)
+        self.assertEqual('bar', node.value.attr_name.value)
     
     def testFieldExpKey(self):
         p = get_parser('[1] = 2')
@@ -497,7 +497,7 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(node)
         self.assertEqual(5, p._pos)
         self.assertTrue(isinstance(node, parser.FieldNamedKey))
-        self.assertEqual('foo', node.key_name._data)
+        self.assertEqual('foo', node.key_name.value)
         self.assertEqual('3', node.exp.value)
         
     def testFieldExp(self):
@@ -506,7 +506,7 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(node)
         self.assertEqual(1, p._pos)
         self.assertTrue(isinstance(node, parser.FieldExp))
-        self.assertEqual('foo', node.exp.value.name._data)
+        self.assertEqual('foo', node.exp.value.name.value)
         
     def testTableConstructor(self):
         p = get_parser('{[1]=2,foo=3;4}')
@@ -521,7 +521,7 @@ class TestParser(unittest.TestCase):
         self.assertEqual('2', node.fields[0].exp.value)
 
         self.assertTrue(isinstance(node.fields[1], parser.FieldNamedKey))
-        self.assertEqual('foo', node.fields[1].key_name._data)
+        self.assertEqual('foo', node.fields[1].key_name.value)
         self.assertEqual('3', node.fields[1].exp.value)
 
         self.assertTrue(isinstance(node.fields[2], parser.FieldExp))
@@ -575,8 +575,8 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(node)
         self.assertEqual(10, p._pos)
         self.assertEqual(2, len(node.parlist.names))
-        self.assertEqual('foo', node.parlist.names[0]._data)
-        self.assertEqual('bar', node.parlist.names[1]._data)
+        self.assertEqual('foo', node.parlist.names[0].value)
+        self.assertEqual('bar', node.parlist.names[1].value)
         self.assertEqual(None, node.dots)
         self.assertEqual(1, len(node.block.stats))
         self.assertTrue(isinstance(node.block.stats[0], parser.StatReturn))
@@ -587,8 +587,8 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(node)
         self.assertEqual(13, p._pos)
         self.assertEqual(2, len(node.parlist.names))
-        self.assertEqual('foo', node.parlist.names[0]._data)
-        self.assertEqual('bar', node.parlist.names[1]._data)
+        self.assertEqual('foo', node.parlist.names[0].value)
+        self.assertEqual('bar', node.parlist.names[1].value)
         self.assertTrue(isinstance(node.dots, parser.VarargDots))
         self.assertEqual(1, len(node.block.stats))
         self.assertTrue(isinstance(node.block.stats[0], parser.StatReturn))
@@ -620,8 +620,8 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(node)
         self.assertEqual(14, p._pos)
         self.assertEqual(2, len(node.funcbody.parlist.names))
-        self.assertEqual('foo', node.funcbody.parlist.names[0]._data)
-        self.assertEqual('bar', node.funcbody.parlist.names[1]._data)
+        self.assertEqual('foo', node.funcbody.parlist.names[0].value)
+        self.assertEqual('bar', node.funcbody.parlist.names[1].value)
         self.assertTrue(isinstance(node.funcbody.dots, parser.VarargDots))
         self.assertEqual(1, len(node.funcbody.block.stats))
         self.assertTrue(isinstance(node.funcbody.block.stats[0],
@@ -643,14 +643,14 @@ class TestParser(unittest.TestCase):
         node = p._var()
         self.assertIsNotNone(node)
         self.assertEqual(1, p._pos)
-        self.assertEqual('foo', node.name._data)
+        self.assertEqual('foo', node.name.value)
         
     def testVarIndex(self):
         p = get_parser('bar[7]')
         node = p._var()
         self.assertIsNotNone(node)
         self.assertEqual(4, p._pos)
-        self.assertEqual('bar', node.exp_prefix.name._data)
+        self.assertEqual('bar', node.exp_prefix.name.value)
         self.assertEqual('7', node.exp_index.value)
         
     def testVarAttribute(self):
@@ -658,8 +658,8 @@ class TestParser(unittest.TestCase):
         node = p._var()
         self.assertIsNotNone(node)
         self.assertEqual(3, p._pos)
-        self.assertEqual('baz', node.exp_prefix.name._data)
-        self.assertEqual('bat', node.attr_name._data)
+        self.assertEqual('baz', node.exp_prefix.name.value)
+        self.assertEqual('bat', node.attr_name.value)
     
     def testVarList(self):
         p = get_parser('foo, bar[7], baz.bat')
@@ -667,11 +667,11 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(node)
         self.assertEqual(12, p._pos)
         self.assertEqual(3, len(node.vars))
-        self.assertEqual('foo', node.vars[0].name._data)
-        self.assertEqual('bar', node.vars[1].exp_prefix.name._data)
+        self.assertEqual('foo', node.vars[0].name.value)
+        self.assertEqual('bar', node.vars[1].exp_prefix.name.value)
         self.assertEqual('7', node.vars[1].exp_index.value)
-        self.assertEqual('baz', node.vars[2].exp_prefix.name._data)
-        self.assertEqual('bat', node.vars[2].attr_name._data)
+        self.assertEqual('baz', node.vars[2].exp_prefix.name.value)
+        self.assertEqual('bat', node.vars[2].attr_name.value)
 
     def testLastStatBreak(self):
         p = get_parser('break')
@@ -709,9 +709,9 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(node)
         self.assertEqual(17, p._pos)
         self.assertEqual(3, len(node.varlist.vars))
-        self.assertEqual('foo', node.varlist.vars[0].name._data)
-        self.assertEqual('bar', node.varlist.vars[1].name._data)
-        self.assertEqual('baz', node.varlist.vars[2].name._data)
+        self.assertEqual('foo', node.varlist.vars[0].name.value)
+        self.assertEqual('bar', node.varlist.vars[1].name.value)
+        self.assertEqual('baz', node.varlist.vars[2].name.value)
         self.assertEqual(3, len(node.explist.exps))
         self.assertEqual('1', node.explist.exps[0].value)
         self.assertEqual('2', node.explist.exps[1].value)
@@ -722,7 +722,7 @@ class TestParser(unittest.TestCase):
         node = p._stat()
         self.assertIsNotNone(node)
         self.assertEqual(10, p._pos)
-        self.assertEqual('foo', node.functioncall.exp_prefix.name._data)
+        self.assertEqual('foo', node.functioncall.exp_prefix.name.value)
         self.assertEqual(3, len(node.functioncall.args.explist.exps))
         self.assertEqual('1', node.functioncall.args.explist.exps[0].value)
         self.assertEqual('2', node.functioncall.args.explist.exps[1].value)
@@ -814,7 +814,7 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(node)
         self.assertEqual(13, p._pos)
         # TODO: name, exp_init, exp_end, exp_step, block
-        self.assertEqual('foo', node.name._data)
+        self.assertEqual('foo', node.name.value)
         self.assertEqual('1', node.exp_init.value)
         self.assertEqual('3', node.exp_end.value)
         self.assertIsNone(node.exp_step)
@@ -826,7 +826,7 @@ class TestParser(unittest.TestCase):
         node = p._stat()
         self.assertIsNotNone(node)
         self.assertEqual(15, p._pos)
-        self.assertEqual('foo', node.name._data)
+        self.assertEqual('foo', node.name.value)
         self.assertEqual('1', node.exp_init.value)
         self.assertEqual('3', node.exp_end.value)
         self.assertEqual('10', node.exp_step.value)
@@ -839,8 +839,8 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(node)
         self.assertEqual(19, p._pos)
         self.assertEqual(2, len(node.namelist.names))
-        self.assertEqual('foo', node.namelist.names[0]._data)
-        self.assertEqual('bar', node.namelist.names[1]._data)
+        self.assertEqual('foo', node.namelist.names[0].value)
+        self.assertEqual('bar', node.namelist.names[1].value)
         self.assertEqual(2, len(node.explist.exps))
         self.assertEqual('1', node.explist.exps[0].value)
         self.assertEqual('3', node.explist.exps[1].value)
@@ -853,12 +853,12 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(node)
         self.assertEqual(16, p._pos)
         self.assertEqual(1, len(node.funcname.namepath))
-        self.assertEqual('foo', node.funcname.namepath[0]._data)
+        self.assertEqual('foo', node.funcname.namepath[0].value)
         self.assertIsNone(node.funcname.methodname)
         self.assertEqual(3, len(node.funcbody.parlist.names))
-        self.assertEqual('a', node.funcbody.parlist.names[0]._data)
-        self.assertEqual('b', node.funcbody.parlist.names[1]._data)
-        self.assertEqual('c', node.funcbody.parlist.names[2]._data)
+        self.assertEqual('a', node.funcbody.parlist.names[0].value)
+        self.assertEqual('b', node.funcbody.parlist.names[1].value)
+        self.assertEqual('c', node.funcbody.parlist.names[2].value)
         self.assertIsNone(node.funcbody.dots)
         self.assertEqual(1, len(node.funcbody.block.stats))
         self.assertTrue(isinstance(node.funcbody.block.stats[0], parser.StatBreak))
@@ -868,11 +868,11 @@ class TestParser(unittest.TestCase):
         node = p._stat()
         self.assertIsNotNone(node)
         self.assertEqual(18, p._pos)
-        self.assertEqual('foo', node.funcname._data)
+        self.assertEqual('foo', node.funcname.value)
         self.assertEqual(3, len(node.funcbody.parlist.names))
-        self.assertEqual('a', node.funcbody.parlist.names[0]._data)
-        self.assertEqual('b', node.funcbody.parlist.names[1]._data)
-        self.assertEqual('c', node.funcbody.parlist.names[2]._data)
+        self.assertEqual('a', node.funcbody.parlist.names[0].value)
+        self.assertEqual('b', node.funcbody.parlist.names[1].value)
+        self.assertEqual('c', node.funcbody.parlist.names[2].value)
         self.assertIsNone(node.funcbody.dots)
         self.assertEqual(1, len(node.funcbody.block.stats))
         self.assertTrue(isinstance(node.funcbody.block.stats[0], parser.StatBreak))
@@ -883,9 +883,9 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(node)
         self.assertEqual(9, p._pos)
         self.assertEqual(3, len(node.namelist.names))
-        self.assertEqual('foo', node.namelist.names[0]._data)
-        self.assertEqual('bar', node.namelist.names[1]._data)
-        self.assertEqual('baz', node.namelist.names[2]._data)
+        self.assertEqual('foo', node.namelist.names[0].value)
+        self.assertEqual('bar', node.namelist.names[1].value)
+        self.assertEqual('baz', node.namelist.names[2].value)
         self.assertIsNone(node.explist)
         
     def testStatLocalAssignmentWithValues(self):
@@ -894,9 +894,9 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(node)
         self.assertEqual(19, p._pos)
         self.assertEqual(3, len(node.namelist.names))
-        self.assertEqual('foo', node.namelist.names[0]._data)
-        self.assertEqual('bar', node.namelist.names[1]._data)
-        self.assertEqual('baz', node.namelist.names[2]._data)
+        self.assertEqual('foo', node.namelist.names[0].value)
+        self.assertEqual('bar', node.namelist.names[1].value)
+        self.assertEqual('baz', node.namelist.names[2].value)
         self.assertEqual(3, len(node.explist.exps))
         self.assertEqual('1', node.explist.exps[0].value)
         self.assertEqual('2', node.explist.exps[1].value)

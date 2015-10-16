@@ -74,8 +74,7 @@ class Token():
             value_equal = self._data == other._data
         return (isinstance(self, other.__class__) and
                 value_equal)
-        
-    
+            
     def matches(self, other):
         """Matches the token against either a token class or token data.
 
@@ -89,6 +88,11 @@ class Token():
         if isinstance(other, type):
             return isinstance(self, other)
         return self == other
+
+    @property
+    def value(self):
+        """The text of the token."""
+        return self._data
 
 
 class TokSpace(Token):
