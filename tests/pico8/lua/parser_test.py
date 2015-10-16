@@ -920,7 +920,8 @@ class TestParser(unittest.TestCase):
         tokens = get_tokens(LUA_SAMPLE)
         p = parser.Parser(version=4)
         p.process_tokens(tokens)
-        # TODO: p.root
+        self.assertIsNotNone(p.root)
+        self.assertEqual(14, len(p.root.stats))
         
 
 if __name__ == '__main__':
