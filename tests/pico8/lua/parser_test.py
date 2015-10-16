@@ -395,7 +395,7 @@ class TestParser(unittest.TestCase):
         node = p._args()
         self.assertIsNotNone(node)
         self.assertEqual(9, p._pos)
-        self.assertEqual(3, len(node.exps))
+        self.assertEqual(3, len(node.explist.exps))
         
     def testArgsString(self):
         p = get_parser('"string literal"')
@@ -415,7 +415,19 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(node)
         self.assertEqual(10, p._pos)
         self.assertEqual('fname', node.exp_prefix.name._data)
-        self.assertEqual(3, len(node.args.exps))
+        self.assertEqual(3, len(node.args.explist.exps))
+
+    def testPrefixExpFunctionCallValueArgs(self):
+        p = get_parser('fname(1, 2, 3)')
+        node = p._prefixexp()
+        self.assertIsNotNone(node)
+        self.assertEqual(10, p._pos)
+
+    def testPrefixExpFunctionCallNoArgs(self):
+        p = get_parser('fname()')
+        node = p._prefixexp()
+        self.assertIsNotNone(node)
+        self.assertEqual(3, p._pos)
         
     def testPrefixExpFunctionCallMethod(self):
         p = get_parser('obj:method(foo, bar, baz)')
@@ -424,7 +436,7 @@ class TestParser(unittest.TestCase):
         self.assertEqual(12, p._pos)
         self.assertEqual('obj', node.exp_prefix.name._data)
         self.assertEqual('method', node.methodname._data)
-        self.assertEqual(3, len(node.args.exps))
+        self.assertEqual(3, len(node.args.explist.exps))
         
     def testFunctionCall(self):
         p = get_parser('fname(foo, bar, baz)')
@@ -432,12 +444,19 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(node)
         self.assertEqual(10, p._pos)
         self.assertEqual('fname', node.exp_prefix.name._data)
-        self.assertEqual(3, len(node.args.exps))
+        self.assertEqual(3, len(node.args.explist.exps))
 
+    def testFunctionCallValueArgs(self):
         p = get_parser('foo(1, 2, 3)')
         node = p._functioncall()
         self.assertIsNotNone(node)
         self.assertEqual(10, p._pos)
+
+    def testFunctionCallNoArgs(self):
+        p = get_parser('foo()')
+        node = p._functioncall()
+        self.assertIsNotNone(node)
+        self.assertEqual(3, p._pos)
 
     def testFunctionCallMethod(self):
         p = get_parser('obj:method(foo, bar, baz)')
@@ -446,7 +465,7 @@ class TestParser(unittest.TestCase):
         self.assertEqual(12, p._pos)
         self.assertEqual('obj', node.exp_prefix.name._data)
         self.assertEqual('method', node.methodname._data)
-        self.assertEqual(3, len(node.args.exps))
+        self.assertEqual(3, len(node.args.explist.exps))
 
     def testFunctionCallErr(self):
         p = get_parser('foo + 7')
@@ -704,10 +723,10 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(node)
         self.assertEqual(10, p._pos)
         self.assertEqual('foo', node.functioncall.exp_prefix.name._data)
-        self.assertEqual(3, len(node.functioncall.args.exps))
-        self.assertEqual('1', node.functioncall.args.exps[0].value)
-        self.assertEqual('2', node.functioncall.args.exps[1].value)
-        self.assertEqual('3', node.functioncall.args.exps[2].value)
+        self.assertEqual(3, len(node.functioncall.args.explist.exps))
+        self.assertEqual('1', node.functioncall.args.explist.exps[0].value)
+        self.assertEqual('2', node.functioncall.args.explist.exps[1].value)
+        self.assertEqual('3', node.functioncall.args.explist.exps[2].value)
         
     def testStatDo(self):
         p = get_parser('do break end')
@@ -778,7 +797,6 @@ class TestParser(unittest.TestCase):
         node = p._stat()
         self.assertIsNotNone(node)
         self.assertEqual(21, p._pos)
-        # TODO: exp_block_pairs
         self.assertEqual(3, len(node.exp_block_pairs))
         self.assertEqual(True, node.exp_block_pairs[0][0].value)
         self.assertEqual(1, len(node.exp_block_pairs[0][1].stats))
@@ -790,62 +808,114 @@ class TestParser(unittest.TestCase):
         self.assertTrue(isinstance(node.exp_block_pairs[2][1].stats[0], parser.StatReturn))
         self.assertIsNone(node.exp_block_pairs[2][1].stats[0].explist)
 
-    def testStatForStep(self):
+    def testStatFor(self):
         p = get_parser('for foo=1,3 do break end')
         node = p._stat()
         self.assertIsNotNone(node)
         self.assertEqual(13, p._pos)
         # TODO: name, exp_init, exp_end, exp_step, block
+        self.assertEqual('foo', node.name._data)
+        self.assertEqual('1', node.exp_init.value)
+        self.assertEqual('3', node.exp_end.value)
+        self.assertIsNone(node.exp_step)
+        self.assertEqual(1, len(node.block.stats))
+        self.assertTrue(isinstance(node.block.stats[0], parser.StatBreak))
 
     def testStatForStep(self):
         p = get_parser('for foo=1,3,10 do break end')
         node = p._stat()
         self.assertIsNotNone(node)
         self.assertEqual(15, p._pos)
-        # TODO: name, exp_init, exp_end, exp_step, block
+        self.assertEqual('foo', node.name._data)
+        self.assertEqual('1', node.exp_init.value)
+        self.assertEqual('3', node.exp_end.value)
+        self.assertEqual('10', node.exp_step.value)
+        self.assertEqual(1, len(node.block.stats))
+        self.assertTrue(isinstance(node.block.stats[0], parser.StatBreak))
 
     def testStatForIn(self):
         p = get_parser('for foo, bar in 1, 3 do break end')
         node = p._stat()
         self.assertIsNotNone(node)
         self.assertEqual(19, p._pos)
-        # TODO: namelist, explist, block
+        self.assertEqual(2, len(node.namelist.names))
+        self.assertEqual('foo', node.namelist.names[0]._data)
+        self.assertEqual('bar', node.namelist.names[1]._data)
+        self.assertEqual(2, len(node.explist.exps))
+        self.assertEqual('1', node.explist.exps[0].value)
+        self.assertEqual('3', node.explist.exps[1].value)
+        self.assertEqual(1, len(node.block.stats))
+        self.assertTrue(isinstance(node.block.stats[0], parser.StatBreak))
         
     def testStatFunction(self):
         p = get_parser('function foo(a, b, c) break end')
         node = p._stat()
         self.assertIsNotNone(node)
         self.assertEqual(16, p._pos)
-        # TODO: funcname, funcbody
+        self.assertEqual(1, len(node.funcname.namepath))
+        self.assertEqual('foo', node.funcname.namepath[0]._data)
+        self.assertIsNone(node.funcname.methodname)
+        self.assertEqual(3, len(node.funcbody.parlist.names))
+        self.assertEqual('a', node.funcbody.parlist.names[0]._data)
+        self.assertEqual('b', node.funcbody.parlist.names[1]._data)
+        self.assertEqual('c', node.funcbody.parlist.names[2]._data)
+        self.assertIsNone(node.funcbody.dots)
+        self.assertEqual(1, len(node.funcbody.block.stats))
+        self.assertTrue(isinstance(node.funcbody.block.stats[0], parser.StatBreak))
         
     def testStatLocalFunction(self):
         p = get_parser('local function foo(a, b, c) break end')
         node = p._stat()
         self.assertIsNotNone(node)
         self.assertEqual(18, p._pos)
-        # TODO: funcname, funcbody
+        self.assertEqual('foo', node.funcname._data)
+        self.assertEqual(3, len(node.funcbody.parlist.names))
+        self.assertEqual('a', node.funcbody.parlist.names[0]._data)
+        self.assertEqual('b', node.funcbody.parlist.names[1]._data)
+        self.assertEqual('c', node.funcbody.parlist.names[2]._data)
+        self.assertIsNone(node.funcbody.dots)
+        self.assertEqual(1, len(node.funcbody.block.stats))
+        self.assertTrue(isinstance(node.funcbody.block.stats[0], parser.StatBreak))
         
     def testStatLocalAssignment(self):
         p = get_parser('local foo, bar, baz')
         node = p._stat()
         self.assertIsNotNone(node)
         self.assertEqual(9, p._pos)
-        # TODO: namelist, explist
+        self.assertEqual(3, len(node.namelist.names))
+        self.assertEqual('foo', node.namelist.names[0]._data)
+        self.assertEqual('bar', node.namelist.names[1]._data)
+        self.assertEqual('baz', node.namelist.names[2]._data)
+        self.assertIsNone(node.explist)
         
     def testStatLocalAssignmentWithValues(self):
         p = get_parser('local foo, bar, baz = 1, 2, 3')
         node = p._stat()
         self.assertIsNotNone(node)
         self.assertEqual(19, p._pos)
-        # TODO: namelist, explist
+        self.assertEqual(3, len(node.namelist.names))
+        self.assertEqual('foo', node.namelist.names[0]._data)
+        self.assertEqual('bar', node.namelist.names[1]._data)
+        self.assertEqual('baz', node.namelist.names[2]._data)
+        self.assertEqual(3, len(node.explist.exps))
+        self.assertEqual('1', node.explist.exps[0].value)
+        self.assertEqual('2', node.explist.exps[1].value)
+        self.assertEqual('3', node.explist.exps[2].value)
         
     def testChunk(self):
         p = get_parser(LUA_SAMPLE)
         node = p._chunk()
         self.assertIsNotNone(node)
-        self.assertEqual(45, p._pos)
-        # TODO: stats
-    
+        self.assertEqual(628, p._pos)
+        self.assertEqual(14, len(node.stats))
+
+    def testChunkExtraSemis(self):
+        p = get_parser(' ; ; foo=1; bar=1; ;\n;baz=3; \n;  ;')
+        node = p._chunk()
+        self.assertIsNotNone(node)
+        self.assertEqual(27, p._pos)
+        self.assertEqual(3, len(node.stats))
+
     def testProcessTokens(self):
         tokens = get_tokens(LUA_SAMPLE)
         p = parser.Parser(version=4)

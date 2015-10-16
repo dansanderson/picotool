@@ -82,6 +82,7 @@ _ast_node_types = (
     ('StatBreak', ()),
     ('StatReturn', ('explist',)),
     ('FunctionName', ('namepath', 'methodname')),
+    ('FunctionArgs', ('explist',)),
     ('VarList', ('vars',)),
     ('VarName', ('name',)),
     ('VarIndex', ('exp_prefix', 'exp_index')),
@@ -247,17 +248,17 @@ class Parser():
         pos = self._pos
         stats = []
         while True:
+            while self._accept(lexer.TokSymbol(';')) is not None:
+                pass
             stat = self._stat()
             if stat is None:
                 break
-            if self._accept(lexer.TokSymbol(';')) is not None:
-                stat._end_token_pos = self._pos
             stats.append(stat)
         laststat = self._laststat()
         if laststat is not None:
             stats.append(laststat)
-        if self._accept(lexer.TokSymbol(';')) is not None:
-            laststat._end_token_pos = self._pos
+        while self._accept(lexer.TokSymbol(';')) is not None:
+            pass
         return Chunk(stats, start=pos, end=self._pos)
 
     def _stat(self):
@@ -736,7 +737,7 @@ class Parser():
         if self._accept(lexer.TokSymbol('(')):
             explist = self._explist()
             self._expect(lexer.TokSymbol(')'))
-            return explist
+            return FunctionArgs(explist, start=pos, end=self._pos)
 
         tableconstructor = self._tableconstructor()
         if tableconstructor is not None:
