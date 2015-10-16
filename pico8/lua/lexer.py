@@ -67,8 +67,8 @@ class Token():
           other: The other Token to compare.
         """
         value_equal = None
-        if (isinstance(self._data, TokKeyword) and
-            isinstance(self._other, TokKeyword)):
+        if (isinstance(self, TokKeyword) and
+            isinstance(other, TokKeyword)):
             value_equal = self._data.lower() == other._data.lower()
         else:
             value_equal = self._data == other._data

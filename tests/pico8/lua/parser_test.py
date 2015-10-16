@@ -12,9 +12,7 @@ LUA_SAMPLE = '''
 -- game of life: v1
 -- by dddaaannn
 
-alive_color = 7
-width = 128
-height = 128
+alive_color = 7; width = 128; height = 128
 
 board_i = 1
 boards = {{}, {}}
@@ -691,56 +689,89 @@ class TestParser(unittest.TestCase):
         node = p._stat()
         self.assertIsNotNone(node)
         self.assertEqual(17, p._pos)
-        # TODO: varlist, explist
+        self.assertEqual(3, len(node.varlist.vars))
+        self.assertEqual('foo', node.varlist.vars[0].name._data)
+        self.assertEqual('bar', node.varlist.vars[1].name._data)
+        self.assertEqual('baz', node.varlist.vars[2].name._data)
+        self.assertEqual(3, len(node.explist.exps))
+        self.assertEqual('1', node.explist.exps[0].value)
+        self.assertEqual('2', node.explist.exps[1].value)
+        self.assertEqual('3', node.explist.exps[2].value)
         
     def testStatFunctionCall(self):
         p = get_parser('foo(1, 2, 3)')
         node = p._stat()
         self.assertIsNotNone(node)
         self.assertEqual(10, p._pos)
-        # TODO: functioncall
+        self.assertEqual('foo', node.functioncall.exp_prefix.name._data)
+        self.assertEqual(3, len(node.functioncall.args.exps))
+        self.assertEqual('1', node.functioncall.args.exps[0].value)
+        self.assertEqual('2', node.functioncall.args.exps[1].value)
+        self.assertEqual('3', node.functioncall.args.exps[2].value)
         
     def testStatDo(self):
         p = get_parser('do break end')
         node = p._stat()
         self.assertIsNotNone(node)
         self.assertEqual(5, p._pos)
-        # TODO: block
+        self.assertEqual(1, len(node.block.stats))
+        self.assertTrue(isinstance(node.block.stats[0], parser.StatBreak))
         
     def testStatWhile(self):
         p = get_parser('while true do break end')
         node = p._stat()
         self.assertIsNotNone(node)
         self.assertEqual(9, p._pos)
-        # TODO: exp, block
+        self.assertEqual(True, node.exp.value)
+        self.assertEqual(1, len(node.block.stats))
+        self.assertTrue(isinstance(node.block.stats[0], parser.StatBreak))
         
     def testStatRepeat(self):
         p = get_parser('repeat break until true')
         node = p._stat()
         self.assertIsNotNone(node)
         self.assertEqual(7, p._pos)
-        # TODO: block, exp
+        self.assertEqual(1, len(node.block.stats))
+        self.assertTrue(isinstance(node.block.stats[0], parser.StatBreak))
+        self.assertEqual(True, node.exp.value)
         
     def testStatIf(self):
         p = get_parser('if true then break end')
         node = p._stat()
         self.assertIsNotNone(node)
         self.assertEqual(9, p._pos)
-        # TODO: exp_block_pairs
+        self.assertEqual(1, len(node.exp_block_pairs))
+        self.assertEqual(True, node.exp_block_pairs[0][0].value)
+        self.assertEqual(1, len(node.exp_block_pairs[0][1].stats))
+        self.assertTrue(isinstance(node.exp_block_pairs[0][1].stats[0], parser.StatBreak))
         
     def testStatIfElse(self):
         p = get_parser('if true then break else return end')
         node = p._stat()
         self.assertIsNotNone(node)
         self.assertEqual(13, p._pos)
-        # TODO: exp_block_pairs
+        self.assertEqual(2, len(node.exp_block_pairs))
+        self.assertEqual(True, node.exp_block_pairs[0][0].value)
+        self.assertEqual(1, len(node.exp_block_pairs[0][1].stats))
+        self.assertTrue(isinstance(node.exp_block_pairs[0][1].stats[0], parser.StatBreak))
+        self.assertIsNone(node.exp_block_pairs[1][0])
+        self.assertEqual(1, len(node.exp_block_pairs[1][1].stats))
+        self.assertTrue(isinstance(node.exp_block_pairs[1][1].stats[0], parser.StatReturn))
+        self.assertIsNone(node.exp_block_pairs[1][1].stats[0].explist)
 
     def testStatIfElseIf(self):
         p = get_parser('if true then break elseif false then return end')
         node = p._stat()
         self.assertIsNotNone(node)
         self.assertEqual(17, p._pos)
-        # TODO: exp_block_pairs
+        self.assertEqual(2, len(node.exp_block_pairs))
+        self.assertEqual(True, node.exp_block_pairs[0][0].value)
+        self.assertEqual(1, len(node.exp_block_pairs[0][1].stats))
+        self.assertTrue(isinstance(node.exp_block_pairs[0][1].stats[0], parser.StatBreak))
+        self.assertEqual(False, node.exp_block_pairs[1][0].value)
+        self.assertEqual(1, len(node.exp_block_pairs[1][1].stats))
+        self.assertTrue(isinstance(node.exp_block_pairs[1][1].stats[0], parser.StatReturn))
+        self.assertIsNone(node.exp_block_pairs[1][1].stats[0].explist)
         
     def testStatIfElseIfElse(self):
         p = get_parser('if true then break elseif false then break else return end')
@@ -748,6 +779,16 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(node)
         self.assertEqual(21, p._pos)
         # TODO: exp_block_pairs
+        self.assertEqual(3, len(node.exp_block_pairs))
+        self.assertEqual(True, node.exp_block_pairs[0][0].value)
+        self.assertEqual(1, len(node.exp_block_pairs[0][1].stats))
+        self.assertTrue(isinstance(node.exp_block_pairs[0][1].stats[0], parser.StatBreak))
+        self.assertEqual(False, node.exp_block_pairs[1][0].value)
+        self.assertEqual(1, len(node.exp_block_pairs[1][1].stats))
+        self.assertTrue(isinstance(node.exp_block_pairs[1][1].stats[0], parser.StatBreak))
+        self.assertIsNone(node.exp_block_pairs[2][0])
+        self.assertTrue(isinstance(node.exp_block_pairs[2][1].stats[0], parser.StatReturn))
+        self.assertIsNone(node.exp_block_pairs[2][1].stats[0].explist)
 
     def testStatForStep(self):
         p = get_parser('for foo=1,3 do break end')
@@ -802,7 +843,7 @@ class TestParser(unittest.TestCase):
         p = get_parser(LUA_SAMPLE)
         node = p._chunk()
         self.assertIsNotNone(node)
-        self.assertEqual(43, p._pos)
+        self.assertEqual(45, p._pos)
         # TODO: stats
     
     def testProcessTokens(self):
