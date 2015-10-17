@@ -808,12 +808,31 @@ class TestParser(unittest.TestCase):
         self.assertTrue(isinstance(node.exp_block_pairs[2][1].stats[0], parser.StatReturn))
         self.assertIsNone(node.exp_block_pairs[2][1].stats[0].explist)
 
+    def testStatIfShort(self):
+        p = get_parser('if (true) break\nreturn')
+        node = p._stat()
+        self.assertIsNotNone(node)
+        self.assertEqual(7, p._pos)
+        self.assertEqual(1, len(node.exp_block_pairs))
+        self.assertEqual(True, node.exp_block_pairs[0][0].value)
+        self.assertEqual(1, len(node.exp_block_pairs[0][1].stats))
+        self.assertTrue(isinstance(node.exp_block_pairs[0][1].stats[0], parser.StatBreak))
+        
+    def testStatIfShortEOF(self):
+        p = get_parser('if (true) break')
+        node = p._stat()
+        self.assertIsNotNone(node)
+        self.assertEqual(7, p._pos)
+        self.assertEqual(1, len(node.exp_block_pairs))
+        self.assertEqual(True, node.exp_block_pairs[0][0].value)
+        self.assertEqual(1, len(node.exp_block_pairs[0][1].stats))
+        self.assertTrue(isinstance(node.exp_block_pairs[0][1].stats[0], parser.StatBreak))
+
     def testStatFor(self):
         p = get_parser('for foo=1,3 do break end')
         node = p._stat()
         self.assertIsNotNone(node)
         self.assertEqual(13, p._pos)
-        # TODO: name, exp_init, exp_end, exp_step, block
         self.assertEqual('foo', node.name.value)
         self.assertEqual('1', node.exp_init.value)
         self.assertEqual('3', node.exp_end.value)
@@ -915,6 +934,13 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(node)
         self.assertEqual(27, p._pos)
         self.assertEqual(3, len(node.stats))
+
+    def testChunkMaxPos(self):
+        p = get_parser(' ; ; foo=1; bar=1; ;\n;baz=3; \n;  ;')
+        node = p._chunk(max_pos=16)
+        self.assertIsNotNone(node)
+        self.assertEqual(16, p._pos)
+        self.assertEqual(2, len(node.stats))
 
     def testProcessTokens(self):
         tokens = get_tokens(LUA_SAMPLE)

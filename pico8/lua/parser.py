@@ -237,28 +237,47 @@ class Parser():
             return node_or_none
         raise ParserError(desc, token=self._peek())
 
-    def _chunk(self):
+    def _chunk(self, max_pos=None):
         """Parse a chunk / block.
         
         chunk :: = {stat [';']} [laststat [';']]
+
+        Args:
+          max_pos: If not None, stop parsing stats after the token position
+            max_pos is reached, and if the last stat doesn't end at max_pos,
+            return None. This is used for the Pico-8 short-if that ends the
+            block at the first newline (so max_pos is the position of the
+            newline, or one past the end of the token list).
 
         Returns:
           Chunk(stats)
         """
         pos = self._pos
         stats = []
-        while True:
-            while self._accept(lexer.TokSymbol(';')) is not None:
+        def _continue():
+            return (max_pos is None) or (self._pos < max_pos)
+        while _continue():
+            while (_continue() and
+                   self._accept(lexer.TokSymbol(';')) is not None):
+                # Eat leading and intervening semicolons.
                 pass
             stat = self._stat()
             if stat is None:
                 break
             stats.append(stat)
-        laststat = self._laststat()
-        if laststat is not None:
-            stats.append(laststat)
-        while self._accept(lexer.TokSymbol(';')) is not None:
+        if _continue():
+            while self._accept(lexer.TokSymbol(';')) is not None:
+                # Eat leading and intervening semicolons.
+                pass
+            laststat = self._laststat()
+            if laststat is not None:
+                stats.append(laststat)
+        while (_continue() and
+               (self._accept(lexer.TokSymbol(';')) is not None)):
+            # Eat trailing semicolons.
             pass
+        if max_pos is not None and self._pos != max_pos:
+            return None
         return Chunk(stats, start=pos, end=self._pos)
 
     def _stat(self):
@@ -329,6 +348,22 @@ class Parser():
         if self._accept(lexer.TokKeyword('if')) is not None:
             exp_block_pairs = []
             exp = self._exp()
+
+            then_pos = self._pos
+            if (self._accept(lexer.TokKeyword('then')) is None and
+                (self._tokens[exp._end_token_pos - 1] == lexer.TokSymbol(')'))):
+                # Check for Pico-8 short form.
+                then_end_pos = exp._end_token_pos
+                while (then_end_pos < len(self._tokens) and
+                       self._tokens[then_end_pos] != lexer.TokNewline('\n')):
+                    then_end_pos += 1
+                block = self._assert(self._chunk(max_pos=then_end_pos),
+                                     'valid chunk in short-if')
+                # (Use exp.value here to unwrap it from the bracketed
+                # expression.)
+                return StatIf([(exp.value, block)], start=pos, end=self._pos)
+            self._pos = then_pos
+
             self._expect(lexer.TokKeyword('then'))
             block = self._chunk()
             self._assert(block, 'Expected block in if')
