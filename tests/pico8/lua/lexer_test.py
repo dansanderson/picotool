@@ -323,6 +323,12 @@ class TestLexer(unittest.TestCase):
         ])
         self.assertEqual(13, len(lxr.tokens))
 
+    def testHelloWorldExample(self):
+        code='-- hello world\n-- by zep\n\nt = 0\n\nmusic(0)\n\nfunction _update()\n t += 1\nend\n\nfunction _draw()\n cls()\n  \n for i=1,11 do\n  for j0=0,7 do\n  j = 7-j0\n  col = 7+j\n  t1 = t + i*4 - j*2\n  x = cos(t0)*5\n  y = 38 + j + cos(t1/50)*5\n  pal(7,col)\n  spr(16+i, 8+i*8 + x, y)\n  end\n end\n \n  print("this is pico-8",\n    37, 70, 14) --8+(t/4)%8)\n\n print("nice to meet you",\n    34, 80, 12) --8+(t/4)%8)\n\n  spr(1, 64-4, 90)\nend\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n'        
+        lxr = lexer.Lexer(version=4)
+        lxr.process_lines([code])
+        # TODO: assert tokens
+
         
 if __name__ == '__main__':
     unittest.main()

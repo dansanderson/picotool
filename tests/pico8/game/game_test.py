@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
 
 import io
+import os
+import shutil
+import tempfile
 import textwrap
 import unittest
 from unittest.mock import Mock
 from unittest.mock import patch
 
 from pico8.game import game
+from pico8.lua import parser
 
 
 VALID_P8_HEADER = '''pico-8 cartridge // http://www.pico-8.com
@@ -84,19 +88,33 @@ class TestP8Game(unittest.TestCase):
         
 class TestP8PNGGame(unittest.TestCase):
     def setUp(self):
-        testdata_path = os.path.join(os.path.dirname(__file__), 'testdata')
+        self.testdata_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+            'testdata')
         self.tempdir = tempfile.mkdtemp()
-        shutil.copytree(testdata_path, os.path.join(self.tempdir, 'testdata'))
         
     def tearDown(self):
         shutil.rmtree(self.tempdir)
+
+    def testFromP8PNGFileV0(self):
+        pngpath = os.path.join(self.testdata_path, 'helloworld.p8.png')
+        with open(pngpath, 'rb') as fh:
+            pnggame = game.Game.from_p8png_file(fh)
+        # first_stat:
+        #   -- hello world
+        #   -- by zep
+        #
+        #   t = 0
+        first_stat = pnggame.lua.root.stats[0]
+        self.assertTrue(isinstance(first_stat, parser.StatAssignment))
+        # TODO: examine comment tokens
         
     def testFromP8PNGFile(self):
-        p8path = os.path.join(testdata_path, 'test_gol.p8')
-        pngpath = os.path.join(testdata_path, 'test_gol.p8.png')
-        with open(p8path) as fh:
+        p8path = os.path.join(self.testdata_path, 'test_gol.p8')
+        pngpath = os.path.join(self.testdata_path, 'test_gol.p8.png')
+        with open(p8path, 'r') as fh:
             p8game = game.Game.from_p8_file(fh)
-        with open(pngpath) as fh:
+        with open(pngpath, 'rb') as fh:
             pnggame = game.Game.from_p8png_file(fh)
         # TODO: confirm the two games are equivalent
 

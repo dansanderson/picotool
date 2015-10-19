@@ -144,20 +144,21 @@ class Game():
             row_i += 1
 
         gfx = picodata[0x0:0x2000]
-	p8map = picodata[0x2000:0x3000]
-	gfx_props = picodata[0x3000:0x3100]
-	song = picodata[0x3100:0x3200]
-	sfx = picodata[0x3200:0x4300]
+        p8map = picodata[0x2000:0x3000]
+        gfx_props = picodata[0x3000:0x3100]
+        song = picodata[0x3100:0x3200]
+        sfx = picodata[0x3200:0x4300]
         code = picodata[0x4300:0x8000]
         version = picodata[0x8000]
 
         if version == 0:
             # code is ASCII
-            try:
-                code_length = code.index(0)
-            except ValueError:
-                code_length = 0x8000-0x4300
-            code = str(code)
+
+            # (Technically this fails if v0 code completely fills the code area,
+            # in which case code_length = 0x8000-0x4300.)
+            code_length = code.index(0)
+
+            code = ''.join(chr(c) for c in code[:code_length])
                 
         if version == 1 or version == 5:
             # code is compressed
@@ -188,19 +189,18 @@ class Game():
             code = ''.join(chr(c) for c in out)
 
         new_game = cls()
-        for section in section_lines:
-            new_game.lua = Lua.from_lines(
-                code.split('\n'), version=version)
-            new_game.gfx = Gfx.from_bytes(
-                gfx, version=version)
-            new_game.gff = Gff.from_bytes(
-                gfx_props, version=version)
-            new_game.map = Map.from_bytes(
-                p8map, version=version)
-            new_game.sfx = Sfx.from_bytes(
-                sfx, version=version)
-            new_game.music = Music.from_bytes(
-                music, version=version)
+        new_game.lua = Lua.from_lines(
+            [code], version=version)
+        new_game.gfx = Gfx.from_bytes(
+            gfx, version=version)
+        new_game.gff = Gff.from_bytes(
+            gfx_props, version=version)
+        new_game.map = Map.from_bytes(
+            p8map, version=version)
+        new_game.sfx = Sfx.from_bytes(
+            sfx, version=version)
+        new_game.music = Music.from_bytes(
+            song, version=version)
     
         return new_game
         

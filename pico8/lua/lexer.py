@@ -165,9 +165,10 @@ _TOKEN_MATCHERS.extend([
     'then', 'true', 'until', 'while']])
 _TOKEN_MATCHERS.extend([
     (re.compile(symbol), TokSymbol) for symbol in [
-    r'\+', '-', r'\*', '/', '%', r'\^', '#',
-    '==', '~=', '!=', '<=', '>=', '<', '>', '=',
     r'\+=', '-=', r'\*=', '/=', '%=',
+    '==', '~=', '!=', '<=', '>=', 
+    r'\+', '-', r'\*', '/', '%', r'\^', '#',
+    '<', '>', '=',
     r'\(', r'\)', '{', '}', r'\[', r'\]', ';', ':', ',',
     r'\.\.\.', r'\.\.', r'\.']])
 _TOKEN_MATCHERS.extend([

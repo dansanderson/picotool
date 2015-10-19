@@ -17,8 +17,9 @@ the shortest pattern. The sounds are numbered 0 through 63
 
 __all__ = ['Music']
 
+from .. import util
 
-class Music():
+class Music(util.BaseSection):
     @classmethod
     def from_lines(cls, lines, version):
         """
@@ -26,7 +27,9 @@ class Music():
           lines: .p8 lines for the music section.
           version: The Pico-8 data version from the game file header.
         """
+        bytestrs = []
+        for l in lines:
+            bytestrs.extend(l.rstrip().split(' '))
         data = b''.join(bytearray.fromhex(p)
-                        for p in l.rstrip().split(' ')
-                        for l in lines)
-        result = Music(data=data, version=version)
+                        for p in bytestrs)
+        return cls(data=data, version=version)

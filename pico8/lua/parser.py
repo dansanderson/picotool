@@ -314,7 +314,12 @@ class Parser():
         if varlist is not None:
             # (Missing '=' is not a fatal error because varlist might also match
             # the beginning of a functioncall.)
-            if self._accept(lexer.TokSymbol('=')) is not None:
+            if ((self._accept(lexer.TokSymbol('=')) is not None) or
+                (self._accept(lexer.TokSymbol('+=')) is not None) or
+                (self._accept(lexer.TokSymbol('-=')) is not None) or
+                (self._accept(lexer.TokSymbol('*=')) is not None) or
+                (self._accept(lexer.TokSymbol('/=')) is not None) or
+                (self._accept(lexer.TokSymbol('%=')) is not None)):
                 explist = self._assert(self._explist(),
                                        'Expected expression in assignment')
                 return StatAssignment(varlist, explist, start=pos, end=self._pos)

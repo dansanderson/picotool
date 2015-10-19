@@ -23,6 +23,20 @@ class Lua():
     def get_char_count(self):
         return sum(len(t) for t in self._lexer._tokens)
 
+    def get_token_count(self):
+        return len(t for t in self._lexer._tokens
+                   if not isinstance(t, lexer.TokSpace) and
+                   not isinstance(t, lexer.TokNewline) and
+                   not isinstance(t, lexer.TokComment))
+
+    @property
+    def tokens(self):
+        return self._lexer.tokens
+
+    @property
+    def root(self):
+        return self._parser.root
+
     @classmethod
     def from_lines(cls, lines, version):
         """Produce a Lua data object from lines of Lua source.
@@ -36,5 +50,5 @@ class Lua():
         """
         result = Lua(version)
         result._lexer.process_lines(lines)
-        # result._parser.process_tokens(result._lexer.tokens)
+        result._parser.process_tokens(result._lexer.tokens)
         return result
