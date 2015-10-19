@@ -1,25 +1,15 @@
-""""""
+"""The map section of a Pico-8 cart.
+
+The map region consists of 4096 bytes. The .p8 representation is 32
+lines of 256 hexadecimal digits (128 bytes).
+"""
+# TODO: more documentaion
 
 __all__ = ['Map']
 
+from .. import util
 
-class Map():
-    """"""
-    def __init__(self, version):
-        """Initializer.
-
-        If loading from a file, prefer Map.from_lines().
-
-        Args:
-          version: The Pico-8 data version from the game file header.
-        """
-        self._version = version
-
-    @classmethod
-    def from_lines(cls, lines, version):
-        """
-        Args:
-          version: The Pico-8 data version from the game file header.
-        """
-        result = Map(version=version)
-        return result
+class Map(util.BaseSection):
+    """The map region of a Pico-8 cart."""
+    # TODO: nicer accessors
+    pass

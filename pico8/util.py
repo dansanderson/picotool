@@ -58,3 +58,41 @@ def error(msg):
       msg: The error message to write.
     """
     _error_stream.write(msg)
+
+
+class BaseSection():
+    """A base class for Pico-8 section objects."""
+
+    def __init__(self, data, version):
+        """Initializer.
+
+        If loading from a file, prefer from_lines() or from_bytes().
+
+        Args:
+          version: The Pico-8 data version from the game file header.
+          data: The data region, as a sequence of bytes.
+        """
+        self._version = version
+        self._data = list(data)
+
+    @classmethod
+    def from_lines(cls, lines, version):
+        """Create an instance based on .p8 data lines.
+
+        The base implementation reads lines of ASCII-encoded hexadecimal bytes.
+
+        Args:
+          lines: .p8 lines for the section.
+          version: The Pico-8 data version from the game file header.
+        """
+        data = b''.join(bytearray.fromhex(l.rstrip()) for l in lines)
+        return cls(data=data, version=version)
+
+    @classmethod
+    def from_bytes(cls, data, version):
+        """
+        Args:
+          data: Binary data for the section, as a sequence of bytes.
+          version: The Pico-8 data version from the game file header.
+        """
+        return cls(data=data, version=version)

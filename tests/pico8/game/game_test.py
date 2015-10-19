@@ -32,7 +32,7 @@ VALID_P8_FOOTER = (
     '__music__\n' + '00 41424344\n' * 64 + '\n\n')
 
 
-class TestGame(unittest.TestCase):
+class TestP8Game(unittest.TestCase):
     def testFromP8File(self):
         g = game.Game.from_p8_file(io.StringIO(
             VALID_P8_HEADER +
@@ -81,6 +81,25 @@ class TestGame(unittest.TestCase):
             '\n__bad__\n\n' +
             VALID_P8_FOOTER))
 
+        
+class TestP8PNGGame(unittest.TestCase):
+    def setUp(self):
+        testdata_path = os.path.join(os.path.dirname(__file__), 'testdata')
+        self.tempdir = tempfile.mkdtemp()
+        shutil.copytree(testdata_path, os.path.join(self.tempdir, 'testdata'))
+        
+    def tearDown(self):
+        shutil.rmtree(self.tempdir)
+        
+    def testFromP8PNGFile(self):
+        p8path = os.path.join(testdata_path, 'test_gol.p8')
+        pngpath = os.path.join(testdata_path, 'test_gol.p8.png')
+        with open(p8path) as fh:
+            p8game = game.Game.from_p8_file(fh)
+        with open(pngpath) as fh:
+            pnggame = game.Game.from_p8png_file(fh)
+        # TODO: confirm the two games are equivalent
 
+    
 if __name__ == '__main__':
     unittest.main()

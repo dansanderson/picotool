@@ -1,25 +1,15 @@
-""""""
+"""The graphics properties section of a Pico-8 cart.
+
+The graphics properties region consists of 256 bytes. The .p8
+representation is 2 lines of 256 hexadecimal digits (128 bytes).
+"""
+# TODO: more documentaion
 
 __all__ = ['Gff']
 
+from .. import util
 
-class Gff():
-    """"""
-    def __init__(self, version):
-        """Initializer.
-
-        If loading from a file, prefer Gff.from_lines().
-
-        Args:
-          version: The Pico-8 data version from the game file header.
-        """
-        self._version = version
-
-    @classmethod
-    def from_lines(cls, lines, version):
-        """
-        Args:
-          version: The Pico-8 data version from the game file header.
-        """
-        result = Gff(version=version)
-        return result
+class Gff(util.BaseSection):
+    """The graphics properties section of a Pico-8 cart."""
+    # TODO: nicer accessors
+    pass
