@@ -205,8 +205,9 @@ class TestLexer(unittest.TestCase):
         self.assertEqual(lexer.TokString('abc def ghi and jkl'),
                          lxr._tokens[0])
 
-    # TODO: confirm the correct multi-line string behavior
     def testStringMultipleLines(self):
+        # TODO: Pico-8 doesn't allow multiline strings, so this probably
+        # shouldn't either.
         lxr = lexer.Lexer(version=4)
         lxr._process_line('"abc def ghi \n')
         lxr._process_line('and jkl"\n')
@@ -293,7 +294,12 @@ class TestLexer(unittest.TestCase):
         lxr = lexer.Lexer(version=4)
         for line in VALID_LUA.split('\n'):
             lxr._process_line(line)
-        # TODO: test samples of tokens
+        tokens = lxr.tokens
+        self.assertEqual(lexer.TokName('v1'), tokens[0])
+        self.assertEqual(lexer.TokSpace(' '), tokens[1])
+        self.assertEqual(lexer.TokSymbol('='), tokens[2])
+        self.assertEqual(lexer.TokSpace(' '), tokens[3])
+        self.assertEqual(lexer.TokKeyword('nil'), tokens[4])
 
     def testLexerError(self):
         lxr = lexer.Lexer(version=4)
@@ -327,7 +333,11 @@ class TestLexer(unittest.TestCase):
         code='-- hello world\n-- by zep\n\nt = 0\n\nmusic(0)\n\nfunction _update()\n t += 1\nend\n\nfunction _draw()\n cls()\n  \n for i=1,11 do\n  for j0=0,7 do\n  j = 7-j0\n  col = 7+j\n  t1 = t + i*4 - j*2\n  x = cos(t0)*5\n  y = 38 + j + cos(t1/50)*5\n  pal(7,col)\n  spr(16+i, 8+i*8 + x, y)\n  end\n end\n \n  print("this is pico-8",\n    37, 70, 14) --8+(t/4)%8)\n\n print("nice to meet you",\n    34, 80, 12) --8+(t/4)%8)\n\n  spr(1, 64-4, 90)\nend\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n'        
         lxr = lexer.Lexer(version=4)
         lxr.process_lines([code])
-        # TODO: assert tokens
+        tokens = lxr.tokens
+        self.assertEqual(lexer.TokComment('-- hello world'), tokens[0])
+        self.assertEqual(lexer.TokNewline('\n'), tokens[1])
+        self.assertEqual(lexer.TokComment('-- by zep'), tokens[2])
+        self.assertEqual(lexer.TokNewline('\n'), tokens[3])
 
         
 if __name__ == '__main__':

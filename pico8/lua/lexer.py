@@ -217,6 +217,9 @@ class Lexer():
           The number of characters processed from the beginning of the string.
         """
         i = 0
+
+        # TODO: Pico-8 doesn't allow multiline strings, so this probably
+        # shouldn't either.
         
         if self._in_string is not None:
             # Continue string literal.
@@ -327,4 +330,4 @@ class Lexer():
         or to reformat the original source while preserving comments
         and newlines.
         """
-        return self._tokens[:]
+        return self._tokens

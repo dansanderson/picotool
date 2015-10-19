@@ -2,14 +2,13 @@
 
 import io
 import os
-import shutil
-import tempfile
 import textwrap
 import unittest
 from unittest.mock import Mock
 from unittest.mock import patch
 
 from pico8.game import game
+from pico8.lua import lexer
 from pico8.lua import parser
 
 
@@ -37,6 +36,11 @@ VALID_P8_FOOTER = (
 
 
 class TestP8Game(unittest.TestCase):
+    def setUp(self):
+        self.testdata_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+            'testdata')
+        
     def testFromP8File(self):
         g = game.Game.from_p8_file(io.StringIO(
             VALID_P8_HEADER +
@@ -85,38 +89,36 @@ class TestP8Game(unittest.TestCase):
             '\n__bad__\n\n' +
             VALID_P8_FOOTER))
 
+    def testFromP8FileGoL(self):
+        p8path = os.path.join(self.testdata_path, 'test_gol.p8')
+        with open(p8path, 'r') as fh:
+            p8game = game.Game.from_p8_file(fh)
+        # TODO: validate game
+        
         
 class TestP8PNGGame(unittest.TestCase):
     def setUp(self):
         self.testdata_path = os.path.join(
             os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
             'testdata')
-        self.tempdir = tempfile.mkdtemp()
-        
-    def tearDown(self):
-        shutil.rmtree(self.tempdir)
 
     def testFromP8PNGFileV0(self):
         pngpath = os.path.join(self.testdata_path, 'helloworld.p8.png')
         with open(pngpath, 'rb') as fh:
             pnggame = game.Game.from_p8png_file(fh)
-        # first_stat:
-        #   -- hello world
-        #   -- by zep
-        #
-        #   t = 0
         first_stat = pnggame.lua.root.stats[0]
         self.assertTrue(isinstance(first_stat, parser.StatAssignment))
-        # TODO: examine comment tokens
+        tokens = pnggame.lua.tokens
+        self.assertEqual(lexer.TokComment('-- hello world'), tokens[0])
+        self.assertEqual(lexer.TokNewline('\n'), tokens[1])
+        self.assertEqual(lexer.TokComment('-- by zep'), tokens[2])
+        self.assertEqual(lexer.TokNewline('\n'), tokens[3])
         
     def testFromP8PNGFile(self):
-        p8path = os.path.join(self.testdata_path, 'test_gol.p8')
         pngpath = os.path.join(self.testdata_path, 'test_gol.p8.png')
-        with open(p8path, 'r') as fh:
-            p8game = game.Game.from_p8_file(fh)
         with open(pngpath, 'rb') as fh:
             pnggame = game.Game.from_p8png_file(fh)
-        # TODO: confirm the two games are equivalent
+        # TODO: validate game
 
     
 if __name__ == '__main__':
