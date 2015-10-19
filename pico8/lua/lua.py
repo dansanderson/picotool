@@ -24,10 +24,25 @@ class Lua():
         return sum(len(t) for t in self._lexer._tokens)
 
     def get_token_count(self):
-        return len(t for t in self._lexer._tokens
-                   if not isinstance(t, lexer.TokSpace) and
-                   not isinstance(t, lexer.TokNewline) and
-                   not isinstance(t, lexer.TokComment))
+        c = 0
+        for t in self._lexer._tokens:
+            if (not isinstance(t, lexer.TokSpace) and
+                not isinstance(t, lexer.TokNewline) and
+                not isinstance(t, lexer.TokComment)):
+                c += 1
+        return c
+
+    def get_title(self):
+        title_tok = self._lexer.tokens[0]
+        if not isinstance(title_tok, lexer.TokComment):
+            return None
+        return title_tok.value[2:].strip()
+
+    def get_byline(self):
+        title_tok = self._lexer.tokens[2]
+        if not isinstance(title_tok, lexer.TokComment):
+            return None
+        return title_tok.value[2:].strip()
 
     @property
     def tokens(self):
