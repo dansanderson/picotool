@@ -14,6 +14,7 @@ __all__ = [
     'TokString',
     'TokNumber',
     'TokName',
+    'TokLabel',
     'TokKeyword',
     'TokSymbol',
     'Lexer'
@@ -130,6 +131,11 @@ class TokName(Token):
     name = 'name'
 
 
+class TokLabel(Token):
+    """A goto label."""
+    name = 'label'
+
+
 class TokKeyword(Token):
     """A Lua keyword."""
     name = 'keyword'
@@ -162,13 +168,14 @@ _TOKEN_MATCHERS.extend([
     (re.compile(r'0[xX][0-9a-fA-F]+(\.[0-9a-fA-F]+)?'), TokNumber),
     (re.compile(r'0[xX]\.[0-9a-fA-F]+'), TokNumber),
     (re.compile(r'[0-9]+(\.[0-9]+)?([eE]-?[0-9]+)?'), TokNumber),
-    (re.compile(r'\.[0-9]+([eE]-?[0-9]+)?'), TokNumber)
+    (re.compile(r'\.[0-9]+([eE]-?[0-9]+)?'), TokNumber),
+    (re.compile(r'::[a-zA-Z_][a-zA-Z0-9_]*::'), TokLabel),
 ])
 _TOKEN_MATCHERS.extend([
     (re.compile(r'\b'+keyword+r'\b'), TokKeyword) for keyword in [
     'and', 'break', 'do', 'else', 'elseif', 'end', 'false', 'for',
-    'function', 'if', 'in', 'local', 'nil', 'not', 'or', 'repeat', 'return',
-    'then', 'true', 'until', 'while']])
+    'function', 'goto', 'if', 'in', 'local', 'nil', 'not', 'or', 'repeat',
+    'return', 'then', 'true', 'until', 'while']])
 _TOKEN_MATCHERS.extend([
     (re.compile(symbol), TokSymbol) for symbol in [
     r'\+=', '-=', r'\*=', '/=', '%=',

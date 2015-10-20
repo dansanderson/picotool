@@ -957,6 +957,20 @@ class TestParser(unittest.TestCase):
         self.assertEqual('1', node.explist.exps[0].value)
         self.assertEqual('2', node.explist.exps[1].value)
         self.assertEqual('3', node.explist.exps[2].value)
+
+    def testStatGoto(self):
+        p = get_parser('goto foobar')
+        node = p._stat()
+        self.assertIsNotNone(node)
+        self.assertEqual(3, p._pos)
+        self.assertEqual('foobar', node.label)
+
+    def testStatLabel(self):
+        p = get_parser('::foobar::')
+        node = p._stat()
+        self.assertIsNotNone(node)
+        self.assertEqual(1, p._pos)
+        self.assertEqual('foobar', node.label)
         
     def testChunk(self):
         p = get_parser(LUA_SAMPLE)

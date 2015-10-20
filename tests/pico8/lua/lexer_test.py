@@ -185,6 +185,12 @@ class TestLexer(unittest.TestCase):
         self.assertEqual(2, len(lxr._tokens))
         self.assertEqual(lexer.TokName('android'), lxr._tokens[0])
 
+    def testOneLabel(self):
+        lxr = lexer.Lexer(version=4)
+        lxr._process_line('::foobar::\n')
+        self.assertEqual(2, len(lxr._tokens))
+        self.assertEqual(lexer.TokLabel('::foobar::'), lxr._tokens[0])
+        
     def testThreeDots(self):
         lxr = lexer.Lexer(version=4)
         lxr._process_line('...\n')

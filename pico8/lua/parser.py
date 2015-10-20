@@ -20,6 +20,8 @@ __all__ = [
     'StatFunction',
     'StatLocalFunction',
     'StatLocalAssignment',
+    'StatGoto',
+    'StatLabel',
     'StatBreak',
     'StatReturn',
     'FunctionName',
@@ -79,6 +81,8 @@ _ast_node_types = (
     ('StatFunction', ('funcname', 'funcbody')),
     ('StatLocalFunction', ('funcname', 'funcbody')),
     ('StatLocalAssignment', ('namelist', 'explist')),
+    ('StatGoto', ('label',)),
+    ('StatLabel', ('label',)),
     ('StatBreak', ()),
     ('StatReturn', ('explist',)),
     ('FunctionName', ('namepath', 'methodname')),
@@ -296,7 +300,8 @@ class Parser():
 		 for namelist in explist do block end | 
 		 function funcname funcbody | 
 		 local function Name funcbody | 
-		 local namelist [`=´ explist]
+		 local namelist [`=´ explist] |
+                 ::label::
 
         Returns:
           StatAssignment(varlist, explist)
@@ -310,6 +315,8 @@ class Parser():
           StatFunction(funcname, funcbody)
           StatLocalFunction(funcname, funcbody)
           StatLocalAssignment(namelist, explist)
+          StatGoto(label)
+          StatLabel(label)
         """
         pos = self._pos
         
@@ -452,6 +459,16 @@ class Parser():
             return StatLocalAssignment(namelist, explist,
                                        start=pos, end=self._pos)
 
+        if self._accept(lexer.TokKeyword('goto')) is not None:
+            label = self._expect(lexer.TokName)
+            return StatGoto(label.value, start=pos, end=self._pos)
+        
+        label = self._accept(lexer.TokLabel)
+        if label is not None:
+            # Remove colons from label.
+            label_name = label.value[2:-2]
+            return StatLabel(label_name, start=pos, end=self._pos)
+        
         self._pos = pos
         return None
         
