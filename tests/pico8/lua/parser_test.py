@@ -867,10 +867,10 @@ class TestParser(unittest.TestCase):
         self.assertTrue(isinstance(node.block.stats[0], parser.StatBreak))
 
     def testStatForIn(self):
-        p = get_parser('for foo, bar in 1, 3 do break end')
+        p = get_parser('for foo, bar in 1, 3 do\n  break\nend\n')
         node = p._stat()
         self.assertIsNotNone(node)
-        self.assertEqual(19, p._pos)
+        self.assertEqual(20, p._pos)
         self.assertEqual(2, len(node.namelist.names))
         self.assertEqual('foo', node.namelist.names[0].value)
         self.assertEqual('bar', node.namelist.names[1].value)

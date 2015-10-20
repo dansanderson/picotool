@@ -363,12 +363,14 @@ class Parser():
                 # Check for Pico-8 short form.
                 then_end_pos = exp._end_token_pos
                 while (then_end_pos < len(self._tokens) and
-                       self._tokens[then_end_pos] != lexer.TokNewline('\n')):
+                       not self._tokens[then_end_pos].matches(lexer.TokNewline)):
                     then_end_pos += 1
-                self._max_pos = then_end_pos
-                block = self._assert(self._chunk(),
-                                     'valid chunk in short-if')
-                self._max_pos = None
+                try:
+                    self._max_pos = then_end_pos
+                    block = self._assert(self._chunk(),
+                                         'valid chunk in short-if')
+                finally:
+                    self._max_pos = None
                 # (Use exp.value here to unwrap the condition from the
                 # bracketed expression.)
                 return StatIf([(exp.value, block)], start=pos, end=self._pos)
