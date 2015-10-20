@@ -55,7 +55,7 @@ class ParserError(util.InvalidP8DataError):
         if self.token is None:
             return '{} at end of file'.format(self.msg)
         return '{} at line {} char {}'.format(
-            self.msg, self.token._lineno, self.token._charno)
+            self.msg, self.token._lineno + 1, self.token._charno)
 
 
 class Node():
@@ -452,15 +452,11 @@ class Parser():
           StatReturn(explist)
         """
         pos = self._pos
-        print('DEBUG: ... laststat initial pos={}'.format(self._pos))
         if self._accept(lexer.TokKeyword('break')) is not None:
             return StatBreak(start=pos, end=self._pos)
         if self._accept(lexer.TokKeyword('return')) is not None:
-            print('DEBUG: ... laststat pos before explist: {}'.format(self._pos))
             explist = self._explist()
-            print('DEBUG: ... laststat return, explist={}, pos={}'.format(explist, self._pos))
             return StatReturn(explist, start=pos, end=self._pos)
-        print('DEBUG: ... no laststat')
         self._pos = pos
         return None
 
