@@ -147,6 +147,10 @@ class Parser():
         self._tokens = None
         self._pos = None
         self._ast = None
+
+        # If _max_pos is not None, _accept will not advance the cursor beyond
+        # it and will return None for any action that would.
+        self._max_pos = None
         
     def _peek(self):
         """Return the token under the cursor.
@@ -167,6 +171,12 @@ class Parser():
         token. If the first non-space token does not match, the cursor
         returns to where it was before the call.
 
+        If self._max_pos is not None, then the cursor is not allowed
+        to advance past that position. If consuming whitespace and the
+        accepted token would leave the cursor past this point, the
+        cursor is rewound to the beginning and the method returns
+        None. This mechanism is exclusively for supporting short-if.
+
         Args:
           tok_pattern: The lexer.Token subclass or subclass instance
             to match. If tok is a subclass, the current token matches
@@ -177,6 +187,7 @@ class Parser():
         Returns:
           If the token under the cursor matches, returns the token. Otherwise
           None.
+
         """
         start_pos = self._pos
 
@@ -191,7 +202,9 @@ class Parser():
                 break
             self._pos += 1
         
-        if cur_tok is not None and cur_tok.matches(tok_pattern):
+        if (cur_tok is not None and
+            cur_tok.matches(tok_pattern) and
+            (self._max_pos is None or self._pos < self._max_pos)):
             self._pos += 1
             return cur_tok
 
@@ -237,58 +250,37 @@ class Parser():
             return node_or_none
         raise ParserError(desc, token=self._peek())
 
-    def _chunk(self, max_pos=None):
+    def _chunk(self):
         """Parse a chunk / block.
         
         chunk :: = {stat [';']} [laststat [';']]
-
-        Args:
-          max_pos: If not None, stop parsing stats after the token position
-            max_pos is reached, and if the last stat doesn't end at max_pos,
-            return None. This is used for the Pico-8 short-if that ends the
-            block at the first newline (so max_pos is the position of the
-            newline, or one past the end of the token list).
 
         Returns:
           Chunk(stats)
         """
         pos = self._pos
         stats = []
-        def _continue():
-            return (max_pos is None) or (self._pos < max_pos)
-        while _continue():
-            while (_continue() and
-                   self._accept(lexer.TokSymbol(';')) is not None):
-                # Eat leading and intervening semicolons.
+        while True:
+            # Eat leading and intervening semicolons.
+            while self._accept(lexer.TokSymbol(';')) is not None:
                 pass
-            last_pos = self._pos
             stat = self._stat()
-            if ((stat is None) or
-                (max_pos is not None and self._pos > max_pos)):
-                self._pos = last_pos
+            if stat is None:
                 break
             stats.append(stat)
-        print('DEBUG: ... first stats: {} found, pos={}'.format(len(stats), self._pos))
-        if _continue():
-            while self._accept(lexer.TokSymbol(';')) is not None:
-                # Eat leading and intervening semicolons.
-                pass
-            last_pos = self._pos
-            print('DEBUG: ... before calling laststat, pos={}'.format(last_pos))
-            laststat = self._laststat()
-            if ((laststat is None) or
-                (max_pos is not None and self._pos > max_pos)):
-                print ('DEBUG: laststat={} pos={} max_pos={}'.format(laststat, self._pos, max_pos))
-                self._pos = last_pos
-            else:
-                stats.append(laststat)
-        print('DEBUG: ... last stat: {} found, pos={}'.format(len(stats), self._pos))
-        while (_continue() and
-               (self._accept(lexer.TokSymbol(';')) is not None)):
-            # Eat trailing semicolons.
+
+        # Eat leading and intervening semicolons.
+        while self._accept(lexer.TokSymbol(';')) is not None:
             pass
-        if max_pos is not None and self._pos > max_pos:
-            return None
+        
+        laststat = self._laststat()
+        if laststat is not None:
+            stats.append(laststat)
+
+        # Eat trailing semicolons.
+        while self._accept(lexer.TokSymbol(';')) is not None:
+            pass
+        
         return Chunk(stats, start=pos, end=self._pos)
 
     def _stat(self):
@@ -373,11 +365,12 @@ class Parser():
                 while (then_end_pos < len(self._tokens) and
                        self._tokens[then_end_pos] != lexer.TokNewline('\n')):
                     then_end_pos += 1
-                print('DEBUG: short-if pos={} then_end_pos={} tokens={}'.format(self._pos, then_end_pos, self._tokens[self._pos:then_end_pos]))
-                block = self._assert(self._chunk(max_pos=then_end_pos),
+                self._max_pos = then_end_pos
+                block = self._assert(self._chunk(),
                                      'valid chunk in short-if')
-                # (Use exp.value here to unwrap it from the bracketed
-                # expression.)
+                self._max_pos = None
+                # (Use exp.value here to unwrap the condition from the
+                # bracketed expression.)
                 return StatIf([(exp.value, block)], start=pos, end=self._pos)
             self._pos = then_pos
 

@@ -111,6 +111,20 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(p._accept(lexer.TokSymbol('==')))
         self.assertEqual(11, p._pos)
 
+    def testCursorAcceptStopsAtMaxPos(self):
+        p = get_parser('break name 7.42 -- Comment text\n"string literal" ==')
+        p._max_pos = 4
+        self.assertEqual(0, p._pos)
+        self.assertIsNone(p._accept(lexer.TokName))
+        self.assertIsNone(p._accept(lexer.TokKeyword('and')))
+        self.assertIsNotNone(p._accept(lexer.TokKeyword('break')))
+        self.assertEqual(1, p._pos)
+        self.assertIsNotNone(p._accept(lexer.TokName))
+        self.assertIsNone(p._accept(lexer.TokNumber))
+        self.assertIsNone(p._accept(lexer.TokString))
+        self.assertIsNone(p._accept(lexer.TokSymbol('==')))
+        self.assertEqual(3, p._pos)
+
     def testCursorExpect(self):
         p = get_parser('break name 7.42 -- Comment text\n"string literal" ==')
         self.assertEqual(0, p._pos)
@@ -934,13 +948,6 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(node)
         self.assertEqual(27, p._pos)
         self.assertEqual(3, len(node.stats))
-
-    def testChunkMaxPos(self):
-        p = get_parser(' ; ; foo=1; bar=1; ;\n;baz=3; \n;  ;')
-        node = p._chunk(max_pos=16)
-        self.assertIsNotNone(node)
-        self.assertEqual(16, p._pos)
-        self.assertEqual(2, len(node.stats))
 
     def testProcessTokens(self):
         tokens = get_tokens(LUA_SAMPLE)
