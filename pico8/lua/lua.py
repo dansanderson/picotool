@@ -40,12 +40,16 @@ class Lua():
         return c
 
     def get_title(self):
+        if len(self._lexer.tokens) < 1:
+            return None
         title_tok = self._lexer.tokens[0]
         if not isinstance(title_tok, lexer.TokComment):
             return None
         return title_tok.value[2:].strip()
 
     def get_byline(self):
+        if len(self._lexer.tokens) < 3:
+            return None
         title_tok = self._lexer.tokens[2]
         if not isinstance(title_tok, lexer.TokComment):
             return None

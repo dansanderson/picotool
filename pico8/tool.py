@@ -91,6 +91,11 @@ def main(orig_args):
             except parser.ParserError as e:
                 print('{}: {}'.format(fname, e))
                 return 1
+            except Exception as e:
+                print('{}: {}'.format(fname, e))
+                import traceback
+                traceback.print_exc()
+                return 1
             
             if args.csv:
                 csv_writer.writerow([
