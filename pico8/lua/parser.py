@@ -261,22 +261,33 @@ class Parser():
                    self._accept(lexer.TokSymbol(';')) is not None):
                 # Eat leading and intervening semicolons.
                 pass
+            last_pos = self._pos
             stat = self._stat()
-            if stat is None:
+            if ((stat is None) or
+                (max_pos is not None and self._pos > max_pos)):
+                self._pos = last_pos
                 break
             stats.append(stat)
+        print('DEBUG: ... first stats: {} found, pos={}'.format(len(stats), self._pos))
         if _continue():
             while self._accept(lexer.TokSymbol(';')) is not None:
                 # Eat leading and intervening semicolons.
                 pass
+            last_pos = self._pos
+            print('DEBUG: ... before calling laststat, pos={}'.format(last_pos))
             laststat = self._laststat()
-            if laststat is not None:
+            if ((laststat is None) or
+                (max_pos is not None and self._pos > max_pos)):
+                print ('DEBUG: laststat={} pos={} max_pos={}'.format(laststat, self._pos, max_pos))
+                self._pos = last_pos
+            else:
                 stats.append(laststat)
+        print('DEBUG: ... last stat: {} found, pos={}'.format(len(stats), self._pos))
         while (_continue() and
                (self._accept(lexer.TokSymbol(';')) is not None)):
             # Eat trailing semicolons.
             pass
-        if max_pos is not None and self._pos != max_pos:
+        if max_pos is not None and self._pos > max_pos:
             return None
         return Chunk(stats, start=pos, end=self._pos)
 
@@ -362,6 +373,7 @@ class Parser():
                 while (then_end_pos < len(self._tokens) and
                        self._tokens[then_end_pos] != lexer.TokNewline('\n')):
                     then_end_pos += 1
+                print('DEBUG: short-if pos={} then_end_pos={} tokens={}'.format(self._pos, then_end_pos, self._tokens[self._pos:then_end_pos]))
                 block = self._assert(self._chunk(max_pos=then_end_pos),
                                      'valid chunk in short-if')
                 # (Use exp.value here to unwrap it from the bracketed
@@ -447,11 +459,15 @@ class Parser():
           StatReturn(explist)
         """
         pos = self._pos
+        print('DEBUG: ... laststat initial pos={}'.format(self._pos))
         if self._accept(lexer.TokKeyword('break')) is not None:
             return StatBreak(start=pos, end=self._pos)
         if self._accept(lexer.TokKeyword('return')) is not None:
+            print('DEBUG: ... laststat pos before explist: {}'.format(self._pos))
             explist = self._explist()
+            print('DEBUG: ... laststat return, explist={}, pos={}'.format(explist, self._pos))
             return StatReturn(explist, start=pos, end=self._pos)
+        print('DEBUG: ... no laststat')
         self._pos = pos
         return None
 
@@ -551,6 +567,7 @@ class Parser():
         exps = []
         exp = self._exp()
         if exp is None:
+            self._pos = pos
             return None
         exps.append(exp)
         while True:
@@ -559,6 +576,7 @@ class Parser():
             exp = self._assert(self._exp(), 'exp after comma')
             exps.append(exp)
         if len(exps) == 0:
+            self._pos = pos
             return None
         return ExpList(exps, start=pos, end=self._pos)
 

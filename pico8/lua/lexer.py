@@ -156,6 +156,7 @@ _TOKEN_MATCHERS = []
 _TOKEN_MATCHERS.extend([
     (re.compile(r'--.*'), TokComment),
     (re.compile(r'[ \t]+'), TokSpace),
+    (re.compile(r'\r\n'), TokNewline),
     (re.compile(r'\n'), TokNewline),
 ])
 _TOKEN_MATCHERS.extend([

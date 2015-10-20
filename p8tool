@@ -2,7 +2,7 @@
 
 import sys
 
-import pico8
+from pico8 import tool
 
 if __name__ == '__main__':
-   sys.exit(pico8.tool.main(sys.argv[1:]))
+   sys.exit(tool.main(sys.argv[1:]))

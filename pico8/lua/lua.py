@@ -32,6 +32,13 @@ class Lua():
                 c += 1
         return c
 
+    def get_line_count(self):
+        c = 0
+        for t in self._lexer._tokens:
+            if isinstance(t, lexer.TokNewline):
+                c += 1
+        return c
+
     def get_title(self):
         title_tok = self._lexer.tokens[0]
         if not isinstance(title_tok, lexer.TokComment):
@@ -51,6 +58,10 @@ class Lua():
     @property
     def root(self):
         return self._parser.root
+
+    @property
+    def version(self):
+        return self._version
 
     @classmethod
     def from_lines(cls, lines, version):
