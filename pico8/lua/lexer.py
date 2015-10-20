@@ -160,7 +160,7 @@ _TOKEN_MATCHERS.extend([
     (re.compile(r'\n'), TokNewline),
     (re.compile(r'\r'), TokNewline),
     (re.compile(r'0[xX][0-9a-fA-F]+(\.[0-9a-fA-F]+)?'), TokNumber),
-    (re.compile(r'\.[0-9a-fA-F]+'), TokNumber),
+    (re.compile(r'0[xX]\.[0-9a-fA-F]+'), TokNumber),
     (re.compile(r'[0-9]+(\.[0-9]+)?([eE]-?[0-9]+)?'), TokNumber),
     (re.compile(r'\.[0-9]+([eE]-?[0-9]+)?'), TokNumber)
 ])
