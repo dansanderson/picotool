@@ -361,19 +361,30 @@ class Parser():
             if (self._accept(lexer.TokKeyword('then')) is None and
                 (self._tokens[exp._end_token_pos - 1] == lexer.TokSymbol(')'))):
                 # Check for Pico-8 short form.
+
                 then_end_pos = exp._end_token_pos
                 while (then_end_pos < len(self._tokens) and
                        not self._tokens[then_end_pos].matches(lexer.TokNewline)):
                     then_end_pos += 1
+                    
                 try:
                     self._max_pos = then_end_pos
                     block = self._assert(self._chunk(),
                                          'valid chunk in short-if')
+                    else_block = None
+                    if self._accept(lexer.TokKeyword('else')) is not None:
+                        # Pico-8 accepts an else with nothing after it.
+                        else_block = self._chunk()
                 finally:
                     self._max_pos = None
+                    
                 # (Use exp.value here to unwrap the condition from the
                 # bracketed expression.)
-                return StatIf([(exp.value, block)], start=pos, end=self._pos)
+                exp_block_pairs = [(exp.value, block)]
+                if else_block is not None and len(else_block.stats) > 0:
+                    exp_block_pairs.append((None, else_block))
+                return StatIf(exp_block_pairs, start=pos, end=self._pos)
+            
             self._pos = then_pos
 
             self._expect(lexer.TokKeyword('then'))

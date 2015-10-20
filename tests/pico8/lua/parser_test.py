@@ -842,6 +842,29 @@ class TestParser(unittest.TestCase):
         self.assertEqual(1, len(node.exp_block_pairs[0][1].stats))
         self.assertTrue(isinstance(node.exp_block_pairs[0][1].stats[0], parser.StatBreak))
 
+    def testStatIfShortElse(self):
+        p = get_parser('if (true) break else break\nreturn')
+        node = p._stat()
+        self.assertIsNotNone(node)
+        self.assertEqual(11, p._pos)
+        self.assertEqual(2, len(node.exp_block_pairs))
+        self.assertEqual(True, node.exp_block_pairs[0][0].value)
+        self.assertEqual(1, len(node.exp_block_pairs[0][1].stats))
+        self.assertTrue(isinstance(node.exp_block_pairs[0][1].stats[0], parser.StatBreak))
+        self.assertIsNone(node.exp_block_pairs[1][0])
+        self.assertEqual(1, len(node.exp_block_pairs[1][1].stats))
+        self.assertTrue(isinstance(node.exp_block_pairs[1][1].stats[0], parser.StatBreak))
+
+    def testStatIfShortEmptyElse(self):
+        p = get_parser('if (true) break else  \nreturn')
+        node = p._stat()
+        self.assertIsNotNone(node)
+        self.assertEqual(9, p._pos)
+        self.assertEqual(1, len(node.exp_block_pairs))
+        self.assertEqual(True, node.exp_block_pairs[0][0].value)
+        self.assertEqual(1, len(node.exp_block_pairs[0][1].stats))
+        self.assertTrue(isinstance(node.exp_block_pairs[0][1].stats[0], parser.StatBreak))
+
     def testStatFor(self):
         p = get_parser('for foo=1,3 do break end')
         node = p._stat()
