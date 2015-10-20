@@ -41,11 +41,15 @@ class InvalidP8SectionError(util.InvalidP8DataError):
 
 class Game():
     """A Pico-8 game."""
-    def __init__(self):
+    def __init__(self, filename=None):
         """Initializer.
 
         Prefer factory functions such as Game.from_p8_file().
+
+        Args:
+          filename: The filename, if any, for tool messages.
         """
+        self.filename = filename
         self.lua = None
         self.gfx = None
         self.gff = None
@@ -54,11 +58,12 @@ class Game():
         self.music = None
 
     @classmethod
-    def from_p8_file(cls, instr):
+    def from_p8_file(cls, instr, filename=None):
         """Loads a game from a .p8 file.
     
         Args:
           instr: The input stream.
+          filename: The filename, if any, for tool messages.
     
         Returns:
           A Game containing the game data.
@@ -88,7 +93,7 @@ class Game():
             elif section:
                 section_lines[section].append(line)
     
-        new_game = cls()
+        new_game = cls(filename=filename)
         for section in section_lines:
             if section == 'lua':
                 new_game.lua = Lua.from_lines(
@@ -114,11 +119,12 @@ class Game():
         return new_game
 
     @classmethod
-    def from_p8png_file(cls, instr):
+    def from_p8png_file(cls, instr, filename=None):
         """Loads a game from a .p8.png file.
     
         Args:
           instr: The input stream.
+          filename: The filename, if any, for tool messages.
     
         Returns:
           A Game containing the game data.
@@ -188,7 +194,7 @@ class Game():
 
             code = ''.join(chr(c) for c in out)
 
-        new_game = cls()
+        new_game = cls(filename=filename)
         new_game.lua = Lua.from_lines(
             [code], version=version)
         new_game.gfx = Gfx.from_bytes(

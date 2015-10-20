@@ -44,12 +44,61 @@ def _get_argparser():
         '-q', '--quiet', action='store_true',
         help='suppresses inessential messages')
     parser.add_argument(
+        '--debug', action='store_true',
+        help='write extra error messages for debugging the tool')
+    parser.add_argument(
         'filename', type=str, nargs='*',
         help='the names of files to process')
 
     return parser
 
 
+def _games_for_filenames(filenames, print_tracebacks=False):
+    """Yields games for the given filenames.
+
+    If a file does not load or parse as a game, this writes a message
+    to stderr and yields None. Processing of the argument list will
+    continue if the caller continues.
+
+    Args:
+      filenames: The list of filenames.
+      print_tracebacks: If True, prints a stack track along with lexer and
+        parser error messages. (Useful for debugging the parser.) Default is
+        False.
+    """
+    for fname in filenames:
+        if not fname.endswith('.p8.png') and not fname.endswith('.p8'):
+            util.error('{}: filename must end in .p8 or .p8.png\n'.format(fname))
+            continue
+        is_p8 = fname.endswith('.p8')
+
+        g = None
+        try:
+            if is_p8:
+                with open(fname, 'r') as fh:
+                    g = game.Game.from_p8_file(fh, filename=fname)
+            else:
+                with open(fname, 'rb') as fh:
+                    g = game.Game.from_p8png_file(fh, filename=fname)
+        except lexer.LexerError as e:
+            util.error('{}: {}\n'.format(fname, e))
+            yield None
+        except parser.ParserError as e:
+            util.error('{}: {}\n'.format(fname, e))
+            if print_tracebacks:
+                import traceback
+                traceback.print_exc(file=util._error_stream)
+            yield None
+        except Exception as e:
+            util.error('{}: {}\n'.format(fname, e))
+            if print_tracebacks:
+                import traceback
+                traceback.print_exc(file=util._error_stream)
+            yield None
+        else:
+            yield g
+
+        
 def main(orig_args):
     arg_parser = _get_argparser()
     args = arg_parser.parse_args(args=orig_args)
@@ -70,35 +119,9 @@ def main(orig_args):
                 'Token Count',
                 'Line Count'
             ])
-            
-        for fname in args.filename:
-            if not fname.endswith('.p8.png') and not fname.endswith('.p8'):
-                print('{}: filename must end in .p8 or .p8.png'.format(fname))
-                continue
-            is_p8 = fname.endswith('.p8')
 
-            g = None
-            try:
-                if is_p8:
-                    with open(fname, 'r') as fh:
-                        g = game.Game.from_p8_file(fh)
-                else:
-                    with open(fname, 'rb') as fh:
-                        g = game.Game.from_p8png_file(fh)
-            except lexer.LexerError as e:
-                print('{}: {}'.format(fname, e))
-                return 1
-            except parser.ParserError as e:
-                print('{}: {}'.format(fname, e))
-                import traceback
-                traceback.print_exc()
-                return 1
-            except Exception as e:
-                print('{}: {}'.format(fname, e))
-                import traceback
-                traceback.print_exc()
-                return 1
-            
+        for g in _games_for_filenames(args.filename,
+                                      print_tracebacks=args.debug):
             if args.csv:
                 csv_writer.writerow([
                     os.path.basename(fname),
@@ -123,6 +146,32 @@ def main(orig_args):
                     g.lua.version, g.lua.get_line_count(),
                     g.lua.get_char_count(), g.lua.get_token_count()))
                 print('')
+
+    elif args.command == 'listlua':
+        for g in _games_for_filenames(args.filename,
+                                      print_tracebacks=args.debug):
+            if len(args.filename) > 1:
+                util.write('=== {} ===\n'.format(g.filename))
+            for l in g.lua.to_lines():
+                util.write(l)
+            util.write('\n')
+
+    elif args.command == 'listtokens':
+        for g in _games_for_filenames(args.filename,
+                                      print_tracebacks=args.debug):
+            if len(args.filename) > 1:
+                util.write('=== {} ===\n'.format(g.filename))
+            pos = 0
+            for t in g.lua.tokens:
+                if isinstance(t, lexer.TokNewline):
+                    util.write('\n')
+                elif (isinstance(t, lexer.TokSpace) or isinstance(t, lexer.TokComment)):
+                    util.write('<{}>'.format(t.value))
+                else:
+                    util.write('<{}:{}>'.format(pos, t.value))
+                    pos += 1
+            util.write('\n')
+
     else:
         arg_parser.print_help()
         return 1

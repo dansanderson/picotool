@@ -43,6 +43,21 @@ class TestLua(unittest.TestCase):
         result = lua.Lua.from_lines(VALID_LUA_SHORT_LINES, 4)
         self.assertEqual('by dan', result.get_byline())
 
+    def testToLinesEchoWriter(self):
+        result = lua.Lua.from_lines(VALID_LUA_SHORT_LINES, 4)
+        lines = list(result.to_lines())
+        self.assertEqual(lines, VALID_LUA_SHORT_LINES)
+        
+    def testToLinesEchoWriterLastCharIsntNewline(self):
+        result = lua.Lua.from_lines(VALID_LUA_SHORT_LINES + ['break'], 4)
+        lines = list(result.to_lines())
+        self.assertEqual(lines, VALID_LUA_SHORT_LINES + ['break'])
+
+    def testBaseLuaWriterNotYetImplemented(self):
+        # coverage
+        self.assertRaises(NotImplementedError,
+                          lua.BaseLuaWriter(None, None).to_lines)
+
         
 if __name__ == '__main__':
     unittest.main()

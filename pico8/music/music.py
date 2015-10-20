@@ -29,7 +29,18 @@ class Music(util.BaseSection):
         """
         bytestrs = []
         for l in lines:
+            # (Technically unnecessary: fromhex knows to skip spaces.)
             bytestrs.extend(l.rstrip().split(' '))
         data = b''.join(bytearray.fromhex(p)
                         for p in bytestrs)
         return cls(data=data, version=version)
+
+    def to_lines(self):
+        """Generates lines for the music section of a .p8 file.
+
+        Yields:
+          One line.
+        """
+        for start_i in range(0, len(self._data), 5):
+            yield (bytes([self._data[start_i]]).hex() + ' ' +
+                   bytes(self._data[start_i+1:start_i+5]).hex() + '\n')

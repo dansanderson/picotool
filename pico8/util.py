@@ -73,7 +73,7 @@ class BaseSection():
           data: The data region, as a sequence of bytes.
         """
         self._version = version
-        self._data = list(data)
+        self._data = bytearray(data)
 
     @classmethod
     def from_lines(cls, lines, version):
@@ -88,6 +88,19 @@ class BaseSection():
         data = b''.join(bytearray.fromhex(l.rstrip()) for l in lines)
         return cls(data=data, version=version)
 
+    HEX_LINE_LENGTH_BYTES = 64
+    def to_lines(self):
+        """Generates lines of ASCII-encoded hexadecimal strings.
+
+        Yields:
+          One line of a hex string.
+        """
+        for start_i in range(0, len(self._data), self.HEX_LINE_LENGTH_BYTES):
+            end_i = start_i + self.HEX_LINE_LENGTH_BYTES
+            if end_i > len(self._data):
+                end_i = len(self._data)
+            yield bytes(self._data[start_i:end_i]).hex() + '\n'
+    
     @classmethod
     def from_bytes(cls, data, version):
         """

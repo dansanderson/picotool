@@ -27,5 +27,7 @@ from .. import util
 
 class Sfx(util.BaseSection):
     """The sfx region of a Pico-8 cart."""
+
+    HEX_LINE_LENGTH_BYTES = 84
+
     # TODO: nicer accessors
-    pass

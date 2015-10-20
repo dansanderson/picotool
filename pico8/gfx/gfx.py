@@ -11,5 +11,6 @@ from .. import util
 
 class Gfx(util.BaseSection):
     """The sprite graphics section for a Pico-8 cart."""
+    HEX_LINE_LENGTH_BYTES = 64
+    
     # TODO: nicer accessors
-    pass

@@ -394,6 +394,8 @@ class Parser():
             
             self._pos = then_pos
 
+            # TODO: hack: accept "do" for "then" to support seven carts that
+            # exploit a loophole in short-if.
             self._expect(lexer.TokKeyword('then'))
             block = self._chunk()
             self._assert(block, 'Expected block in if')

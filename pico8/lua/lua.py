@@ -82,3 +82,57 @@ class Lua():
         result._lexer.process_lines(lines)
         result._parser.process_tokens(result._lexer.tokens)
         return result
+
+    def to_lines(self, writer_cls=None):
+        """Generates lines of Lua source based on the parser output.
+
+        Args:
+          writer_cls: The writer class to use. If None, defaults to
+            LuaEchoWriter.
+
+        Yields:
+          A line of Lua code.
+        """
+        if writer_cls is None:
+            writer_cls = LuaEchoWriter
+        writer = writer_cls(tokens=self._lexer.tokens, root=self._parser.root)
+        for line in writer.to_lines():
+            yield line
+
+
+class BaseLuaWriter():
+    """A base class for Lua writers."""
+    def __init__(self, tokens, root):
+        """Initializer.
+
+        Args:
+          tokens: The lexer tokens.
+          root: The root of the AST produced by the parser.
+        """
+        self._tokens = tokens
+        self._root = root
+        
+    def to_lines(self):
+        """Generates lines of Lua source based on the parser output.
+
+        Yields:
+          A line of Lua code.
+        """
+        raise NotImplementedError
+
+
+class LuaEchoWriter(BaseLuaWriter):
+    """Writes the Lua code to be identical to the input given to the parser.
+
+    This ignores the parser and just writes out the string values of the
+    original token stream.
+    """
+    def to_lines(self):
+        strs = []
+        for token in self._tokens:
+            strs.append(token.value)
+            if token.matches(lexer.TokNewline):
+                yield ''.join(strs)
+                strs.clear()
+        if strs:
+            yield ''.join(strs)

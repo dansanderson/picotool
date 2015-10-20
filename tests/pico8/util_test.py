@@ -41,6 +41,33 @@ class TestUtil(unittest.TestCase):
         util.error(s)
         self.assertEqual(s, util._error_stream.getvalue())
 
-    
+
+class DummySection(util.BaseSection):
+    HEX_LINE_LENGTH_BYTES = 3
+
+
+class TestBaseSection(unittest.TestCase):
+    def testInit(self):
+        s = DummySection(b'abcdefgh', 4)
+        self.assertEqual(b'abcdefgh', s._data)
+        self.assertEqual(4, s._version)
+
+    def testFromLines(self):
+        lines = ['616263\n', '646566\n', '6768\n']
+        s = DummySection.from_lines(lines, 4)
+        self.assertEqual(b'abcdefgh', s._data)
+        self.assertEqual(4, s._version)
+
+    def testFromBytes(self):
+        s = DummySection.from_bytes(b'abcdefgh', 4)
+        self.assertEqual(b'abcdefgh', s._data)
+        self.assertEqual(4, s._version)
+
+    def testToLines(self):
+        s = DummySection.from_bytes(b'abcdefgh', 4)
+        lines = list(s.to_lines())
+        self.assertEqual(['616263\n', '646566\n', '6768\n'], lines)
+
+        
 if __name__ == '__main__':
     unittest.main()
