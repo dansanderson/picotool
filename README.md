@@ -46,7 +46,7 @@ version: 0  lines: 48  chars: 419  tokens: 134
 This command accepts an optional `--csv` argument. If provided, the command prints the statistics in a CSV format suitable for importing into a spreadsheet. This is useful when tallying statistics about multiple carts for comparative analysis.
 
 ```
-% ./picotool-master/p8tool stats --csv mycarts/*.p8* >cartstats.csv
+% ./picotool-master/p8tool --csv stats mycarts/*.p8* >cartstats.csv
 ```
 
 
@@ -157,12 +157,14 @@ picotool began as a simple project to build a code formatter/minifier for Pico-8
 
 TODO:
 
+* Arg ordering bug for `p8tool --csv stats ...`
 * Game save API
 * Semantic APIs for the non-Lua sections
 * Rewrite expression AST to represent operator precedence
 * Add module loading shortcuts (to avoid module paths like `pico8.game.game.Game`)
 * More Pico-8-like char counting
 * More Pico-8-like token counting
+* Improved reporting of parser errors
 * Tool: stats with info about other regions, e.g. color histograms
 * Tool: AST visualizer
 * Tool: Lua minifier

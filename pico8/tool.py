@@ -65,6 +65,9 @@ def _games_for_filenames(filenames, print_tracebacks=False):
       print_tracebacks: If True, prints a stack track along with lexer and
         parser error messages. (Useful for debugging the parser.) Default is
         False.
+
+    Yields:
+      (filename, game), or (filename, None) if the file did not parse.
     """
     for fname in filenames:
         if not fname.endswith('.p8.png') and not fname.endswith('.p8'):
@@ -76,21 +79,15 @@ def _games_for_filenames(filenames, print_tracebacks=False):
             g = game.Game.from_filename(fname)
         except lexer.LexerError as e:
             util.error('{}: {}\n'.format(fname, e))
-            yield None
+            yield (fname, None)
         except parser.ParserError as e:
             util.error('{}: {}\n'.format(fname, e))
             if print_tracebacks:
                 import traceback
                 traceback.print_exc(file=util._error_stream)
-            yield None
-        except Exception as e:
-            util.error('{}: {}\n'.format(fname, e))
-            if print_tracebacks:
-                import traceback
-                traceback.print_exc(file=util._error_stream)
-            yield None
+            yield (fname, None)
         else:
-            yield g
+            yield (fname, g)
 
         
 def main(orig_args):
@@ -111,11 +108,16 @@ def main(orig_args):
                 'Code Version',
                 'Char Count',
                 'Token Count',
-                'Line Count'
+                'Line Count',
+                'Compressed Code Size'
             ])
 
-        for g in _games_for_filenames(args.filename,
-                                      print_tracebacks=args.debug):
+        for fname, g in _games_for_filenames(args.filename,
+                                             print_tracebacks=args.debug):
+            if g is None:
+                util.error('{}: could not load cart'.format(fname))
+                continue
+            
             if args.csv:
                 csv_writer.writerow([
                     os.path.basename(fname),
@@ -124,26 +126,30 @@ def main(orig_args):
                     g.lua.version,
                     g.lua.get_char_count(),
                     g.lua.get_token_count(),
-                    g.lua.get_line_count()
+                    g.lua.get_line_count(),
+                    g.compressed_size
                 ])
             else:
                 title = g.lua.get_title()
                 byline = g.lua.get_byline()
                     
                 if title is not None:
-                    print('{} ({})'.format(title, os.path.basename(g.filename)))
+                    util.write('{} ({})\n'.format(
+                        title, os.path.basename(g.filename)))
                 else:
-                    print(os.path.basename(g.filename))
+                    util.write(os.path.basename(g.filename) + '\n')
                 if byline is not None:
-                    print(byline)
-                print('version: {}  lines: {}  chars: {}  tokens: {}'.format(
+                    util.write(byline + '\n')
+                util.write('- version: {}\n- lines: {}\n- chars: {}\n'
+                           '- tokens: {}\n- compressed chars: {}\n'.format(
                     g.lua.version, g.lua.get_line_count(),
-                    g.lua.get_char_count(), g.lua.get_token_count()))
-                print('')
+                    g.lua.get_char_count(), g.lua.get_token_count(),
+                    g.compressed_size if g.compressed_size is not None else '(not compressed)'))
+                util.write('\n')
 
     elif args.command == 'listlua':
-        for g in _games_for_filenames(args.filename,
-                                      print_tracebacks=args.debug):
+        for fname, g in _games_for_filenames(args.filename,
+                                             print_tracebacks=args.debug):
             if len(args.filename) > 1:
                 util.write('=== {} ===\n'.format(g.filename))
             for l in g.lua.to_lines():
@@ -151,8 +157,8 @@ def main(orig_args):
             util.write('\n')
 
     elif args.command == 'listtokens':
-        for g in _games_for_filenames(args.filename,
-                                      print_tracebacks=args.debug):
+        for fname, g in _games_for_filenames(args.filename,
+                                             print_tracebacks=args.debug):
             if len(args.filename) > 1:
                 util.write('=== {} ===\n'.format(g.filename))
             pos = 0

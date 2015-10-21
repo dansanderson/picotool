@@ -41,15 +41,19 @@ class InvalidP8SectionError(util.InvalidP8DataError):
 
 class Game():
     """A Pico-8 game."""
-    def __init__(self, filename=None):
+    def __init__(self, filename=None, compressed_size=None):
         """Initializer.
 
         Prefer factory functions such as Game.from_p8_file().
 
         Args:
           filename: The filename, if any, for tool messages.
+          compressed_size: The byte size of the compressed Lua data region,
+            or None if the Lua region was not compressed (.p8 or v0 .p8.png).
         """
         self.filename = filename
+        self.compressed_size = compressed_size
+        
         self.lua = None
         self.gfx = None
         self.gff = None
@@ -73,12 +77,12 @@ class Game():
           InvalidP8HeaderError
         """
         assert filename.endswith('.p8.png') or filename.endswith('.p8')
-        if fname.endswith('.p8'):
-            with open(fname, 'r') as fh:
-                g = game.Game.from_p8_file(fh, filename=filename)
+        if filename.endswith('.p8'):
+            with open(filename, 'r') as fh:
+                g = Game.from_p8_file(fh, filename=filename)
         else:
-            with open(fname, 'rb') as fh:
-                g = game.Game.from_p8png_file(fh, filename=filename)
+            with open(filename, 'rb') as fh:
+                g = Game.from_p8png_file(fh, filename=filename)
         return g
 
 
@@ -182,6 +186,8 @@ class Game():
         code = picodata[0x4300:0x8000]
         version = picodata[0x8000]
 
+        compressed_size = None
+        
         if version == 0:
             # code is ASCII
 
@@ -218,8 +224,9 @@ class Game():
                 in_i += 1
 
             code = ''.join(chr(c) for c in out)
+            compressed_size = in_i
 
-        new_game = cls(filename=filename)
+        new_game = cls(filename=filename, compressed_size=compressed_size)
         new_game.lua = Lua.from_lines(
             [code], version=version)
         new_game.gfx = Gfx.from_bytes(
