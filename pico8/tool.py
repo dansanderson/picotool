@@ -89,91 +89,125 @@ def _games_for_filenames(filenames, print_tracebacks=False):
         else:
             yield (fname, g)
 
+
+def stats(args):
+    """Run the stats tool.
+
+    Args:
+      args: The argparser parsed args object.
+
+    Returns:
+      0 on success, 1 on failure.
+    """
+    csv_writer = None
+    if args.csv:
+        csv_writer = csv.writer(sys.stdout)
+        csv_writer.writerow([
+            'Filename',
+            'Title',
+            'Byline',
+            'Code Version',
+            'Char Count',
+            'Token Count',
+            'Line Count',
+            'Compressed Code Size'
+        ])
+
+    for fname, g in _games_for_filenames(args.filename,
+                                         print_tracebacks=args.debug):
+        if g is None:
+            util.error('{}: could not load cart'.format(fname))
+            continue
         
+        if args.csv:
+            csv_writer.writerow([
+                os.path.basename(fname),
+                g.lua.get_title(),
+                g.lua.get_byline(),
+                g.lua.version,
+                g.lua.get_char_count(),
+                g.lua.get_token_count(),
+                g.lua.get_line_count(),
+                g.compressed_size
+            ])
+        else:
+            title = g.lua.get_title()
+            byline = g.lua.get_byline()
+                
+            if title is not None:
+                util.write('{} ({})\n'.format(
+                    title, os.path.basename(g.filename)))
+            else:
+                util.write(os.path.basename(g.filename) + '\n')
+            if byline is not None:
+                util.write(byline + '\n')
+            util.write('- version: {}\n- lines: {}\n- chars: {}\n'
+                       '- tokens: {}\n- compressed chars: {}\n'.format(
+                g.lua.version, g.lua.get_line_count(),
+                g.lua.get_char_count(), g.lua.get_token_count(),
+                g.compressed_size if g.compressed_size is not None else '(not compressed)'))
+            util.write('\n')
+
+    return 0
+
+
+def listlua(args):
+    """Run the listlua tool.
+
+    Args:
+      args: The argparser parsed args object.
+
+    Returns:
+      0 on success, 1 on failure.
+    """
+    for fname, g in _games_for_filenames(args.filename,
+                                         print_tracebacks=args.debug):
+        if len(args.filename) > 1:
+            util.write('=== {} ===\n'.format(g.filename))
+        for l in g.lua.to_lines():
+            util.write(l)
+        util.write('\n')
+        
+    return 0
+
+
+def listtokens(args):
+    """Run the listlua tool.
+
+    Args:
+      args: The argparser parsed args object.
+
+    Returns:
+      0 on success, 1 on failure.
+    """
+    for fname, g in _games_for_filenames(args.filename,
+                                         print_tracebacks=args.debug):
+        if len(args.filename) > 1:
+            util.write('=== {} ===\n'.format(g.filename))
+        pos = 0
+        for t in g.lua.tokens:
+            if isinstance(t, lexer.TokNewline):
+                util.write('\n')
+            elif (isinstance(t, lexer.TokSpace) or isinstance(t, lexer.TokComment)):
+                util.write('<{}>'.format(t.value))
+            else:
+                util.write('<{}:{}>'.format(pos, t.value))
+                pos += 1
+        util.write('\n')
+    return 0
+
+
 def main(orig_args):
     arg_parser = _get_argparser()
     args = arg_parser.parse_args(args=orig_args)
     util.set_quiet(args.quiet)
 
-    has_errors = False
-
     if args.command == 'stats':
-        csv_writer = None
-        if args.csv:
-            csv_writer = csv.writer(sys.stdout)
-            csv_writer.writerow([
-                'Filename',
-                'Title',
-                'Byline',
-                'Code Version',
-                'Char Count',
-                'Token Count',
-                'Line Count',
-                'Compressed Code Size'
-            ])
-
-        for fname, g in _games_for_filenames(args.filename,
-                                             print_tracebacks=args.debug):
-            if g is None:
-                util.error('{}: could not load cart'.format(fname))
-                continue
-            
-            if args.csv:
-                csv_writer.writerow([
-                    os.path.basename(fname),
-                    g.lua.get_title(),
-                    g.lua.get_byline(),
-                    g.lua.version,
-                    g.lua.get_char_count(),
-                    g.lua.get_token_count(),
-                    g.lua.get_line_count(),
-                    g.compressed_size
-                ])
-            else:
-                title = g.lua.get_title()
-                byline = g.lua.get_byline()
-                    
-                if title is not None:
-                    util.write('{} ({})\n'.format(
-                        title, os.path.basename(g.filename)))
-                else:
-                    util.write(os.path.basename(g.filename) + '\n')
-                if byline is not None:
-                    util.write(byline + '\n')
-                util.write('- version: {}\n- lines: {}\n- chars: {}\n'
-                           '- tokens: {}\n- compressed chars: {}\n'.format(
-                    g.lua.version, g.lua.get_line_count(),
-                    g.lua.get_char_count(), g.lua.get_token_count(),
-                    g.compressed_size if g.compressed_size is not None else '(not compressed)'))
-                util.write('\n')
-
+        return stats(args)
     elif args.command == 'listlua':
-        for fname, g in _games_for_filenames(args.filename,
-                                             print_tracebacks=args.debug):
-            if len(args.filename) > 1:
-                util.write('=== {} ===\n'.format(g.filename))
-            for l in g.lua.to_lines():
-                util.write(l)
-            util.write('\n')
-
+        return listlua(args)
     elif args.command == 'listtokens':
-        for fname, g in _games_for_filenames(args.filename,
-                                             print_tracebacks=args.debug):
-            if len(args.filename) > 1:
-                util.write('=== {} ===\n'.format(g.filename))
-            pos = 0
-            for t in g.lua.tokens:
-                if isinstance(t, lexer.TokNewline):
-                    util.write('\n')
-                elif (isinstance(t, lexer.TokSpace) or isinstance(t, lexer.TokComment)):
-                    util.write('<{}>'.format(t.value))
-                else:
-                    util.write('<{}:{}>'.format(pos, t.value))
-                    pos += 1
-            util.write('\n')
-
-    else:
-        arg_parser.print_help()
-        return 1
-
-    return 0
+        return listtokens(args)
+    
+    arg_parser.print_help()
+    return 1

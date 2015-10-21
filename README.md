@@ -158,6 +158,7 @@ picotool began as a simple project to build a code formatter/minifier for Pico-8
 TODO:
 
 * Arg ordering bug for `p8tool --csv stats ...`
+* Better command line help
 * Game save API
 * Semantic APIs for the non-Lua sections
 * Rewrite expression AST to represent operator precedence
@@ -165,9 +166,11 @@ TODO:
 * More Pico-8-like char counting
 * More Pico-8-like token counting
 * Improved reporting of parser errors
+* Improved API docs, especially the AST API
 * Tool: stats with info about other regions, e.g. color histograms
 * Tool: AST visualizer
 * Tool: Lua minifier
 * Tool: Lua pretty printer
 * Tool: Lua "linker" (import stitching)
 * Tool: Game launcher menu
+* Automated tests for tool.py
