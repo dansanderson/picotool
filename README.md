@@ -102,6 +102,47 @@ When picotool parses Lua code, it separates out comments, newlines, and spaces, 
 **Note:** picotool does not currently count tokens the same way Pico-8 does. One purpose of this tool is to help troubleshoot and fix this discrepancy. See "Known issues."
 
 
+### p8tool printast
+
+The `printast` tool prints a visualization of the abstract syntax tree (AST) determined by the parser. This is a representation of the structure of the Lua code. This is useful for understanding the AST structure when writing a new tool based on the picotool library.
+
+```
+% ./picotool-master/p8tool stats ./picotool-master/tests/testdata/helloworld.p8.png 
+
+Chunk
+  * stats: [list:]
+    - StatAssignment
+      * varlist: VarList
+        * vars: [list:]
+          - VarName
+            * name: TokName<'t', line 3 char 0>
+      * explist: ExpList
+        * exps: [list:]
+          - ExpValue
+            * value: 0
+    - StatFunctionCall
+      * functioncall: FunctionCall
+        * exp_prefix: VarName
+          * name: TokName<'music', line 5 char 0>
+        * args: FunctionArgs
+          * explist: ExpList
+            * exps: [list:]
+              - ExpValue
+                * value: 0
+    - StatFunction
+      * funcname: FunctionName
+        * namepath: [list:]
+          - TokName<'_update', line 7 char 9>
+        * methodname: None
+      * funcbody: FunctionBody
+        * parlist: None
+        * dots: None
+        * block: Chunk
+
+...
+```
+
+
 ## Building new tools
 
 picotool provides a general purpose library for accessing and manipulating Pico-8 cart data. You can add the `picotool` directory to your `PYTHONPATH` environment variable (or append `sys.path` in code), or just copy the `pico8` module to the directory that contains your code.
