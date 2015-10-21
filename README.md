@@ -14,7 +14,7 @@ The `picotool` suite of tools and libraries can read `.p8` and `.p8.png` files, 
 To install the `picotool` tools and libraries:
 
 1. Download and unpack [the zip archive](https://github.com/dansanderson/picotool/archive/master.zip), or use Git to clone [the Github repository](https://github.com/dansanderson/picotool).
-   * If you use the zip archive, rename the `master` root directory to something more sensible, such as `picotool`.
+   * Unpacking the zip archive creates a root directory named `picotool-master`. When cloning the repo, this is just `picotool`, or whatever you named it when you cloned it.
 1. Install [Python 3](https://www.python.org/), if necessary. (picotool has not been tested with Python 2.)
 1. To enable PNG support, install the [PyPNG library](https://github.com/drj11/pypng):
    ```
@@ -23,12 +23,12 @@ To install the `picotool` tools and libraries:
 
 ## Using picotool
 
-To use a tool, you run the `p8tool` command (in the `picotool/` root directory) with the appropriate arguments. Without arguments, it prints a help message. The first argument is the name of the tool to run (such as `stats`), followed by the arguments expected by that tool.
+To use a tool, you run the `p8tool` command with the appropriate arguments. Without arguments, it prints a help message. The first argument is the name of the tool to run (such as `stats`), followed by the arguments expected by that tool.
 
 For example, to print statistics about a cart named `helloworld.p8.png`:
 
 ```
-./picotool/p8tool stats helloworld.p8.png
+./picotool-master/p8tool stats helloworld.p8.png
 ```
 
 
@@ -37,7 +37,7 @@ For example, to print statistics about a cart named `helloworld.p8.png`:
 The `stats` tool prints statistics about one or more carts. Given one or more cart filenames, it analyzes each cart, then prints information about it.
 
 ```
-% ./picotool/p8tool stats ./picotool/tests/testdata/helloworld.p8.png 
+% ./picotool-master/p8tool stats ./picotool-master/tests/testdata/helloworld.p8.png 
 hello world (helloworld.p8.png)
 by zep
 version: 0  lines: 48  chars: 419  tokens: 134
@@ -46,7 +46,7 @@ version: 0  lines: 48  chars: 419  tokens: 134
 This command accepts an optional `--csv` argument. If provided, the command prints the statistics in a CSV format suitable for importing into a spreadsheet. This is useful when tallying statistics about multiple carts for comparative analysis.
 
 ```
-% ./picotool/p8tool stats --csv mycarts/*.p8* >cartstats.csv
+% ./picotool-master/p8tool stats --csv mycarts/*.p8* >cartstats.csv
 ```
 
 
@@ -55,7 +55,7 @@ This command accepts an optional `--csv` argument. If provided, the command prin
 The `listlua` tool extracts the Lua code from a cart, then prints it exactly as it appears in the cart.
 
 ```
-% ./picotool/p8tool stats ./picotool/tests/testdata/helloworld.p8.png 
+% ./picotool-master/p8tool stats ./picotool-master/tests/testdata/helloworld.p8.png 
 -- hello world
 -- by zep
 
@@ -79,7 +79,7 @@ function _draw()
 The `listtokens` tool is similar to `listlua`, but it identifies which characters picotool recognizes as a single token.
 
 ```
-% ./picotool/p8tool stats ./picotool/tests/testdata/helloworld.p8.png 
+% ./picotool-master/p8tool stats ./picotool-master/tests/testdata/helloworld.p8.png 
 <-- hello world>
 <-- by zep>
 
@@ -141,7 +141,7 @@ To run the test suite:
 python3 run_tests.py
 ```
 
-By default, this produces an HTML coverage report in the `cover` subdirectory. Open `.../picotool/cover/index.html` in a browser to see it.
+By default, this produces an HTML coverage report in the `cover` subdirectory. Open `.../picotool-master/cover/index.html` in a browser to see it.
 
 
 ## Known issues
