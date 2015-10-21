@@ -197,6 +197,35 @@ def listtokens(args):
     return 0
 
 
+_PRINTAST_INDENT_SIZE = 2
+def _printast_node(value, indent=0, prefix=''):
+    if isinstance(value, parser.Node):
+        util.write('{}{}{}\n'.format(' ' * indent, prefix,
+                                     value.__class__.__name__))
+        for field in value._fields:
+            _printast_node(getattr(value, field),
+                           indent=indent+_PRINTAST_INDENT_SIZE,
+                           prefix='* {}: '.format(field))
+    elif isinstance(value, list) or isinstance(value, tuple):
+        util.write('{}{}[list:]\n'.format(' ' * indent, prefix))
+        for item in value:
+            _printast_node(item,
+                           indent=indent+_PRINTAST_INDENT_SIZE,
+                           prefix='- ')
+    else:
+        util.write('{}{}{}\n'.format(' ' * indent, prefix, value))    
+
+        
+def printast(args):
+    """"""
+    for fname, g in _games_for_filenames(args.filename,
+                                         print_tracebacks=args.debug):
+        if len(args.filename) > 1:
+            util.write('=== {} ===\n'.format(g.filename))
+        _printast_node(g.lua.root)
+    return 0
+
+
 def main(orig_args):
     arg_parser = _get_argparser()
     args = arg_parser.parse_args(args=orig_args)
@@ -208,6 +237,8 @@ def main(orig_args):
         return listlua(args)
     elif args.command == 'listtokens':
         return listtokens(args)
+    elif args.command == 'printast':
+        return printast(args)
     
     arg_parser.print_help()
     return 1
