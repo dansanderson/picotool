@@ -70,16 +70,10 @@ def _games_for_filenames(filenames, print_tracebacks=False):
         if not fname.endswith('.p8.png') and not fname.endswith('.p8'):
             util.error('{}: filename must end in .p8 or .p8.png\n'.format(fname))
             continue
-        is_p8 = fname.endswith('.p8')
 
         g = None
         try:
-            if is_p8:
-                with open(fname, 'r') as fh:
-                    g = game.Game.from_p8_file(fh, filename=fname)
-            else:
-                with open(fname, 'rb') as fh:
-                    g = game.Game.from_p8png_file(fh, filename=fname)
+            g = game.Game.from_filename(fname)
         except lexer.LexerError as e:
             util.error('{}: {}\n'.format(fname, e))
             yield None
@@ -137,9 +131,9 @@ def main(orig_args):
                 byline = g.lua.get_byline()
                     
                 if title is not None:
-                    print('{} ({})'.format(title, os.path.basename(fname)))
+                    print('{} ({})'.format(title, os.path.basename(g.filename)))
                 else:
-                    print(os.path.basename(fname))
+                    print(os.path.basename(g.filename))
                 if byline is not None:
                     print(byline)
                 print('version: {}  lines: {}  chars: {}  tokens: {}'.format(

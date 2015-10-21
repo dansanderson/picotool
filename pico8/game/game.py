@@ -58,6 +58,31 @@ class Game():
         self.music = None
 
     @classmethod
+    def from_filename(cls, filename):
+        """Loads a game from a named file.
+
+        Args:
+          filename: The name of the file. Must end in either ".p8" or ".p8.png".
+
+        Returns:
+          A Game containing the game data.
+
+        Raises:
+          lexer.LexerError
+          parser.ParserError
+          InvalidP8HeaderError
+        """
+        assert filename.endswith('.p8.png') or filename.endswith('.p8')
+        if fname.endswith('.p8'):
+            with open(fname, 'r') as fh:
+                g = game.Game.from_p8_file(fh, filename=filename)
+        else:
+            with open(fname, 'rb') as fh:
+                g = game.Game.from_p8png_file(fh, filename=filename)
+        return g
+
+
+    @classmethod
     def from_p8_file(cls, instr, filename=None):
         """Loads a game from a .p8 file.
     

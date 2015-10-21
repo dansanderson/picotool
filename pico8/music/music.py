@@ -19,6 +19,7 @@ __all__ = ['Music']
 
 from .. import util
 
+
 class Music(util.BaseSection):
     @classmethod
     def from_lines(cls, lines, version):
