@@ -14,6 +14,7 @@ The `picotool` suite of tools and libraries can read `.p8` and `.p8.png` files, 
 To install the `picotool` tools and libraries:
 
 1. Download and unpack [the zip archive](https://github.com/dansanderson/picotool/archive/master.zip), or use Git to clone [the Github repository](https://github.com/dansanderson/picotool).
+   * If you use the zip archive, rename the `master` root directory to something more sensible, such as `picotool`.
 1. Install [Python 3](https://www.python.org/), if necessary. (picotool has not been tested with Python 2.)
 1. To enable PNG support, install the [PyPNG library](https://github.com/drj11/pypng):
    ```
