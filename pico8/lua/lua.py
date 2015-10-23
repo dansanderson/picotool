@@ -21,7 +21,6 @@ class Lua():
         self._parser = parser.Parser(version=version)
 
     def get_char_count(self):
-        print('DEBUG: lines={}'.format(list(self.to_lines())))
         return sum(len(l) for l in self.to_lines())
 
     def get_token_count(self):
