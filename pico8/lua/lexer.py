@@ -50,7 +50,7 @@ class Token():
         
     def __len__(self):
         """The length of the code string for the token."""
-        return len(self._data)
+        return len(self.code)
     
     def __repr__(self):
         """A textual representation for debugging."""
@@ -92,7 +92,12 @@ class Token():
 
     @property
     def value(self):
-        """The text of the token."""
+        """The parsed value of the token."""
+        return self._data
+    
+    @property
+    def code(self):
+        """The original code of the token."""
         return self._data
 
 
@@ -114,6 +119,25 @@ class TokComment(Token):
 class TokString(Token):
     """A string literal."""
     name = 'string literal'
+    def __init__(self, *args, **kwargs):
+        if 'quote' in kwargs:
+            self._quote = kwargs['quote']
+            del kwargs['quote']
+        else:
+            self._quote = '"'
+        super().__init__(*args, **kwargs)
+
+    @property
+    def code(self):
+        escaped_chrs = []
+        for c in self._data:
+            if c in _STRING_REVERSE_ESCAPES:
+                escaped_chrs.append('\\' + _STRING_REVERSE_ESCAPES[c])
+            elif c == self._quote:
+                escaped_chrs.append('\\' + c)
+            else:
+                escaped_chrs.append(c)
+        return self._quote + ''.join(escaped_chrs) + self._quote
 
 
 class TokNumber(Token):
@@ -125,6 +149,12 @@ class TokNumber(Token):
     """
     name = 'number'
 
+    # self._data is the original string representation of the number,
+    # so we don't have to jump through hoops to recreate it later.
+    @property
+    def value(self):
+        return float(self._data)
+    
 
 class TokName(Token):
     """A variable or function name."""
@@ -153,7 +183,9 @@ _STRING_ESCAPES = {
     'r': '\r', 't': '\t', 'v': '\v', '\\': '\\', '"': '"',
     "'": "'"
 }
-
+_STRING_REVERSE_ESCAPES = dict((v,k) for k,v in _STRING_ESCAPES.items())
+del _STRING_REVERSE_ESCAPES["'"]
+del _STRING_REVERSE_ESCAPES['"']
 
 # A list of single-line token matching patterns and corresponding token
 # classes. A token class of None causes the lexer to consume the pattern
@@ -243,7 +275,8 @@ class Lexer():
                     self._tokens.append(
                         TokString(str(''.join(self._in_string)),
                                   self._in_string_lineno,
-                                  self._in_string_charno))
+                                  self._in_string_charno,
+                                  quote=self._in_string_delim))
                     self._in_string_delim = None
                     self._in_string_lineno = None
                     self._in_string_charno = None
