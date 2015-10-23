@@ -143,6 +143,36 @@ Chunk
 ```
 
 
+### p8tool writep8
+
+The `writep8` tool writes a game's data to a `.p8` file. This is mostly useful for converting a `.p8.png` file to a `.p8` file. If the input is a `.p8` already, then this just makes a copy of the file. (This can be used to validate that the picotool library can output its input.)
+
+The command takes one or more cart filenames as arguments. For each cart with a name like `xxx.p8.png`, it writes a new cart with a name like `xxx_fmt.p8`.
+
+```
+% ./picotool-master/p8tool writep8 ./picotool-master/tests/testdata/helloworld.p8.png 
+% cat ./picotool-master/tests/testdata/helloworld.p8
+pico-8 cartridge // http://www.pico-8.com
+version None
+__lua__
+-- hello world
+-- by zep
+
+t = 0
+
+music(0)
+
+function _update()
+ t += 1
+end
+
+function _draw()
+ cls()
+
+...
+```
+
+
 ## Building new tools
 
 picotool provides a general purpose library for accessing and manipulating Pico-8 cart data. You can add the `picotool` directory to your `PYTHONPATH` environment variable (or append `sys.path` in code), or just copy the `pico8` module to the directory that contains your code.
@@ -187,7 +217,7 @@ By default, this produces an HTML coverage report in the `cover` subdirectory. O
 
 ## Known issues
 
-* picotool and Pico-8 count tokens in slightly different ways, resulting in different counts. More refinement is needed so that picotool matches Pico-8. As far as I can tell, with picotool making some concessions to match Pico-8 in known cases, Pico-8's counts are consistently higher. So I'm missing a few cases where Pico-8 over-counts (or picotool under-counts).
+* picotool and Pico-8 count tokens in slightly different ways, resulting in different counts. More refinement is needed so that picotool matches Pico-8. As far as I can tell, with picotool making some concessions to match Pico-8 in known cases, Pico-8's counts are consistently higher. So I'm missing a few cases where Pico-8 over-counts (or picotool under-counts). In most cases, picotool's undercount is only by a few tokens, even for large carts.
 
 * Pico-8's special single-line short form of the Lua `if` statement has some undocumented behavior that is currently not supported by picotool. Of all of the carts analyzed so far, only one such behavior is used but not yet supported: if the statement after the condition is a `do ... end` block, then the block is allowed to use multiple lines. `if (cond) do ... end` can always be rewritten as `if cond then ... end`.
 
@@ -198,19 +228,20 @@ picotool began as a simple project to build a code formatter/minifier for Pico-8
 
 TODO:
 
-* Arg ordering bug for `p8tool --csv stats ...`
-* Better command line help
 * Game save API
+  * AST nodes need to know how to write themselves
+  * LuaEchoWriter should use AST, not token stream, so a tool can mutate the AST
 * Semantic APIs for the non-Lua sections
-* Rewrite expression AST to represent operator precedence
-* Add module loading shortcuts (to avoid module paths like `pico8.game.game.Game`)
-* More Pico-8-like token counting
-* Improved reporting of parser errors
-* Improved API docs, especially the AST API
+* Fix the last few token counting discrepancies
 * Tool: stats with info about other regions, e.g. color histograms
 * Tool: AST visualizer
 * Tool: Lua minifier
 * Tool: Lua pretty printer
 * Tool: Lua "linker" (import stitching)
 * Tool: Game launcher menu
+* Rewrite expression AST to represent operator precedence
+* Add module loading shortcuts (to avoid module paths like `pico8.game.game.Game`)
+* Improved API docs, especially the AST API
+* Improved reporting of parser errors
 * Automated tests for tool.py
+* Better command line help

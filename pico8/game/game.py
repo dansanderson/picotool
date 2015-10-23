@@ -12,6 +12,8 @@ import re
 
 from .. import util
 from ..lua.lua import Lua
+from ..lua.lua import PICO8_LUA_CHAR_LIMIT
+from ..lua.lua import PICO8_LUA_TOKEN_LIMIT
 from ..gfx.gfx import Gfx
 from ..gff.gff import Gff
 from ..map.map import Map
@@ -21,7 +23,9 @@ from ..music.music import Music
 
 HEADER_TITLE_STR = 'pico-8 cartridge // http://www.pico-8.com\n'
 HEADER_VERSION_RE = re.compile('version (\d+)\n')
+HEADER_VERSION_PAT = 'version {}\n'
 SECTION_DELIM_RE = re.compile('__(\w+)__\n')
+SECTION_DELIM_PAT = '__{}__\n'
 
 
 class InvalidP8HeaderError(util.InvalidP8DataError):
@@ -60,6 +64,8 @@ class Game():
         self.map = None
         self.sfx = None
         self.music = None
+
+        self.version = None
 
     @classmethod
     def from_filename(cls, filename):
@@ -108,7 +114,7 @@ class Game():
         if version_m is None:
             raise InvalidP8HeaderError()
         version = int(version_m.group(1))
-    
+        
         section = None
         section_lines = {}
         while True:
@@ -123,6 +129,7 @@ class Game():
                 section_lines[section].append(line)
     
         new_game = cls(filename=filename)
+        new_game.version = version
         for section in section_lines:
             if section == 'lua':
                 new_game.lua = Lua.from_lines(
@@ -242,3 +249,62 @@ class Game():
     
         return new_game
         
+    def to_p8_file(self, outstr, lua_writer_cls=None, filename=None):
+        """Write the game data as a .p8 file.
+
+        Args:
+          outstr: The output stream.
+          writer_cls: The Lua writer class to use. If None, defaults to
+            LuaEchoWriter.
+          filename: The output filename, for error messages.
+        """
+        outstr.write(HEADER_TITLE_STR)
+        outstr.write(HEADER_VERSION_PAT.format(self.version))
+
+        outstr.write(SECTION_DELIM_PAT.format('lua'))
+        for l in self.lua.to_lines(writer_cls=lua_writer_cls):
+            outstr.write(l)
+
+        # Sanity-check the Lua written by the writer.
+        transformed_lua = Lua.from_lines(
+            self.lua.to_lines(writer_cls=lua_writer_cls), version=self.version)
+        if transformed_lua.get_char_count() > PICO8_LUA_CHAR_LIMIT:
+            if filename is not None:
+                util.error('{}: ')
+            util.error('warning: character count {} exceeds the Pico-8 '
+                       'limit of {}'.format(
+                           filename, transformed_lua.get_char_count(),
+                           PICO8_LUA_CHAR_LIMIT))
+        if transformed_lua.get_token_count() > PICO8_LUA_TOKEN_LIMIT:
+            if filename is not None:
+                util.error('{}: ')
+            util.error('warning: token count {} exceeds the Pico-8 '
+                       'limit of {}'.format(
+                           filename, transformed_lua.get_char_count(),
+                           PICO8_LUA_CHAR_LIMIT))
+        outstr.write('\n')
+
+        outstr.write(SECTION_DELIM_PAT.format('gfx'))
+        for l in self.gfx.to_lines():
+            outstr.write(l)
+        outstr.write('\n')
+            
+        outstr.write(SECTION_DELIM_PAT.format('gff'))
+        for l in self.gff.to_lines():
+            outstr.write(l)
+        outstr.write('\n')
+            
+        outstr.write(SECTION_DELIM_PAT.format('map'))
+        for l in self.map.to_lines():
+            outstr.write(l)
+        outstr.write('\n')
+            
+        outstr.write(SECTION_DELIM_PAT.format('sfx'))
+        for l in self.sfx.to_lines():
+            outstr.write(l)
+        outstr.write('\n')
+            
+        outstr.write(SECTION_DELIM_PAT.format('music'))
+        for l in self.music.to_lines():
+            outstr.write(l)
+        outstr.write('\n')

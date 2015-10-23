@@ -1,9 +1,19 @@
 """The Lua code for a game."""
 
-__all__ = ['Lua']
+__all__ = [
+    'Lua',
+    'PICO8_LUA_CHAR_LIMIT',
+    'PICO8_LUA_TOKEN_LIMIT',
+    'PICO8_LUA_COMPRESSED_CHAR_LIMIT'
+]
 
 from . import lexer
 from . import parser
+
+
+PICO8_LUA_CHAR_LIMIT = 32768
+PICO8_LUA_TOKEN_LIMIT = 8192
+PICO8_LUA_COMPRESSED_CHAR_LIMIT = 15360
 
 
 class Lua():

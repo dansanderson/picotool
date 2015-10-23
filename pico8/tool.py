@@ -14,6 +14,7 @@ from .game import game
 from .lua import lexer
 from .lua import parser
 
+
 def _get_argparser():
     """Builds and returns the argument parser."""
     # TODO: real help text
@@ -47,7 +48,7 @@ def _get_argparser():
         '--debug', action='store_true',
         help='write extra error messages for debugging the tool')
     parser.add_argument(
-        'filename', type=str, nargs='*',
+        'filename', type=str, nargs='+',
         help='the names of files to process')
 
     return parser
@@ -197,6 +198,36 @@ def listtokens(args):
     return 0
 
 
+def writep8(args):
+    """Write the game to a .p8 file.
+
+    If the original was a .p8.png file, this converts it to a .p8 file.
+
+    If the original was a .p8 file, this just echos the game data into a new
+    file. (This is mostly useful to validate the picotool library.)
+
+    Args:
+      args: The argparser parsed args object.
+
+    Returns:
+      0 on success, 1 on failure.
+    """
+    for fname, g in _games_for_filenames(args.filename,
+                                         print_tracebacks=args.debug):
+        if args.overwrite and fname.endswith('.p8'):
+            out_fname = fname
+        else:
+            if fname.endswith('.p8.png'):
+                out_fname = fname[:-len('.p8.png')] + '_fmt.p8'
+            else:
+                out_fname = fname[:-len('.p8')] + '_fmt.p8'
+
+        with open(out_fname, 'w') as fh:
+            g.to_p8_file(fh, filename=out_fname)
+            
+    return 0
+
+
 _PRINTAST_INDENT_SIZE = 2
 def _printast_node(value, indent=0, prefix=''):
     if isinstance(value, parser.Node):
@@ -239,6 +270,8 @@ def main(orig_args):
         return listtokens(args)
     elif args.command == 'printast':
         return printast(args)
+    elif args.command == 'writep8':
+        return writep8(args)
     
     arg_parser.print_help()
     return 1
