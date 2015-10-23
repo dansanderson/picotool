@@ -187,7 +187,7 @@ By default, this produces an HTML coverage report in the `cover` subdirectory. O
 
 ## Known issues
 
-* picotool and Pico-8 count tokens and characters in slightly different ways, resulting in different counts. More refinement is needed so that picotool matches Pico-8. The largest cart posted to the BBS has 31,850 chars and 8,141 tokens according to Pico-8, and 31,656 chars (-196) and 8,284 tokens (+143) according to picotool.
+* picotool and Pico-8 count tokens in slightly different ways, resulting in different counts. More refinement is needed so that picotool matches Pico-8. As far as I can tell, with picotool making some concessions to match Pico-8 in known cases, Pico-8's counts are consistently higher. So I'm missing a few cases where Pico-8 over-counts (or picotool under-counts).
 
 * Pico-8's special single-line short form of the Lua `if` statement has some undocumented behavior that is currently not supported by picotool. Of all of the carts analyzed so far, only one such behavior is used but not yet supported: if the statement after the condition is a `do ... end` block, then the block is allowed to use multiple lines. `if (cond) do ... end` can always be rewritten as `if cond then ... end`.
 
@@ -204,7 +204,6 @@ TODO:
 * Semantic APIs for the non-Lua sections
 * Rewrite expression AST to represent operator precedence
 * Add module loading shortcuts (to avoid module paths like `pico8.game.game.Game`)
-* More Pico-8-like char counting
 * More Pico-8-like token counting
 * Improved reporting of parser errors
 * Improved API docs, especially the AST API
