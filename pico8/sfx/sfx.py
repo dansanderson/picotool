@@ -32,8 +32,8 @@ note is encoded in 16 bits, LSB first, like so:
   w3w2w1: waveform (0-7)
   pppppp: pitch (0-63) 
 
-The highest bit appears to be unused, but Pico-8 sets it for the 2nd
-note in the pattern for some reason.
+The highest bit appears to be unused. In RAM, Pico-8 sets it for the 2nd
+note in the pattern for some reason, but this is not written to the PNG.
 """
 
 __all__ = ['Sfx']
@@ -63,7 +63,7 @@ class Sfx(util.BaseSection):
             loop_start = bytes.fromhex(l[4:6])
             loop_end = bytes.fromhex(l[6:8])
             for i in range(8,168,5):
-                pitch = bytes.fromhex(l[i:i+1])
+                pitch = bytes.fromhex(l[i:i+2])
                 waveform = bytes.fromhex(l[i+2])
                 volume = bytes.fromhex(l[i+3])
                 effect = bytes.fromhex(l[i+4])
@@ -71,7 +71,7 @@ class Sfx(util.BaseSection):
                 lsb = pitch | ((waveform & 3) << 6)
                 data.append(lsb)
                 msb = effect << 4 | volume << 1 | (waveform & 4 >> 2)
-                if i == 10:
+                if i == 13:
                     # Follow Pico-8's lead and set the most significant bit of
                     # the 2nd note in the pattern.
                     msb |= 128
@@ -102,10 +102,10 @@ class Sfx(util.BaseSection):
             for ni in range(0, 64, 2):
                 lsb = self._data[i+ni]
                 msb = self._data[i+ni+1]
-                pitch = lsb & 63
-                waveform = msb & 1 << 2 | (lsb & 192) >> 6
-                volume = msb & 14 >> 1
-                effect = msb & 112 >> 4
+                pitch = lsb & 0x3f
+                waveform = (msb & 0x01) << 2 | (lsb & 0xc0) >> 6
+                volume = (msb & 0x0e) >> 1
+                effect = (msb & 0x70) >> 4
 
                 hexstrs.append(bytes([pitch, waveform << 4 | volume]).hex())
                 hexstrs.append(bytes([effect]).hex()[1])
