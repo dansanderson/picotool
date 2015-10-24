@@ -194,19 +194,19 @@ class Game():
         version = picodata[0x8000]
 
         compressed_size = None
-        
-        if version == 0:
+
+        if version == 0 or bytes(code[:4]) != b':c:\x00':
             # code is ASCII
 
-            # (Technically this fails if v0 code completely fills the code area,
-            # in which case code_length = 0x8000-0x4300.)
+            # (I assume this fails if uncompressed code completely
+            # fills the code area, in which case code_length =
+            # 0x8000-0x4300.)
             code_length = code.index(0)
 
             code = ''.join(chr(c) for c in code[:code_length])
                 
-        if version == 1 or version == 5:
+        elif version == 1 or version == 5:
             # code is compressed
-            assert bytes(code[:4]) == b':c:\x00'
             code_length = (code[4] << 8) | code[5]
             assert bytes(code[6:8]) == b'\x00\x00'
 
@@ -230,10 +230,11 @@ class Game():
                     out_i += length
                 in_i += 1
 
-            code = ''.join(chr(c) for c in out)
+            code = ''.join(chr(c) for c in out) + '\n'
             compressed_size = in_i
 
         new_game = cls(filename=filename, compressed_size=compressed_size)
+        new_game.version = version
         new_game.lua = Lua.from_lines(
             [code], version=version)
         new_game.gfx = Gfx.from_bytes(
@@ -262,12 +263,17 @@ class Game():
         outstr.write(HEADER_VERSION_PAT.format(self.version))
 
         outstr.write(SECTION_DELIM_PAT.format('lua'))
+        ended_in_newline = None
         for l in self.lua.to_lines(writer_cls=lua_writer_cls):
             outstr.write(l)
+            ended_in_newline = l.endswith('\n')
+        if not ended_in_newline:
+            outstr.write('\n')
 
         # Sanity-check the Lua written by the writer.
         transformed_lua = Lua.from_lines(
-            self.lua.to_lines(writer_cls=lua_writer_cls), version=self.version)
+            self.lua.to_lines(writer_cls=lua_writer_cls),
+            version=(self.version or 0))
         if transformed_lua.get_char_count() > PICO8_LUA_CHAR_LIMIT:
             if filename is not None:
                 util.error('{}: ')
@@ -282,29 +288,25 @@ class Game():
                        'limit of {}'.format(
                            filename, transformed_lua.get_char_count(),
                            PICO8_LUA_CHAR_LIMIT))
-        outstr.write('\n')
 
         outstr.write(SECTION_DELIM_PAT.format('gfx'))
         for l in self.gfx.to_lines():
             outstr.write(l)
-        outstr.write('\n')
             
         outstr.write(SECTION_DELIM_PAT.format('gff'))
         for l in self.gff.to_lines():
             outstr.write(l)
-        outstr.write('\n')
             
         outstr.write(SECTION_DELIM_PAT.format('map'))
         for l in self.map.to_lines():
             outstr.write(l)
-        outstr.write('\n')
             
         outstr.write(SECTION_DELIM_PAT.format('sfx'))
         for l in self.sfx.to_lines():
             outstr.write(l)
-        outstr.write('\n')
             
         outstr.write(SECTION_DELIM_PAT.format('music'))
         for l in self.music.to_lines():
             outstr.write(l)
+
         outstr.write('\n')
