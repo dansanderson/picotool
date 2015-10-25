@@ -221,6 +221,8 @@ By default, this produces an HTML coverage report in the `cover` subdirectory. O
 
 * Pico-8's special single-line short form of the Lua `if` statement has some undocumented behavior that is currently not supported by picotool. Of all of the carts analyzed so far, only one such behavior is used but not yet supported: if the statement after the condition is a `do ... end` block, then the block is allowed to use multiple lines. `if (cond) do ... end` can always be rewritten as `if cond then ... end`.
 
+* There may be obscure issues with very old carts that cause the picotool's .p8 output to differ slightly from Pico-8's .p8 output for the same .p8.png input. I've only found one such case so far: helloworld.p8.png's 2nd sfx pattern is has four note volumes in the PNG data that do not match Pico-8's RAM data when the cart is loaded. In general, it appears Pico-8 manages some legacy format bugs internally. It is unlikely picotool can ever hope (or should ever try) to recreate the entire internal upgrade path.
+
 
 ## Future plans
 
