@@ -1,54 +1,55 @@
 pico-8 cartridge // http://www.pico-8.com
 version 5
 __lua__
--- hello world
--- by zep
+-- memory dump
+-- by dddaaannn
+-- art and music by zep
+-- (from helloworld)
 
-t = 0
+cls()
 
-music(0)
-
-function _update()
- t += 1
+function hexd(n)
+  if (n<10) return n
+  if (n==10) return 'a'
+  if (n==11) return 'b'
+  if (n==12) return 'c'
+  if (n==13) return 'd'
+  if (n==14) return 'e'
+  if (n==15) return 'f'
 end
 
-function _draw()
- cls()
-  
- for i=1,11 do
-  for j0=0,7 do
-  j = 7-j0
-  col = 7+j
-  t1 = t + i*4 - j*2
-  x = cos(t0)*5
-  y = 38 + j + cos(t1/50)*5
-  pal(7,col)
-  spr(16+i, 8+i*8 + x, y)
+function hex(n)
+  return (hexd(shr(band(n,0xf0),4))..
+          hexd(band(n,0x0f)))
+end
+
+function hexa(n)
+  return (hex(shr(band(n,0xff00),8))..
+          hex(band(n,0x00ff)))
+end
+
+function dump(base)
+  for a=base,base+(16*8) do
+    x = (a%8)*12+26
+    y = flr((a-base)/8)*8
+    print(hex(peek(a)), x, y)
+    if (a%8)==0 then
+      print(hexa(a), 0, y)
+    end
   end
- end
- 
-  print("this is pico-8",
-    37, 70, 14) --8+(t/4)%8)
-
- print("nice to meet you",
-    34, 80, 12) --8+(t/4)%8)
-
-  spr(1, 64-4, 90)
 end
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+function _init()
+  b = 0x3200
+end
+function _update()
+  if (btnp(0)) b -= 16*8
+  if (btnp(1)) b += 16*8
+end
+function _draw()
+  cls()
+  dump(b)
+end
 
 __gfx__
 00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000

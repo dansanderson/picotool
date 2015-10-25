@@ -203,7 +203,7 @@ class Game():
             # 0x8000-0x4300.)
             code_length = code.index(0)
 
-            code = ''.join(chr(c) for c in code[:code_length])
+            code = ''.join(chr(c) for c in code[:code_length]) + '\n'
                 
         elif version == 1 or version == 5:
             # code is compressed

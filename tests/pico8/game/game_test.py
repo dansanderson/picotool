@@ -103,15 +103,15 @@ class TestP8PNGGame(unittest.TestCase):
             'testdata')
 
     def testFromP8PNGFileV0(self):
-        pngpath = os.path.join(self.testdata_path, 'helloworld.p8.png')
+        pngpath = os.path.join(self.testdata_path, 'test_cart.p8.png')
         with open(pngpath, 'rb') as fh:
             pnggame = game.Game.from_p8png_file(fh)
         first_stat = pnggame.lua.root.stats[0]
-        self.assertTrue(isinstance(first_stat, parser.StatAssignment))
+        self.assertTrue(isinstance(first_stat, parser.StatFunctionCall))
         tokens = pnggame.lua.tokens
-        self.assertEqual(lexer.TokComment('-- hello world'), tokens[0])
+        self.assertEqual(lexer.TokComment('-- memory dump'), tokens[0])
         self.assertEqual(lexer.TokNewline('\n'), tokens[1])
-        self.assertEqual(lexer.TokComment('-- by zep'), tokens[2])
+        self.assertEqual(lexer.TokComment('-- by dddaaannn'), tokens[2])
         self.assertEqual(lexer.TokNewline('\n'), tokens[3])
         
     def testFromP8PNGFile(self):
@@ -127,8 +127,23 @@ class TestGameToP8(unittest.TestCase):
             os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
             'testdata')
 
-    def testToP8File(self):
-        pass
+    def testToP8FileFromP8(self):
+        with open(os.path.join(self.testdata_path, 'test_cart.p8')) as fh:
+            orig_game = game.Game.from_p8_file(fh)
+        with open(os.path.join(self.testdata_path, 'test_cart.p8')) as fh:
+            expected_game_p8 = fh.read()
+        outstr = io.StringIO()
+        orig_game.to_p8_file(outstr)
+        self.assertEqual(expected_game_p8, outstr.getvalue())
+    
+    def testToP8FileFromPng(self):
+        with open(os.path.join(self.testdata_path, 'test_cart.p8.png'), 'rb') as fh:
+            orig_game = game.Game.from_p8png_file(fh)
+        with open(os.path.join(self.testdata_path, 'test_cart.p8')) as fh:
+            expected_game_p8 = fh.read()
+        outstr = io.StringIO()
+        orig_game.to_p8_file(outstr)
+        self.assertEqual(expected_game_p8, outstr.getvalue())
 
     
 if __name__ == '__main__':
