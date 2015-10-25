@@ -120,6 +120,16 @@ class TestP8PNGGame(unittest.TestCase):
             pnggame = game.Game.from_p8png_file(fh)
         # TODO: validate game
 
+
+class TestGameToP8(unittest.TestCase):
+    def setUp(self):
+        self.testdata_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+            'testdata')
+
+    def testToP8File(self):
+        pass
+
     
 if __name__ == '__main__':
     unittest.main()
