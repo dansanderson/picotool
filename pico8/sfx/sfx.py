@@ -40,6 +40,7 @@ __all__ = ['Sfx']
 
 from .. import util
 
+
 class Sfx(util.BaseSection):
     """The sfx region of a Pico-8 cart."""
 
@@ -56,25 +57,21 @@ class Sfx(util.BaseSection):
         data = bytearray()
 
         for l in lines:
-            if len(l) != 168:
+            if len(l) != 169:
                 continue
-            editor_mode = bytes.fromhex(l[0:2])
-            note_duration = bytes.fromhex(l[2:4])
-            loop_start = bytes.fromhex(l[4:6])
-            loop_end = bytes.fromhex(l[6:8])
+            editor_mode = int(l[0:2], 16)
+            note_duration = int(l[2:4], 16)
+            loop_start = int(l[4:6], 16)
+            loop_end = int(l[6:8], 16)
             for i in range(8,168,5):
-                pitch = bytes.fromhex(l[i:i+2])
-                waveform = bytes.fromhex(l[i+2])
-                volume = bytes.fromhex(l[i+3])
-                effect = bytes.fromhex(l[i+4])
+                pitch = int(l[i:i+2], 16)
+                waveform = int(l[i+2], 16)
+                volume = int(l[i+3], 16)
+                effect = int(l[i+4], 16)
 
                 lsb = pitch | ((waveform & 3) << 6)
                 data.append(lsb)
-                msb = effect << 4 | volume << 1 | (waveform & 4 >> 2)
-                if i == 13:
-                    # Follow Pico-8's lead and set the most significant bit of
-                    # the 2nd note in the pattern.
-                    msb |= 128
+                msb = (effect << 4) | (volume << 1) | ((waveform & 4) >> 2)
                 data.append(msb)
             data.append(editor_mode)
             data.append(note_duration)
@@ -103,7 +100,7 @@ class Sfx(util.BaseSection):
                 lsb = self._data[i+ni]
                 msb = self._data[i+ni+1]
                 pitch = lsb & 0x3f
-                waveform = (msb & 0x01) << 2 | (lsb & 0xc0) >> 6
+                waveform = ((msb & 0x01) << 2) | ((lsb & 0xc0) >> 6)
                 volume = (msb & 0x0e) >> 1
                 effect = (msb & 0x70) >> 4
 

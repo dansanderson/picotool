@@ -1,4 +1,4 @@
-# picotool: Tools and Python libraries for manipulating Pico-8 game files
+># picotool: Tools and Python libraries for manipulating Pico-8 game files
 
 [Pico-8](http://www.lexaloffle.com/pico-8.php) is a *fantasy game console* by [Lexaloffle Games](http://www.lexaloffle.com/). The Pico-8 runtime environment runs *cartridges* (or *carts*): game files containing code, graphics, sound, and music data. The console includes a built-in cartridge editor for writing games. Game cartridge files can also be played in a browser, and can be posted to the Lexaloffle bulletin board or exported to any website.
 
