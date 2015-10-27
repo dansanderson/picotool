@@ -7,6 +7,7 @@ import unittest
 from unittest.mock import Mock
 from unittest.mock import patch
 
+from pico8 import util
 from pico8.game import game
 from pico8.lua import lexer
 from pico8.lua import parser
@@ -126,6 +127,11 @@ class TestGameToP8(unittest.TestCase):
         self.testdata_path = os.path.join(
             os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
             'testdata')
+        self.orig_error_stream = util._error_stream
+        util._error_stream = io.StringIO()
+
+    def tearDown(self):
+        util._error_stream = self.orig_error_stream
 
     def testToP8FileFromP8(self):
         with open(os.path.join(self.testdata_path, 'test_cart.p8')) as fh:
@@ -145,6 +151,25 @@ class TestGameToP8(unittest.TestCase):
         orig_game.to_p8_file(outstr)
         self.assertEqual(expected_game_p8, outstr.getvalue())
 
-    
+    def testCharCountWarning(self):
+        g = game.Game.make_empty_game(filename='test')
+        g.lua.update_from_lines(
+            ['-- 345678901234567890123456789012345678\n'] * 820)
+        outstr = io.StringIO()
+        g.to_p8_file(outstr, filename='test')
+        self.assertTrue(util._error_stream.getvalue().startswith(
+            'test: warning: character count'))
+        
+    def testTokenCountWarning(self):
+        g = game.Game.make_empty_game()
+        g.lua.update_from_lines(
+            ['a=b=c=d=e=f=g=h=i=j=k=l=m=n=o=p=q=r=s=t=u\n'] * 199 +
+            ['a=b=c=d=e=f=g=h=i=j=k=l=m=n=o=p=q=r=s=t=u'])
+        outstr = io.StringIO()
+        g.to_p8_file(outstr)
+        self.assertTrue(util._error_stream.getvalue().startswith(
+            'warning: token count'))
+
+        
 if __name__ == '__main__':
     unittest.main()

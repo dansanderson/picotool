@@ -9,6 +9,7 @@ __all__ = ['Map']
 
 from .. import util
 
+
 class Map(util.BaseSection):
     """The map region of a Pico-8 cart."""
     HEX_LINE_LENGTH_BYTES = 128

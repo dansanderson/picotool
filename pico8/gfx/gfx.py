@@ -14,6 +14,7 @@ __all__ = ['Gfx']
 
 from .. import util
 
+
 class Gfx(util.BaseSection):
     """The sprite graphics section for a Pico-8 cart."""
     HEX_LINE_LENGTH_BYTES = 64
@@ -53,9 +54,6 @@ class Gfx(util.BaseSection):
         """
         for start_i in range(0, len(self._data), self.HEX_LINE_LENGTH_BYTES):
             end_i = start_i + self.HEX_LINE_LENGTH_BYTES
-            if end_i > len(self._data):
-                end_i = len(self._data)
-
             newdata = []
             for b in self._data[start_i:end_i]:
                 newdata.append((b & 0x0f) << 4 | (b & 0xf0) >> 4)

@@ -68,6 +68,30 @@ class Game():
         self.version = None
 
     @classmethod
+    def make_empty_game(cls, filename=None):
+        """Create an empty game.
+
+        Args:
+          filename: An optional filename to use with error messages.
+
+        Returns:
+          A Game instance with valid but empty data regions.
+        """
+        g = cls(filename=filename)
+        
+        g.lua = Lua(version=5)
+        g.lua.update_from_lines([])
+        g.gfx = Gfx(data=b'\x00' * 8192, version=5)
+        g.gff = Gff(data=b'\x00' * 256, version=5)
+        g.map = Map(data=b'\x00' * 4096, version=5)
+        # TODO: match Pico-8's defaults for sfx speeds
+        g.sfx = Sfx(data=b'\x00' * 4352, version=5)
+        g.music = Music(data=b'\0x41\0x42\0x43\0x44' * 64, version=5)
+        g.version = 5
+
+        return g
+        
+    @classmethod
     def from_filename(cls, filename):
         """Loads a game from a named file.
 
@@ -90,7 +114,6 @@ class Game():
             with open(filename, 'rb') as fh:
                 g = Game.from_p8png_file(fh, filename=filename)
         return g
-
 
     @classmethod
     def from_p8_file(cls, instr, filename=None):
@@ -276,17 +299,17 @@ class Game():
             version=(self.version or 0))
         if transformed_lua.get_char_count() > PICO8_LUA_CHAR_LIMIT:
             if filename is not None:
-                util.error('{}: ')
+                util.error('{}: '.format(filename))
             util.error('warning: character count {} exceeds the Pico-8 '
                        'limit of {}'.format(
-                           filename, transformed_lua.get_char_count(),
+                           transformed_lua.get_char_count(),
                            PICO8_LUA_CHAR_LIMIT))
         if transformed_lua.get_token_count() > PICO8_LUA_TOKEN_LIMIT:
             if filename is not None:
-                util.error('{}: ')
+                util.error('{}: '.format(filename))
             util.error('warning: token count {} exceeds the Pico-8 '
                        'limit of {}'.format(
-                           filename, transformed_lua.get_char_count(),
+                           transformed_lua.get_char_count(),
                            PICO8_LUA_CHAR_LIMIT))
 
         outstr.write(SECTION_DELIM_PAT.format('gfx'))

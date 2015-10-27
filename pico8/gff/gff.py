@@ -15,6 +15,7 @@ __all__ = ['Gff']
 
 from .. import util
 
+
 class Gff(util.BaseSection):
     """The graphics properties section of a Pico-8 cart."""
     HEX_LINE_LENGTH_BYTES = 128

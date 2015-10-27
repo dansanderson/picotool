@@ -62,7 +62,14 @@ class ParserError(util.InvalidP8DataError):
 
 class Node():
     """A base class for all AST nodes."""
-    pass
+
+    @property
+    def start_pos(self):
+        return self._start_token_pos
+
+    @property
+    def end_pos(self):
+        return self._end_token_pos
 
 
 # These are all Node subclasses that initialize members with
