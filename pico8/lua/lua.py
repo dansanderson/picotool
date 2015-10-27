@@ -602,23 +602,49 @@ class LuaMinifyWriter(LuaASTEchoWriter):
             first = cls._name_for_id(int(id / len(NAME_CHARS)))
         return first + (NAME_CHARS[id % len(NAME_CHARS)])
         
-    def _get_code_for_name(self, token):
-        if token.code not in self._name_map:
-            self._name_map[token.code] = self._name_for_id(self._next_name_id)
-            self._next_name_id += 1
-        return self._name_map[token.code]
+    def _get_name(self, node, tok):
+        """Gets the minified name for a TokName, or text for a TokNumber.
+
+        Args:
+          node: The Node containing the name.
+          tok: The TokName or TokNumber token from the AST.
+
+        Returns:
+          The text for the name.
+        """
+        spaces = self._get_code_for_spaces(node)
+        assert tok.matches(lexer.TokName)
+        self._pos += 1
+
+        # If called with a name string, replace the name.
+        if re.matches(r'^[a-zA-Z]', tok.code):
+            if tok.code not in self._name_map:
+                self._name_map[tok.code] = self._name_for_id(self._next_name_id)
+                self._next_name_id += 1
+            return spaces + self._name_map[tok.code]
+
+        # Called with a non-name string.
+        return spaces + tok.code
     
     def _get_code_for_spaces(self, node):
+        """Calculates the minified text for the space and comment tokens that
+        prefix the node.
+
+        Args:
+          node: The Node with possible space and comment tokens in its range.
+
+        Returns:
+          A string representing the minified spaces.
+        """
         # TODO: Track last-seen states, skip comments, compress space and newlines
-        pos = node.start_pos
         strs = []
-        while (pos < node.end_pos and
-               (isinstance(self._tokens[pos], lexer.TokSpace) or
-                isinstance(self._tokens[pos], lexer.TokNewline) or
-                isinstance(self._tokens[pos], lexer.TokComment))):
-            strs.append(self._tokens[pos].code)
-            pos += 1
-        return (''.join(strs), pos)
+        while (self._pos < node.end_pos and
+               (isinstance(self._tokens[self._pos], lexer.TokSpace) or
+                isinstance(self._tokens[self._pos], lexer.TokNewline) or
+                isinstance(self._tokens[self._pos], lexer.TokComment))):
+            strs.append(self._tokens[self._pos].code)
+            self._pos += 1
+        return ''.join(strs)
 
 
 class LuaFormatterWriter(LuaASTEchoWriter):
@@ -628,13 +654,21 @@ class LuaFormatterWriter(LuaASTEchoWriter):
         super().__init__(*args, **kwargs)
         
     def _get_code_for_spaces(self, node):
-        # TODO: Track indent level, preserve comments, render new space and nelines
-        pos = node.start_pos
+        """Calculates the formatted text for the space and comment tokens that
+        prefix the node.
+
+        Args:
+          node: The Node with possible space and comment tokens in its range.
+
+        Returns:
+          A string representing the minified spaces.
+        """
+        # TODO: Track last-seen states, skip comments, compress space and newlines
         strs = []
-        while (pos < node.end_pos and
-               (isinstance(self._tokens[pos], lexer.TokSpace) or
-                isinstance(self._tokens[pos], lexer.TokNewline) or
-                isinstance(self._tokens[pos], lexer.TokComment))):
-            strs.append(self._tokens[pos].code)
-            pos += 1
-        return (''.join(strs), pos)
+        while (self._pos < node.end_pos and
+               (isinstance(self._tokens[self._pos], lexer.TokSpace) or
+                isinstance(self._tokens[self._pos], lexer.TokNewline) or
+                isinstance(self._tokens[self._pos], lexer.TokComment))):
+            strs.append(self._tokens[self._pos].code)
+            self._pos += 1
+        return ''.join(strs)

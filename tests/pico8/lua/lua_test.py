@@ -43,6 +43,13 @@ class TestLua(unittest.TestCase):
         result = lua.Lua.from_lines(VALID_LUA_SHORT_LINES, 4)
         self.assertEqual('by dan', result.get_byline())
 
+    def testBaseLuaWriterNotYetImplemented(self):
+        # coverage
+        self.assertRaises(NotImplementedError,
+                          lua.BaseLuaWriter(None, None).to_lines)
+
+        
+class TestLuaEchoWriter(unittest.TestCase):
     def testToLinesEchoWriter(self):
         result = lua.Lua.from_lines(VALID_LUA_SHORT_LINES, 4)
         lines = list(result.to_lines())
@@ -53,10 +60,12 @@ class TestLua(unittest.TestCase):
         lines = list(result.to_lines())
         self.assertEqual(lines, VALID_LUA_SHORT_LINES + ['break'])
 
-    def testBaseLuaWriterNotYetImplemented(self):
-        # coverage
-        self.assertRaises(NotImplementedError,
-                          lua.BaseLuaWriter(None, None).to_lines)
+
+class TestLuaASTEchoWriter(unittest.TestCase):
+    def testToLinesASTEchoWriter(self):
+        result = lua.Lua.from_lines(VALID_LUA_SHORT_LINES, 4)
+        lines = list(result.to_lines(writer_cls=lua.LuaASTEchoWriter))
+        self.assertEqual(lines, VALID_LUA_SHORT_LINES)
 
         
 if __name__ == '__main__':
