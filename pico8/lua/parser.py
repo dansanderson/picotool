@@ -127,12 +127,18 @@ for (name, fields) in _ast_node_types:
     def node_init(self, *args, **kwargs):
         self._start_token_pos = kwargs.get('start')
         self._end_token_pos = kwargs.get('end')
+        if 'start' in kwargs:
+            del kwargs['start']
+        if 'end' in kwargs:
+            del kwargs['end']
         if len(args) != len(self._fields):
             raise TypeError(
                 'Initializer for {} requires {} fields, saw {}'.format(
                     self._name, len(self._fields), len(args)))
         for i in range(len(self._fields)):
             setattr(self, self._fields[i], args[i])
+        for k in kwargs:
+            setattr(self, k, kwargs[k])
     cls = type(name, (Node,), {'__init__': node_init,
                                '_name': name, '_fields': fields})
     globals()[name] = cls
@@ -397,7 +403,8 @@ class Parser():
                 exp_block_pairs = [(exp.value, block)]
                 if else_block is not None and len(else_block.stats) > 0:
                     exp_block_pairs.append((None, else_block))
-                return StatIf(exp_block_pairs, start=pos, end=self._pos)
+                return StatIf(exp_block_pairs, start=pos, end=self._pos,
+                              short_if=True)
             
             self._pos = then_pos
 

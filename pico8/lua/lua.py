@@ -185,7 +185,12 @@ class LuaASTEchoWriter(BaseLuaWriter):
     The base implementation behaves identically to LuaEchoWriter. Subclasses
     can modify certain behaviors to transform the code based on the AST.
     """
-    def _get_code_for_spaces(self, node, start=None):
+    def __init__(self):
+        super().__init__()
+
+        self._pos = None
+        
+    def _get_code_for_spaces(self, node):
         """Calculates the text for the space and comment tokens that prefix the
         node.
 
@@ -193,299 +198,390 @@ class LuaASTEchoWriter(BaseLuaWriter):
         comment tokens verbatim.
 
         Args:
-          node: The Node.
-          start: The first token position to consider. If None, uses
-            node.start_pos.
+          node: The Node with possible space and comment tokens in its range.
 
         Returns:
-          Tuple: (prefix_text, next_pos), where next_pos is the position of the
-            first non-space non-comment token.
+          A string representing the tokens.
         """
-        if start is not None:
-            pos = start
-        else:
-            pos = node.start_pos
         strs = []
-        while (pos < node.end_pos and
-               (isinstance(self._tokens[pos], lexer.TokSpace) or
-                isinstance(self._tokens[pos], lexer.TokNewline) or
-                isinstance(self._tokens[pos], lexer.TokComment))):
-            strs.append(self._tokens[pos].code)
-            pos += 1
-        return (''.join(strs), pos)
+        while (self._pos < node.end_pos and
+               (isinstance(self._tokens[self._pos], lexer.TokSpace) or
+                isinstance(self._tokens[self._pos], lexer.TokNewline) or
+                isinstance(self._tokens[self._pos], lexer.TokComment))):
+            strs.append(self._tokens[self._pos].code)
+            self._pos += 1
+        return ''.join(strs)
 
-    def _get_code_for_name(self, token):
-        """Calculates the code for a TokName.
+    def _get_name(self, node, tok):
+        """Gets the code for a TokName or TokNumber.
 
         A subclass can override this to transform names.
 
         Args:
-          token: The TokName token.
+          node: The Node containing the name.
+          tok: The TokName or TokNumber token from the AST.
+
+        Returns:
+          The text for the name.
         """
-        return token.code
+        spaces = self._get_code_for_spaces(node)
+        assert tok.matches(lexer.TokName)
+        self._pos += 1
+        return spaces + tok.code
+
+    def _get_text(self, node, keyword):
+        """Gets the preceding spaces and code for a TokKeyword or TokSymbol.
+
+        Args:
+          node: The Node containing the keyword.
+          keyword: The expected keyword or symbol.
+
+        Returns:
+          The text for the keyword or symbol.
+        """
+        spaces = self._get_code_for_spaces(node)
+        assert (self._tokens[self._pos].matches(lexer.TokKeyword(keyword)) or
+                self._tokens[self._pos].matches(lexer.TokSymbol(keyword)))
+        self._pos += 1
+        return spaces + keyword
     
-    def _get_code_for_node(self, node, start=None):
+    def _generate_code_for_node(self, node):
         """Calculates the code for a given AST node, including the preceding
         spaces and comments.
 
         Args:
           node: The Node.
-          start: A starting token position at or before the first non-space
-            non-comment token for the node. If None, uses node.start_pos. This
-            is used when an outer node and the first inner node both have the
-            same whitespace prefix, to prevent the prefix from being processed
-            twice.
 
         Yields:
           Chunks of code for the node.
         """
-        (prefix_text, pos) = self._get_code_for_spaces(node, start=start)
-        yield prefix_text
+        yield self._get_code_for_spaces(node)
 
         if isinstance(node, lexer.Chunk):
             for stat in node.stats:
-                for t in self._get_code_for_node(stat, start=pos):
+                for t in self._generate_code_for_node(stat):
                     yield t
         
         elif isinstance(node, lexer.StatAssignment):
-            for t in self._get_code_for_node(node.varlist, start=pos):
+            for t in self._generate_code_for_node(node.varlist):
                 yield t
-            pos = node.varlist.end_pos
-            (prefix_text, pos) = self._get_code_for_spaces(node, start=pos)
-            yield prefix_text
-            yield '='
-            pos += 1
-            (prefix_text, pos) = self._get_code_for_spaces(node, start=pos)
-            yield prefix_text
-            for t in self._get_code_for_node(node.explist, start=pos):
+            yield self._get_text(node, '=')
+            for t in self._generate_code_for_node(node.explist):
                 yield t
         
         elif isinstance(node, lexer.StatFunctionCall):
-            for t in self._get_code_for_node(node.functioncall, start=pos):
+            for t in self._generate_code_for_node(node.functioncall):
                 yield t
         
         elif isinstance(node, lexer.StatDo):
-            yield 'do'
-            pos += 1
-            (prefix_text, pos) = self._get_code_for_spaces(node, start=pos)
-            yield prefix_text
-            for t in self._get_code_for_node(node.block, start=pos):
+            yield self._get_text(node, 'do')
+            for t in self._generate_code_for_node(node.block):
                 yield t
-            pos = node.block.end_pos
-            (prefix_text, pos) = self._get_code_for_spaces(node, start=pos)
-            yield prefix_text
-            yield 'end'
-        
+            yield self._get_text(node, 'end')
+            
         elif isinstance(node, lexer.StatWhile):
-            yield 'while'
-            pos += 1
-            for t in self._get_code_for_node(node.exp, start=pos):
+            yield self._get_text(node, 'while')
+            for t in self._generate_code_for_node(node.exp):
                 yield t
-            pos = node.exp.end_pos
-            yield 'do'
-            pos += 1
-            (prefix_text, pos) = self._get_code_for_spaces(node, start=pos)
-            yield prefix_text
-            for t in self._get_code_for_node(node.block, start=pos):
+            yield self._get_text(node, 'do')
+            for t in self._generate_code_for_node(node.block):
                 yield t
-            pos = node.block.end_pos
-            (prefix_text, pos) = self._get_code_for_spaces(node, start=pos)
-            yield prefix_text
-            yield 'end'
+            yield self._get_text(node, 'end')
         
         elif isinstance(node, lexer.StatRepeat):
-            yield 'repeat'
-            pos += 1
-            (prefix_text, pos) = self._get_code_for_spaces(node, start=pos)
-            yield prefix_text
-            for t in self._get_code_for_node(node.block, start=pos):
+            yield self._get_text(node, 'repeat')
+            for t in self._generate_code_for_node(node.block):
                 yield t
-            pos = node.block.end_pos
-            (prefix_text, pos) = self._get_code_for_spaces(node, start=pos)
-            yield prefix_text
-            yield 'until'
-            pos += 1
-            (prefix_text, pos) = self._get_code_for_spaces(node, start=pos)
-            yield prefix_text
-            for t in self._get_code_for_node(node.exp, start=pos):
+            yield self._get_text(node, 'until')
+            for t in self._generate_code_for_node(node.exp):
                 yield t
         
         elif isinstance(node, lexer.StatIf):
-            # TODO: Have the parser annotate the node with short_if. This
-            # method is a hack, and fails in the edge case of the short-if
-            # having a long-if in its block.
-            short_if = True
-            for tok in self._tokens[node.start_pos:node.end_pos]:
-                if tok.matches(lexer.TokKeyword('then')):
-                    short_if = False
-                    break
+            short_if = getattr(node, 'short_if', False)
                 
             first = True
             for (exp, block) in node.exp_block_pairs:
                 if exp is not None:
                     if first:
-                        yield 'if'
+                        yield self._get_text(node, 'if')
                         first = False
                     else:
-                        yield 'elseif'
-                    pos += 1
-                    (prefix_text, pos) = self._get_code_for_spaces(node, start=pos)
-                    yield prefix_text
+                        yield self._get_text(node, 'elseif')
                     if short_if:
-                        yield '('
-                        pos += 1
-                        (prefix_text, pos) = self._get_code_for_spaces(node, start=pos)
-                        yield prefix_text
-                        for t in self._get_code_for_node(exp, start=pos):
+                        yield self._get_text(node, '(')
+                        for t in self._generate_code_for_node(exp):
                             yield t
-                        pos = exp.end_pos
-                        (prefix_text, pos) = self._get_code_for_spaces(node, start=pos)
-                        yield prefix_text
-                        yield ')'
-                        pos += 1
+                        yield self._get_text(node, ')')
                     if not short_if:
-                        yield 'then'
-                        pos += 1
-                    (prefix_text, pos) = self._get_code_for_spaces(node, start=pos)
-                    yield prefix_text
-                    for t in self._get_code_for_node(block, start=pos):
+                        yield self._get_text(node, 'then')
+                    for t in self._generate_code_for_node(block):
                         yield t
-                    pos = block.end_pos
                 else:
-                    yield 'else'
-                    pos += 1
-                    (prefix_text, pos) = self._get_code_for_spaces(node, start=pos)
-                    yield prefix_text
-                    for t in self._get_code_for_node(block, start=pos):
+                    yield self._get_text(node, 'else')
+                    for t in self._generate_code_for_node(block):
                         yield t
-                    pos = block.end_pos
             if not short_if:
-                yield 'end'
+                yield self._get_text(node, 'end')
         
         elif isinstance(node, lexer.StatForStep):
-            # 'name', 'exp_init', 'exp_end', 'exp_step', 'block'
-            pass
+            yield self._get_text(node, 'for')
+            yield self._get_name(node, node.name)
+            yield self._get_text(node, '=')
+            for t in self._generate_code_for_node(node.exp_init):
+                yield t
+            yield self._get_text(node, ',')
+            for t in self._generate_code_for_node(node.exp_end):
+                yield t
+            if node.exp_step is not None:
+                yield self._get_text(node, ',')
+                for t in self._generate_code_for_node(node.exp_step):
+                    yield t
+            yield self._get_text(node, 'do')
+            for t in self._generate_code_for_node(node.block):
+                yield t
+            yield self._get_text(node, 'end')
         
         elif isinstance(node, lexer.StatForIn):
-            # 'namelist', 'explist', 'block'
-            pass
+            yield self._get_text(node, 'for')
+            for t in self._generate_code_for_node(node.namelist):
+                yield t
+            yield self._get_text(node, 'in')
+            for t in self._generate_code_for_node(node.explist):
+                yield t
+            yield self._get_text(node, 'do')
+            for t in self._generate_code_for_node(node.block):
+                yield t
+            yield self._get_text(node, 'end')
         
         elif isinstance(node, lexer.StatFunction):
-            # 'funcname', 'funcbody'
-            pass
+            yield self._get_text(node, 'function')
+            for t in self._generate_code_for_node(node.funcname):
+                yield t
+            for t in self._generate_code_for_node(node.funcbody):
+                yield t
         
         elif isinstance(node, lexer.StatLocalFunction):
-            # 'funcname', 'funcbody'
-            pass
+            yield self._get_text(node, 'local')
+            yield self._get_text(node, 'function')
+            for t in self._generate_code_for_node(node.funcname):
+                yield t
+            for t in self._generate_code_for_node(node.funcbody):
+                yield t
         
         elif isinstance(node, lexer.StatLocalAssignment):
-            # 'namelist', 'explist'
-            pass
+            yield self._get_text(node, 'local')
+            for t in self._generate_code_for_node(node.namelist):
+                yield t
+            if node.explist is not None:
+                yield self._get_text(node, '=')
+                for t in self._generate_code_for_node(node.explist):
+                    yield t
         
         elif isinstance(node, lexer.StatGoto):
-            # 'label',
-            pass
+            yield self._get_text(node, 'goto')
+            yield self._get_name(node, node.label)
         
         elif isinstance(node, lexer.StatLabel):
-            # 'label',
-            pass
+            yield self._get_code_for_spaces(node)
+            yield '::'
+            yield self._get_name(node, node.label)
+            yield '::'
         
         elif isinstance(node, lexer.StatBreak):
-            #
-            pass
+            yield self._get_text(node, 'break')
         
         elif isinstance(node, lexer.StatReturn):
-            # 'explist',
-            pass
+            yield self._get_text(node, 'return')
+            if node.explist is not None:
+                for t in self._generate_code_for_node(node.explist):
+                    yield t
         
         elif isinstance(node, lexer.FunctionName):
-            # 'namepath', 'methodname'
-            pass
+            yield self._get_name(node, node.namepath[0])
+            if len(node.namepath) > 1:
+                for i in range(1, len(node.namepath)):
+                    yield self._get_text(node, '.')
+                    yield self._get_name(node, node.namepath[i])
+            if node.methodname is not None:
+                yield self._get_text(node, ':')
+                yield self._get_name(node, node.methodname)
         
         elif isinstance(node, lexer.FunctionArgs):
-            # 'explist',
-            pass
+            yield self._get_text(node, '(')
+            for t in self._generate_code_for_node(node.explist):
+                yield t
+            yield self._get_text(node, ')')
         
         elif isinstance(node, lexer.VarList):
-            # 'vars',
-            pass
+            for t in self._generate_code_for_node(node.vars[0]):
+                yield t
+            if len(node.vars) > 1:
+                for i in range(1, node.vars):
+                    yield self._get_text(node, ',')
+                    for t in self._generate_code_for_node(node.vars[i]):
+                        yield t
         
         elif isinstance(node, lexer.VarName):
-            # 'name',
-            pass
+            yield self._get_name(node, node.name)
         
         elif isinstance(node, lexer.VarIndex):
-            # 'exp_prefix', 'exp_index'
-            pass
+            for t in self._generate_code_for_node(node.exp_prefix):
+                yield t
+            yield self._get_text(node, '[')
+            for t in self._generate_code_for_node(node.exp_index):
+                yield t
+            yield self._get_text(node, ']')
         
         elif isinstance(node, lexer.VarAttribute):
-            # 'exp_prefix', 'attr_name'
-            pass
+            for t in self._generate_code_for_node(node.exp_prefix):
+                yield t
+            yield self._get_text(node, '.')
+            yield self._get_name(node, node.attr_name)
         
         elif isinstance(node, lexer.NameList):
-            # 'names',
-            pass
+            if node.names is not None:
+                yield self._get_name(node, node.names[0])
+                if len(node.names) > 1:
+                    for i in range(1, len(node.names)):
+                        yield self._get_text(node, ',')
+                        yield self._get_name(node, node.names[i])
         
         elif isinstance(node, lexer.ExpList):
-            # 'exps',
-            pass
+            if node.exps is not None:
+                for t in self._generate_code_for_node(node.exps[0]):
+                    yield t
+                if len(node.exps) > 1:
+                    for i in range(1, len(node.exps)):
+                        for t in self._generate_code_for_node(node.exps[i]):
+                            yield t
         
         elif isinstance(node, lexer.ExpValue):
-            # 'value',
-            pass
+            if node.value == None:
+                yield self._get_text(node, 'nil')
+            elif node.value == False:
+                yield self._get_text(node, 'false')
+            elif node.value == True:
+                yield self._get_text(node, 'true')
+            elif isinstance(node.value, str):
+                # TokName or TokNumber
+                yield self._get_name(node, node.value)
+            else:
+                for t in self._generate_code_for_node(node.value):
+                    yield t
         
         elif isinstance(node, lexer.VarargDots):
-            #
-            pass
+            yield self._get_text(node, '...')
         
         elif isinstance(node, lexer.ExpBinOp):
-            # 'exp1', 'binop', 'exp2'
-            pass
+            for t in self._generate_code_for_node(node.exp1):
+                yield t
+            yield self._get_text(node.binop.code)
+            for t in self._generate_code_for_node(node.exp2):
+                yield t
         
         elif isinstance(node, lexer.ExpUnOp):
-            # 'unop', 'exp'
-            pass
+            yield self._get_text(node.unop.code)
+            for t in self._generate_code_for_node(node.exp):
+                yield t
         
         elif isinstance(node, lexer.FunctionCall):
-            # 'exp_prefix', 'args'
-            pass
+            for t in self._generate_code_for_node(node.exp_prefix):
+                yield t
+            if args is None:
+                yield self._get_text(node, '(')
+                yield self._get_text(node, ')')
+            elif isinstance(args, str):
+                # args is the parsed string, but we need the original token to
+                # recreate the escaped string with its original punctuation.
+                yield self._get_code_for_spaces(node)
+                yield self._tokens[self._pos].code
+            else:
+                for t in self._generate_code_for_node(node.args):
+                    yield t
         
         elif isinstance(node, lexer.FunctionCallMethod):
-            # 'exp_prefix', 'methodname', 'args'
-            pass
+            for t in self._generate_code_for_node(node.exp_prefix):
+                yield t
+            yield self._get_text(node, ':')
+            yield self._get_name(node, node.methodname)
+            if args is None:
+                yield self._get_text(node, '(')
+                yield self._get_text(node, ')')
+            elif isinstance(args, str):
+                # args is the parsed string, but we need the original token to
+                # recreate the escaped string with its original punctuation.
+                yield self._get_code_for_spaces(node)
+                yield self._tokens[self._pos].code
+            else:
+                for t in self._generate_code_for_node(node.args):
+                    yield t
         
         elif isinstance(node, lexer.Function):
-            # 'funcbody',
-            pass
+            yield self._get_text(node, 'function')
+            for t in self._generate_code_for_node(node.funcbody):
+                yield t
         
         elif isinstance(node, lexer.FunctionBody):
-            # 'parlist', 'dots', 'block'
-            pass
+            yield self._get_text(node, '(')
+            if node.parlist is not None:
+                for t in self._generate_code_for_node(node.parlist):
+                    yield t
+                if node.dots is not None:
+                    self._get_text(node, ',')
+                    for t in self._generate_code_for_node(node.dots):
+                        yield t
+            else:
+                if node.dots is not None:
+                    for t in self._generate_code_for_node(node.dots):
+                        yield t
+            yield self._get_text(node, ')')
+            for t in self._generate_code_for_node(node.block):
+                yield t
+            yield self._get_text(node, 'end')
         
         elif isinstance(node, lexer.TableConstructor):
-            # 'fields',
-            pass
+            yield self._get_text(node, '{')
+            if node.fields:
+                for t in self._generate_code_for_node(node.fields[0]):
+                    yield t
+                if len(node.fields) > 1:
+                    for i in range(1, len(node.fields)):
+                        # The parser doesn't store which field separator was used,
+                        # so we have to find it in the token stream.
+                        yield self._get_code_for_spaces(node)
+                        yield self._get_text(node, self._tokens[self._pos].code)
+                        for t in self._generate_code_for_node(node.fields[i]):
+                            yield t
+            yield self._get_text(node, '}')
         
         elif isinstance(node, lexer.FieldExpKey):
-            # 'key_exp', 'exp'
-            pass
+            yield self._get_text(node, '[')
+            for t in self._generate_code_for_node(node.key_exp):
+                yield t
+            yield self._get_text(node, ']')
+            yield self._get_text(node, '=')
+            for t in self._generate_code_for_node(node.exp):
+                yield t
         
         elif isinstance(node, lexer.FieldNamedKey):
-            # 'key_name', 'exp'
-            pass
+            yield self._get_name(node, node.key_name)
+            yield self._get_text(node, '=')
+            for t in self._generate_code_for_node(node.exp):
+                yield t
         
         elif isinstance(node, lexer.FieldExp):
-            # 'exp',
-            pass
+            for t in self._generate_code_for_node(node.exp):
+                yield t
           
-        
     def to_lines(self):
         """Generates lines of Lua source based on the parser output.
 
         Yields:
           Lines of Lua code.
         """
-        for chunk in self._get_code_for_node(self._root):
+        self._pos = 0
+        
+        for chunk in self._generate_code_for_node(self._root):
             for l in chunk.split('\n'):
                 yield l + '\n'
 
