@@ -12,6 +12,7 @@ import textwrap
 from . import util
 from .game import game
 from .lua import lexer
+from .lua import lua
 from .lua import parser
 
 
@@ -199,7 +200,7 @@ def listtokens(args):
 
 
 def writep8(args):
-    """Write the game to a .p8 file.
+    """Writes the game to a .p8 file.
 
     If the original was a .p8.png file, this converts it to a .p8 file.
 
@@ -228,8 +229,67 @@ def writep8(args):
     return 0
 
 
+def luamin(args):
+    """Reduces the Lua code for a cart to use a minimal number of characters.
+
+    Args:
+      args: The argparser parsed args object.
+
+    Returns:
+      0 on success, 1 on failure.
+    """
+    for fname, g in _games_for_filenames(args.filename,
+                                         print_tracebacks=args.debug):
+        if args.overwrite and fname.endswith('.p8'):
+            out_fname = fname
+        else:
+            if fname.endswith('.p8.png'):
+                out_fname = fname[:-len('.p8.png')] + '_fmt.p8'
+            else:
+                out_fname = fname[:-len('.p8')] + '_fmt.p8'
+
+        with open(out_fname, 'w') as fh:
+            g.to_p8_file(fh, filename=out_fname,
+                         lua_writer_cls=lua.LuaMinifyWriter)
+            
+    return 0
+
+
+def luafmt(args):
+    """Rewrite the Lua code for a cart to use regular formatting.
+
+    Args:
+      args: The argparser parsed args object.
+
+    Returns:
+      0 on success, 1 on failure.
+    """
+    for fname, g in _games_for_filenames(args.filename,
+                                         print_tracebacks=args.debug):
+        if args.overwrite and fname.endswith('.p8'):
+            out_fname = fname
+        else:
+            if fname.endswith('.p8.png'):
+                out_fname = fname[:-len('.p8.png')] + '_fmt.p8'
+            else:
+                out_fname = fname[:-len('.p8')] + '_fmt.p8'
+
+        with open(out_fname, 'w') as fh:
+            g.to_p8_file(fh, filename=out_fname,
+                         lua_writer_cls=lua.LuaFormatterWriter)
+            
+    return 0
+
+
 _PRINTAST_INDENT_SIZE = 2
 def _printast_node(value, indent=0, prefix=''):
+    """Recursive procedure for printast.
+
+    Args:
+      value: An element from the AST: a Node, a list, or a tuple.
+      indent: The indentation level for this value.
+      prefix: A string prefix for this value.
+    """
     if isinstance(value, parser.Node):
         util.write('{}{}{}\n'.format(' ' * indent, prefix,
                                      value.__class__.__name__))
@@ -248,7 +308,14 @@ def _printast_node(value, indent=0, prefix=''):
 
         
 def printast(args):
-    """"""
+    """Prints the parser's internal representation of Lua code.
+
+    Args:
+      args: The argparser parsed args object.
+
+    Returns:
+      0 on success, 1 on failure.
+    """
     for fname, g in _games_for_filenames(args.filename,
                                          print_tracebacks=args.debug):
         if len(args.filename) > 1:
@@ -272,6 +339,10 @@ def main(orig_args):
         return printast(args)
     elif args.command == 'writep8':
         return writep8(args)
+    elif args.command == 'luamin':
+        return luamin(args)
+    elif args.command == 'luafmt':
+        return luafmt(args)
     
     arg_parser.print_help()
     return 1

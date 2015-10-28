@@ -80,6 +80,8 @@ mytable = {
   barkey= 222;
   333
 }
+
+a=1; b=2; c=3
 '''.split('\n')]
 
 
@@ -187,6 +189,7 @@ end
 a(g)
 end
 ''', txt)
+        self.assertIn('f=1 n=2 o=3', txt)
 
         
 if __name__ == '__main__':

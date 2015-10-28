@@ -263,6 +263,26 @@ class LuaASTEchoWriter(BaseLuaWriter):
         self._pos += 1
         return spaces + keyword
     
+    def _get_semis(self, node):
+        """Gets semicolons from between statements.
+
+        Args:
+          node: The Node containing the semis.
+
+        Returns:
+          The text for the semicolons and preceding spaces.
+        """
+        spaces_and_semis = []
+        while True:
+            spaces = self._get_code_for_spaces(node)
+            if self._tokens[self._pos].matches(lexer.TokSymbol(';')):
+                self._pos += 1
+                spaces_and_semis.append(spaces + ';')
+            else:
+                spaces_and_semis.append(spaces)
+                break
+        return ''.join(spaces_and_semis)
+    
     def _generate_code_for_node(self, node):
         """Calculates the code for a given AST node, including the preceding
         spaces and comments.
@@ -277,8 +297,10 @@ class LuaASTEchoWriter(BaseLuaWriter):
 
         if isinstance(node, parser.Chunk):
             for stat in node.stats:
+                yield self._get_semis(node)
                 for t in self._generate_code_for_node(stat):
                     yield t
+            yield self._get_semis(node)
         
         elif isinstance(node, parser.StatAssignment):
             for t in self._generate_code_for_node(node.varlist):
@@ -702,6 +724,26 @@ class LuaMinifyWriter(LuaASTEchoWriter):
         # line. (Use self._tokens[start_pos-1] and self._tokens[self._pos].)
         
         return spaces
+
+    def _get_semis(self, node):
+        """Skips semicolons between statements.
+
+        Args:
+          node: The Node containing the semis.
+
+        Returns:
+          The preceding spaces up to any semicolons, without the semicolons.
+        """
+        spaces_without_semis = []
+        while True:
+            spaces = self._get_code_for_spaces(node)
+            if self._tokens[self._pos].matches(lexer.TokSymbol(';')):
+                self._pos += 1
+                spaces_without_semis.append(spaces)
+            else:
+                spaces_without_semis.append(spaces)
+                break
+        return ''.join(spaces_without_semis)
 
 
 class LuaFormatterWriter(LuaASTEchoWriter):
