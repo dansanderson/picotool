@@ -7,13 +7,12 @@ from unittest.mock import patch
 from pico8.lua import lua
 
 
-VALID_LUA_SHORT_LINES = [
-    '-- short test\n',
-    '-- by dan\n',
-    'function foo()\n',
-    '  return 999\n',
-    'end\n'
-]
+VALID_LUA_SHORT_LINES = [l + '\n' for l in '''-- short test
+-- by dan
+function foo()
+  return 999
+end'''.split('\n')]
+
 
 VALID_LUA_EVERY_NODE = [l + '\n' for l in '''
 -- the code with the nodes
@@ -158,7 +157,37 @@ class TestLuaMinifyWriter(unittest.TestCase):
         self.assertIn('return c', txt)
         self.assertIn('local function d(e)', txt)
         self.assertIn('print(e)', txt)
+
+    def testMinifiesSpaces(self):
+        result = lua.Lua.from_lines(VALID_LUA_SHORT_LINES, 4)
+        lines = list(result.to_lines(writer_cls=lua.LuaMinifyWriter))
+        txt = ''.join(lines)
+        self.assertEqual('''function a()
+return 999
+end''', txt)
         
+    def testMinifiesSpacesEveryNode(self):
+        result = lua.Lua.from_lines(VALID_LUA_EVERY_NODE, 4)
+        lines = list(result.to_lines(writer_cls=lua.LuaMinifyWriter))
+        txt = ''.join(lines)
+        self.assertNotIn('-- the code with the nodes', txt)
+        self.assertIn('''while f < 10 do
+f += 1
+if f % 2 == 0 then
+a(f)
+elseif f > 5 then
+a(f, 5)
+else
+a(f, 1)
+g *= 2
+end
+end
+''', txt)
+        self.assertIn('''for g in i() do
+a(g)
+end
+''', txt)
+
         
 if __name__ == '__main__':
     unittest.main()

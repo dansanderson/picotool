@@ -8,6 +8,9 @@ __all__ = [
     'PICO8_BUILTINS'
 ]
 
+
+import re
+
 from . import lexer
 from . import parser
 
@@ -673,16 +676,32 @@ class LuaMinifyWriter(LuaASTEchoWriter):
         Returns:
           A string representing the minified spaces.
         """
-        # TODO: Track last-seen states, skip comments, compress space and newlines
+        start_pos = self._pos
         strs = []
         while (((node is None and self._pos < len(self._tokens)) or
                 (node is not None and self._pos < node.end_pos)) and
                (isinstance(self._tokens[self._pos], lexer.TokSpace) or
                 isinstance(self._tokens[self._pos], lexer.TokNewline) or
                 isinstance(self._tokens[self._pos], lexer.TokComment))):
-            strs.append(self._tokens[self._pos].code)
+            if not isinstance(self._tokens[self._pos], lexer.TokComment):
+                strs.append(self._tokens[self._pos].code)
             self._pos += 1
-        return ''.join(strs)
+
+        if ((start_pos == 0) or (self._pos == len(self._tokens))):
+            # Eliminate all spaces at beginning and end of code.
+            return ''
+        
+        spaces = ''.join(strs)
+        spaces = re.sub(r'\t', ' ', spaces)      # one tab -> one space
+        spaces = re.sub(r'\n +', '\n', spaces)   # leading spaces -> none
+        spaces = re.sub(r' +\n', '\n', spaces)   # trailing spaces -> none
+        spaces = re.sub(r'  +', ' ', spaces)     # multiple spaces -> one space
+        spaces = re.sub(r'\n\n+', '\n', spaces)  # multiple newlines -> one newline
+
+        # TODO: Eliminate space between symbols and names/keywords on the same
+        # line. (Use self._tokens[start_pos-1] and self._tokens[self._pos].)
+        
+        return spaces
 
 
 class LuaFormatterWriter(LuaASTEchoWriter):
