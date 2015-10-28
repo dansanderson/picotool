@@ -140,6 +140,25 @@ class TestLuaASTEchoWriter(unittest.TestCase):
         lines = list(result.to_lines(writer_cls=lua.LuaASTEchoWriter))
         self.assertEqual(lines, VALID_LUA_EVERY_NODE)
 
+
+class TestLuaMinifyWriter(unittest.TestCase):
+    def testMinifiesNames(self):
+        result = lua.Lua.from_lines(VALID_LUA_SHORT_LINES, 4)
+        lines = list(result.to_lines(writer_cls=lua.LuaMinifyWriter))
+        txt = ''.join(lines)
+        self.assertIn('function a()', txt)
+        
+    def testMinifiesNamesEveryNode(self):
+        result = lua.Lua.from_lines(VALID_LUA_EVERY_NODE, 4)
+        lines = list(result.to_lines(writer_cls=lua.LuaMinifyWriter))
+        txt = ''.join(lines)
+        self.assertIn('function a(b,', txt)
+        self.assertIn('local c', txt)
+        self.assertIn('c[b]', txt)
+        self.assertIn('return c', txt)
+        self.assertIn('local function d(e)', txt)
+        self.assertIn('print(e)', txt)
+        
         
 if __name__ == '__main__':
     unittest.main()

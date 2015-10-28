@@ -4,7 +4,8 @@ __all__ = [
     'Lua',
     'PICO8_LUA_CHAR_LIMIT',
     'PICO8_LUA_TOKEN_LIMIT',
-    'PICO8_LUA_COMPRESSED_CHAR_LIMIT'
+    'PICO8_LUA_COMPRESSED_CHAR_LIMIT',
+    'PICO8_BUILTINS'
 ]
 
 from . import lexer
@@ -14,6 +15,19 @@ from . import parser
 PICO8_LUA_CHAR_LIMIT = 32768
 PICO8_LUA_TOKEN_LIMIT = 8192
 PICO8_LUA_COMPRESSED_CHAR_LIMIT = 15360
+
+
+PICO8_BUILTINS = [
+    '_init', '_update', '_draw',
+    'load', 'save', 'folder', 'ls', 'run', 'resume', 'reboot', 'stat', 'info',
+    'flip', 'printh', 'clip', 'pget', 'pset', 'sget', 'sset', 'fget', 'fset',
+    'print', 'cursor', 'color', 'cls', 'camera', 'circ', 'circfill', 'line',
+    'rect', 'rectfill', 'pal', 'palt', 'spr', 'sspr', 'add', 'del', 'all',
+    'foreach', 'pairs', 'btn', 'btnp', 'sfx', 'music', 'mget', 'mset', 'map',
+    'peek', 'poke', 'memcpy', 'reload', 'cstore', 'memset', 'max', 'min', 'mid',
+    'flr', 'cos', 'sin', 'atan2', 'sqrt', 'abs', 'rnd', 'srand', 'band', 'bor',
+    'bxor', 'bnot', 'shl', 'shr', 'cartdata', 'dget', 'dset',
+]
 
 
 class Lua():
@@ -617,12 +631,14 @@ class LuaMinifyWriter(LuaASTEchoWriter):
         self._next_name_id = 0
 
     NAME_CHARS = 'abcdefghijklmnopqrstuvwxyz'
+    PRESERVED_NAMES = lexer.LUA_KEYWORDS + PICO8_BUILTINS
+
     @classmethod
     def _name_for_id(cls, id):
         first = ''
         if id > 26:
-            first = cls._name_for_id(int(id / len(NAME_CHARS)))
-        return first + (NAME_CHARS[id % len(NAME_CHARS)])
+            first = cls._name_for_id(int(id / len(LuaMinifyWriter.NAME_CHARS)))
+        return first + (LuaMinifyWriter.NAME_CHARS[id % len(LuaMinifyWriter.NAME_CHARS)])
         
     def _get_name(self, node, tok):
         """Gets the minified name for a TokName.
@@ -638,9 +654,13 @@ class LuaMinifyWriter(LuaASTEchoWriter):
         assert tok.matches(lexer.TokName)
         self._pos += 1
 
+        if tok.code in LuaMinifyWriter.PRESERVED_NAMES:
+            return spaces + tok.code
+
         if tok.code not in self._name_map:
             self._name_map[tok.code] = self._name_for_id(self._next_name_id)
             self._next_name_id += 1
+            
         return spaces + self._name_map[tok.code]
     
     def _get_code_for_spaces(self, node):
@@ -655,7 +675,8 @@ class LuaMinifyWriter(LuaASTEchoWriter):
         """
         # TODO: Track last-seen states, skip comments, compress space and newlines
         strs = []
-        while (self._pos < node.end_pos and
+        while (((node is None and self._pos < len(self._tokens)) or
+                (node is not None and self._pos < node.end_pos)) and
                (isinstance(self._tokens[self._pos], lexer.TokSpace) or
                 isinstance(self._tokens[self._pos], lexer.TokNewline) or
                 isinstance(self._tokens[self._pos], lexer.TokComment))):
@@ -682,7 +703,8 @@ class LuaFormatterWriter(LuaASTEchoWriter):
         """
         # TODO: Track last-seen states, skip comments, compress space and newlines
         strs = []
-        while (self._pos < node.end_pos and
+        while (((node is None and self._pos < len(self._tokens)) or
+                (node is not None and self._pos < node.end_pos)) and
                (isinstance(self._tokens[self._pos], lexer.TokSpace) or
                 isinstance(self._tokens[self._pos], lexer.TokNewline) or
                 isinstance(self._tokens[self._pos], lexer.TokComment))):

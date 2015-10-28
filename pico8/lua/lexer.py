@@ -17,7 +17,14 @@ __all__ = [
     'TokLabel',
     'TokKeyword',
     'TokSymbol',
-    'Lexer'
+    'Lexer',
+    'LUA_KEYWORDS'
+]
+
+LUA_KEYWORDS = [
+    'and', 'break', 'do', 'else', 'elseif', 'end', 'false', 'for',
+    'function', 'goto', 'if', 'in', 'local', 'nil', 'not', 'or', 'repeat',
+    'return', 'then', 'true', 'until', 'while'
 ]
 
 
@@ -203,10 +210,7 @@ _TOKEN_MATCHERS.extend([
     (re.compile(r'::[a-zA-Z_][a-zA-Z0-9_]*::'), TokLabel),
 ])
 _TOKEN_MATCHERS.extend([
-    (re.compile(r'\b'+keyword+r'\b'), TokKeyword) for keyword in [
-    'and', 'break', 'do', 'else', 'elseif', 'end', 'false', 'for',
-    'function', 'goto', 'if', 'in', 'local', 'nil', 'not', 'or', 'repeat',
-    'return', 'then', 'true', 'until', 'while']])
+    (re.compile(r'\b'+keyword+r'\b'), TokKeyword) for keyword in LUA_KEYWORDS])
 _TOKEN_MATCHERS.extend([
     (re.compile(symbol), TokSymbol) for symbol in [
     r'\+=', '-=', r'\*=', '/=', '%=',
