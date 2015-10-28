@@ -11,7 +11,10 @@ __all__ = [
 ]
 
 
-_quiet = False
+VERBOSITY_QUIET = 1    # error
+VERBOSITY_NORMAL = 2   # write and error
+VERBOSITY_DEBUG = 3    # debug, write and error
+_verbosity = VERBOSITY_NORMAL
 _write_stream = sys.stdout
 _error_stream = sys.stderr
 
@@ -26,11 +29,27 @@ class InvalidP8DataError(Error):
     pass
 
 
-def set_quiet(new_quiet=False):
-    global _quiet
-    _quiet = new_quiet
+def set_verbosity(level=VERBOSITY_NORMAL):
+    global _verbosity
+    _verbosity = level
 
-    
+
+def debug(msg):
+    """Writes a debug message.
+
+    This does nothing unless the user specifies the --debug argument.
+
+    When working with named files, this function writes to
+    stdout. When working with stdin, file output goes to stdout and
+    messages go to stderr.
+
+    Args:
+      msg: The message to write.
+    """
+    if _verbosity >= VERBOSITY_DEBUG:
+        _write_stream.write(msg)
+
+        
 def write(msg):
     """Writes a message to the user.
 
@@ -43,9 +62,8 @@ def write(msg):
 
     Args:
       msg: The message to write.
-
     """
-    if not _quiet:
+    if _verbosity >= VERBOSITY_NORMAL:
         _write_stream.write(msg)
 
 

@@ -15,7 +15,7 @@ class TestUtil(unittest.TestCase):
         util._error_stream = io.StringIO()
         
     def tearDown(self):
-        util._quiet = False
+        util._verbosity = util.VERBOSITY_NORMAL
         util._write_stream = sys.stdout
         util._error_stream = sys.stderr
 
@@ -25,7 +25,7 @@ class TestUtil(unittest.TestCase):
         self.assertEqual(s, util._write_stream.getvalue())
 
     def testWriteQuiet(self):
-        util.set_quiet(True)
+        util.set_verbosity(util.VERBOSITY_QUIET)
         s = 'test2'
         util.write(s)
         self.assertEqual('', util._write_stream.getvalue())
@@ -37,10 +37,21 @@ class TestUtil(unittest.TestCase):
 
     def testErrorQuiet(self):
         s = 'test4'
-        util.set_quiet(True)
+        util.set_verbosity(util.VERBOSITY_QUIET)
         util.error(s)
         self.assertEqual(s, util._error_stream.getvalue())
 
+    def testDebug(self):
+        s = 'test5'
+        util.debug(s)
+        self.assertEqual('', util._write_stream.getvalue())
+        
+    def testDebugVerbose(self):
+        s = 'test6'
+        util.set_verbosity(util.VERBOSITY_DEBUG)
+        util.debug(s)
+        self.assertEqual(s, util._write_stream.getvalue())
+        
 
 class DummySection(util.BaseSection):
     HEX_LINE_LENGTH_BYTES = 3

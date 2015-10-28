@@ -7,7 +7,9 @@ import argparse
 import csv
 import os
 import sys
+import tempfile
 import textwrap
+import traceback
 
 from . import util
 from .game import game
@@ -18,9 +20,10 @@ from .lua import parser
 
 def _get_argparser():
     """Builds and returns the argument parser."""
-    # TODO: real help text
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
+        usage='%(prog)s [--help] <command> [<args>] <filename> '
+        '[<filename> ...]',
         description=textwrap.dedent('''
         Commands:
           stats [--csv] <filename> [<filename>...]
@@ -29,9 +32,9 @@ def _get_argparser():
             List the Lua code for a cart to the console.
           writep8 <filename> [<filename>...]
             Convert a .p8.png cart to a .p8 cart.
-          luamin [--overwrite] <filename> [<filename>...]
+          luamin <filename> [<filename>...]
             Minify the Lua code for a cart, reducing the character count.
-          luafmt [--overwrite] <filename> [<filename>...]
+          luafmt [--overwrite] [--indentwidth=2] <filename> [<filename>...]
             Make the Lua code for a cart easier to read by adjusting indentation.
 
           listtokens <filename> [<filename>...]
@@ -41,23 +44,20 @@ def _get_argparser():
 
           By default, commands that write to files (writep8, luamin,
           luafmt) will create or replace a file named similar to the
-          cart filename but ending in "_fmt.p8". If you provide the
-          --overwrite argument, the command will overwrite the
-          original. (Be careful!)
+          cart filename but ending in "_fmt.p8". The luafmt command
+          accepts an optional --overwrite argument that causes it to
+          overwrite the original .p8 file instead.
         '''))
     parser.add_argument(
         'command', type=str,
         help='the command to execute')
     parser.add_argument(
         '--indentwidth', type=int, action='store', default=2,
-        help='the indent width as a number of spaces')
+        help='for luafmt, the indent width as a number of spaces')
     parser.add_argument(
         '--overwrite', action='store_true',
-        help='given a filename, overwrites the original file instead of '
-        'creating a separate *_fmt.p8 file')
-    parser.add_argument(
-        '--minify', action='store_true',
-        help='minifies the code instead of formatting it')
+        help='for luafmt, given a filename, overwrites the original file '
+        'instead of creating a separate *_fmt.p8 file')
     parser.add_argument(
         '--csv', action='store_true',
         help='for stats, output a CSV file instead of text')
@@ -66,7 +66,7 @@ def _get_argparser():
         help='suppresses inessential messages')
     parser.add_argument(
         '--debug', action='store_true',
-        help='write extra error messages for debugging the tool')
+        help='write extra messages for debugging the tool')
     parser.add_argument(
         'filename', type=str, nargs='+',
         help='the names of files to process')
@@ -74,7 +74,7 @@ def _get_argparser():
     return parser
 
 
-def _games_for_filenames(filenames, print_tracebacks=False):
+def _games_for_filenames(filenames):
     """Yields games for the given filenames.
 
     If a file does not load or parse as a game, this writes a message
@@ -83,16 +83,14 @@ def _games_for_filenames(filenames, print_tracebacks=False):
 
     Args:
       filenames: The list of filenames.
-      print_tracebacks: If True, prints a stack track along with lexer and
-        parser error messages. (Useful for debugging the parser.) Default is
-        False.
 
     Yields:
       (filename, game), or (filename, None) if the file did not parse.
     """
     for fname in filenames:
         if not fname.endswith('.p8.png') and not fname.endswith('.p8'):
-            util.error('{}: filename must end in .p8 or .p8.png\n'.format(fname))
+            util.error('{}: filename must end in .p8 or .p8.png\n'.format(
+                fname))
             continue
 
         g = None
@@ -100,12 +98,11 @@ def _games_for_filenames(filenames, print_tracebacks=False):
             g = game.Game.from_filename(fname)
         except lexer.LexerError as e:
             util.error('{}: {}\n'.format(fname, e))
+            util.debug(traceback.format_exc())
             yield (fname, None)
         except parser.ParserError as e:
             util.error('{}: {}\n'.format(fname, e))
-            if print_tracebacks:
-                import traceback
-                traceback.print_exc(file=util._error_stream)
+            util.debug(traceback.format_exc())
             yield (fname, None)
         else:
             yield (fname, g)
@@ -134,8 +131,7 @@ def stats(args):
             'Compressed Code Size'
         ])
 
-    for fname, g in _games_for_filenames(args.filename,
-                                         print_tracebacks=args.debug):
+    for fname, g in _games_for_filenames(args.filename):
         if g is None:
             util.error('{}: could not load cart'.format(fname))
             continue
@@ -166,7 +162,8 @@ def stats(args):
                        '- tokens: {}\n- compressed chars: {}\n'.format(
                 g.lua.version, g.lua.get_line_count(),
                 g.lua.get_char_count(), g.lua.get_token_count(),
-                g.compressed_size if g.compressed_size is not None else '(not compressed)'))
+                g.compressed_size if g.compressed_size is not None
+                           else '(not compressed)'))
             util.write('\n')
 
     return 0
@@ -181,8 +178,7 @@ def listlua(args):
     Returns:
       0 on success, 1 on failure.
     """
-    for fname, g in _games_for_filenames(args.filename,
-                                         print_tracebacks=args.debug):
+    for fname, g in _games_for_filenames(args.filename):
         if len(args.filename) > 1:
             util.write('=== {} ===\n'.format(g.filename))
         for l in g.lua.to_lines():
@@ -201,15 +197,15 @@ def listtokens(args):
     Returns:
       0 on success, 1 on failure.
     """
-    for fname, g in _games_for_filenames(args.filename,
-                                         print_tracebacks=args.debug):
+    for fname, g in _games_for_filenames(args.filename):
         if len(args.filename) > 1:
             util.write('=== {} ===\n'.format(g.filename))
         pos = 0
         for t in g.lua.tokens:
             if isinstance(t, lexer.TokNewline):
                 util.write('\n')
-            elif (isinstance(t, lexer.TokSpace) or isinstance(t, lexer.TokComment)):
+            elif (isinstance(t, lexer.TokSpace) or
+                  isinstance(t, lexer.TokComment)):
                 util.write('<{}>'.format(t.value))
             else:
                 util.write('<{}:{}>'.format(pos, t.value))
@@ -218,7 +214,49 @@ def listtokens(args):
     return 0
 
 
-def writep8(args):
+def process_game_files(filenames, procfunc, overwrite=False, args=None):
+    """Processes cart files in a common way.
+
+    Args:
+      filenames: The cart filenames as input.
+      procfunc: A function called for each cart. This is called with arguments:
+        a Game, an output stream, an output filename, and an argparse args
+        object.
+      overwrite: If True, overwrites the input file instead of making a _fmt.p8
+        file, if the input file is a .p8 file.
+      args: The argparse parsed args.
+
+    Returns:
+      0 on success, 1 on failure.
+    """
+    has_errors = False
+    for fname, g in _games_for_filenames(filenames):
+        if g is None:
+            has_errors = True
+            continue
+        
+        if overwrite and fname.endswith('.p8'):
+            out_fname = fname
+        else:
+            if fname.endswith('.p8.png'):
+                out_fname = fname[:-len('.p8.png')] + '_fmt.p8'
+            else:
+                out_fname = fname[:-len('.p8')] + '_fmt.p8'
+
+        util.write('{} -> {}\n'.format(fname, out_fname))
+        with tempfile.TemporaryFile(mode='w+') as outfh:
+            procfunc(g, outfh, out_fname, args=args)
+            
+            outfh.seek(0)
+            with open(out_fname, 'w') as finalfh:
+                finalfh.write(outfh.read())
+
+    if has_errors:
+        return 1
+    return 0
+
+
+def writep8(g, outfh, out_fname, args=None):
     """Writes the game to a .p8 file.
 
     If the original was a .p8.png file, this converts it to a .p8 file.
@@ -227,83 +265,38 @@ def writep8(args):
     file. (This is mostly useful to validate the picotool library.)
 
     Args:
-      args: The argparser parsed args object.
-
-    Returns:
-      0 on success, 1 on failure.
+      g: The Game.
+      outfh: The output filehandle.
+      out_fname: The output filename, for error messages.
+      args: The argparse parsed args object, or None.
     """
-    for fname, g in _games_for_filenames(args.filename,
-                                         print_tracebacks=args.debug):
-
-        # TODO: Only allow overwrite with luafmt. Too dangerous to allow it with
-        # luamin.
-        if args.overwrite and fname.endswith('.p8'):
-            out_fname = fname
-        else:
-            if fname.endswith('.p8.png'):
-                out_fname = fname[:-len('.p8.png')] + '_fmt.p8'
-            else:
-                out_fname = fname[:-len('.p8')] + '_fmt.p8'
-
-        # TODO: Write to a temporary file, then move into place. This corrupts
-        # the output file if there is a parser error.
-        with open(out_fname, 'w') as fh:
-            g.to_p8_file(fh, filename=out_fname)
-            
-    return 0
+    g.to_p8_file(outfh, filename=out_fname)
 
 
-def luamin(args):
+def luamin(g, outfh, out_fname, args=None):
     """Reduces the Lua code for a cart to use a minimal number of characters.
 
     Args:
-      args: The argparser parsed args object.
-
-    Returns:
-      0 on success, 1 on failure.
+      g: The Game.
+      outfh: The output filehandle.
+      out_fname: The output filename, for error messages.
+      args: The argparse parsed args object, or None.
     """
-    # TODO: --debug flag to dump the name mappings
-    for fname, g in _games_for_filenames(args.filename,
-                                         print_tracebacks=args.debug):
-        if args.overwrite and fname.endswith('.p8'):
-            out_fname = fname
-        else:
-            if fname.endswith('.p8.png'):
-                out_fname = fname[:-len('.p8.png')] + '_fmt.p8'
-            else:
-                out_fname = fname[:-len('.p8')] + '_fmt.p8'
-
-        with open(out_fname, 'w') as fh:
-            g.to_p8_file(fh, filename=out_fname,
-                         lua_writer_cls=lua.LuaMinifyWriter)
+    g.to_p8_file(outfh, filename=out_fname,
+                 lua_writer_cls=lua.LuaMinifyWriter)
             
-    return 0
 
-
-def luafmt(args):
+def luafmt(g, outfh, out_fname, args=None):
     """Rewrite the Lua code for a cart to use regular formatting.
 
     Args:
-      args: The argparser parsed args object.
-
-    Returns:
-      0 on success, 1 on failure.
+      g: The Game.
+      outfh: The output filehandle.
+      out_fname: The output filename, for error messages.
+      args: The argparse parsed args object, or None.
     """
-    for fname, g in _games_for_filenames(args.filename,
-                                         print_tracebacks=args.debug):
-        if args.overwrite and fname.endswith('.p8'):
-            out_fname = fname
-        else:
-            if fname.endswith('.p8.png'):
-                out_fname = fname[:-len('.p8.png')] + '_fmt.p8'
-            else:
-                out_fname = fname[:-len('.p8')] + '_fmt.p8'
-
-        with open(out_fname, 'w') as fh:
-            g.to_p8_file(fh, filename=out_fname,
-                         lua_writer_cls=lua.LuaFormatterWriter)
-            
-    return 0
+    g.to_p8_file(outfh, filename=out_fname,
+                 lua_writer_cls=lua.LuaFormatterWriter)
 
 
 _PRINTAST_INDENT_SIZE = 2
@@ -329,7 +322,7 @@ def _printast_node(value, indent=0, prefix=''):
                            indent=indent+_PRINTAST_INDENT_SIZE,
                            prefix='- ')
     else:
-        util.write('{}{}{}\n'.format(' ' * indent, prefix, value))    
+        util.write('{}{}{}\n'.format(' ' * indent, prefix, value))
 
         
 def printast(args):
@@ -341,8 +334,7 @@ def printast(args):
     Returns:
       0 on success, 1 on failure.
     """
-    for fname, g in _games_for_filenames(args.filename,
-                                         print_tracebacks=args.debug):
+    for fname, g in _games_for_filenames(args.filename):
         if len(args.filename) > 1:
             util.write('=== {} ===\n'.format(g.filename))
         _printast_node(g.lua.root)
@@ -352,7 +344,10 @@ def printast(args):
 def main(orig_args):
     arg_parser = _get_argparser()
     args = arg_parser.parse_args(args=orig_args)
-    util.set_quiet(args.quiet)
+    if args.debug:
+        util.set_verbosity(util.VERBOSITY_DEBUG)
+    elif args.quiet:
+        util.set_verbosity(util.VERBOSITY_QUIET)
 
     if args.command == 'stats':
         return stats(args)
@@ -363,11 +358,12 @@ def main(orig_args):
     elif args.command == 'printast':
         return printast(args)
     elif args.command == 'writep8':
-        return writep8(args)
+        return process_game_files(args.filename, writep8, args=args)
     elif args.command == 'luamin':
-        return luamin(args)
+        return process_game_files(args.filename, luamin, args=args)
     elif args.command == 'luafmt':
-        return luafmt(args)
+        return process_game_files(args.filename, luafmt,
+                                  overwrite=args.overwrite, args=args)
     
     arg_parser.print_help()
     return 1

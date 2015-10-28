@@ -11,6 +11,7 @@ __all__ = [
 
 import re
 
+from .. import util
 from . import lexer
 from . import parser
 
@@ -699,6 +700,8 @@ class LuaMinifyWriter(LuaASTEchoWriter):
                 if not new_name in LuaMinifyWriter.PRESERVED_NAMES:
                     break
             self._name_map[tok.code] = new_name
+            util.debug('- minifying name "{}" to "{}"\n'.format(
+                tok.code, new_name))
             
         return spaces + self._name_map[tok.code]
     
