@@ -37,7 +37,7 @@ For example, to print statistics about a cart named `helloworld.p8.png`:
 The `stats` tool prints statistics about one or more carts. Given one or more cart filenames, it analyzes each cart, then prints information about it.
 
 ```
-% ./picotool-master/p8tool stats ./picotool-master/tests/testdata/helloworld.p8.png 
+% ./picotool-master/p8tool stats helloworld.p8.png 
 hello world (helloworld.p8.png)
 by zep
 version: 0  lines: 48  chars: 419  tokens: 134
@@ -55,7 +55,7 @@ This command accepts an optional `--csv` argument. If provided, the command prin
 The `listlua` tool extracts the Lua code from a cart, then prints it exactly as it appears in the cart.
 
 ```
-% ./picotool-master/p8tool stats ./picotool-master/tests/testdata/helloworld.p8.png 
+% ./picotool-master/p8tool listlua helloworld.p8.png 
 -- hello world
 -- by zep
 
@@ -72,6 +72,65 @@ function _draw()
 
 ...
 ```
+
+
+### p8tool writep8
+
+The `writep8` tool writes a game's data to a `.p8` file. This is mostly useful for converting a `.p8.png` file to a `.p8` file. If the input is a `.p8` already, then this just makes a copy of the file. (This can be used to validate that the picotool library can output its input.)
+
+The command takes one or more cart filenames as arguments. For each cart with a name like `xxx.p8.png`, it writes a new cart with a name like `xxx_fmt.p8`.
+
+```
+% ./picotool-master/p8tool writep8 helloworld.p8.png 
+% cat helloworld_fmt.p8
+pico-8 cartridge // http://www.pico-8.com
+version 5
+__lua__
+-- hello world
+-- by zep
+
+t = 0
+
+music(0)
+
+function _update()
+ t += 1
+end
+
+function _draw()
+ cls()
+
+...
+```
+
+
+### p8tool luamin
+
+The `luamin` tool rewrites the Lua region of a cart to use as few characters as possible. It does this by discarding comments and extraneous space characters, and renaming variables and functions. This does not change the token count.
+
+I don't recommend using this tool. Statistically, you will run out of tokens before you run out of characters, and minifying is unlikely to affect the compressed character count. Carts are more useful to the Pico-8 community if the code in a published cart is readable and well-commented. I only wrote `luamin` because it's an obvious kind of code transformation to try with the library.
+
+```
+% ./picotool-master/p8tool luamin helloworld.p8.png 
+% cat helloworld_fmt.p8
+pico-8 cartridge // http://www.pico-8.com
+version 5
+__lua__
+a = 0
+music(0)
+function _update()
+a += 1
+end
+function _draw()
+cls()
+
+...
+```
+
+
+### p8tool luafmt
+
+**(Not yet implemented.)**
 
 
 ### p8tool listtokens
@@ -143,36 +202,6 @@ Chunk
 ```
 
 
-### p8tool writep8
-
-The `writep8` tool writes a game's data to a `.p8` file. This is mostly useful for converting a `.p8.png` file to a `.p8` file. If the input is a `.p8` already, then this just makes a copy of the file. (This can be used to validate that the picotool library can output its input.)
-
-The command takes one or more cart filenames as arguments. For each cart with a name like `xxx.p8.png`, it writes a new cart with a name like `xxx_fmt.p8`.
-
-```
-% ./picotool-master/p8tool writep8 ./picotool-master/tests/testdata/helloworld.p8.png 
-% cat ./picotool-master/tests/testdata/helloworld.p8
-pico-8 cartridge // http://www.pico-8.com
-version None
-__lua__
--- hello world
--- by zep
-
-t = 0
-
-music(0)
-
-function _update()
- t += 1
-end
-
-function _draw()
- cls()
-
-...
-```
-
-
 ## Building new tools
 
 picotool provides a general purpose library for accessing and manipulating Pico-8 cart data. You can add the `picotool` directory to your `PYTHONPATH` environment variable (or append `sys.path` in code), or just copy the `pico8` module to the directory that contains your code.
@@ -221,7 +250,9 @@ By default, this produces an HTML coverage report in the `cover` subdirectory. O
 
 * Pico-8's special single-line short form of the Lua `if` statement has some undocumented behavior that is currently not supported by picotool. Of all of the carts analyzed so far, only one such behavior is used but not yet supported: if the statement after the condition is a `do ... end` block, then the block is allowed to use multiple lines. `if (cond) do ... end` can always be rewritten as `if cond then ... end`.
 
-* There may be obscure issues with very old carts that cause the picotool's .p8 output to differ slightly from Pico-8's .p8 output for the same .p8.png input. I've only found one such case so far: helloworld.p8.png's 2nd sfx pattern is has four note volumes in the PNG data that do not match Pico-8's RAM data when the cart is loaded. In general, it appears Pico-8 manages some legacy format bugs internally. It is unlikely picotool can ever hope (or should ever try) to recreate the entire internal upgrade path.
+* There may be obscure issues with old carts that cause the picotool's .p8 output to differ slightly from Pico-8's .p8 output for the same .p8.png input. In general, it appears Pico-8 manages some legacy format bugs internally. It is unlikely picotool can ever hope (or should ever try) to recreate the entire internal upgrade path.
+  * helloworld.p8.png: The 2nd sfx pattern is has four note volumes in the PNG data that do not match Pico-8's RAM data when the cart is loaded.
+  * Tower of Archeos: An old short-if syntax bug allowed this cart at .p8 version 0, but is a syntax error at .p8 version 5.
 
 
 ## Future plans
@@ -230,20 +261,15 @@ picotool began as a simple project to build a code formatter/minifier for Pico-8
 
 TODO:
 
-* Game save API
-  * AST nodes need to know how to write themselves
-  * LuaEchoWriter should use AST, not token stream, so a tool can mutate the AST
 * Semantic APIs for the non-Lua sections
 * Fix the last few token counting discrepancies
+* luamin can go further by eliminating space between symbols and words
 * Tool: stats with info about other regions, e.g. color histograms
-* Tool: AST visualizer
-* Tool: Lua minifier
-* Tool: Lua pretty printer
 * Tool: Lua "linker" (import stitching)
 * Tool: Game launcher menu
 * Rewrite expression AST to represent operator precedence
-* Add module loading shortcuts (to avoid module paths like `pico8.game.game.Game`)
 * Improved API docs, especially the AST API
 * Improved reporting of parser errors
 * Automated tests for tool.py
-* Better command line help
+* Recreate Lua compression algorithm to report on compressed size stats
+* PNG saving?

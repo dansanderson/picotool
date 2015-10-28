@@ -30,9 +30,10 @@ PICO8_BUILTINS = {
     'foreach', 'pairs', 'btn', 'btnp', 'sfx', 'music', 'mget', 'mset', 'map',
     'peek', 'poke', 'memcpy', 'reload', 'cstore', 'memset', 'max', 'min', 'mid',
     'flr', 'cos', 'sin', 'atan2', 'sqrt', 'abs', 'rnd', 'srand', 'band', 'bor',
-    'bxor', 'bnot', 'shl', 'shr', 'cartdata', 'dget', 'dset',
+    'bxor', 'bnot', 'shl', 'shr', 'cartdata', 'dget', 'dset', 'sub', 'sgn',
     'count',  # deprecated function
     'mapdraw',  # deprecated function
+    'self',   # a special name in Lua OO
 }
 
 
