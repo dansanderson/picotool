@@ -65,6 +65,7 @@ class TestLuaASTEchoWriter(unittest.TestCase):
     def testToLinesASTEchoWriter(self):
         result = lua.Lua.from_lines(VALID_LUA_SHORT_LINES, 4)
         lines = list(result.to_lines(writer_cls=lua.LuaASTEchoWriter))
+        print('DEBUG: writer-generated lines:\n{}\n'.format('\n'.join(repr(l) for l in lines)))
         self.assertEqual(lines, VALID_LUA_SHORT_LINES)
 
         

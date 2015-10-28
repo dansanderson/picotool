@@ -185,8 +185,8 @@ class LuaASTEchoWriter(BaseLuaWriter):
     The base implementation behaves identically to LuaEchoWriter. Subclasses
     can modify certain behaviors to transform the code based on the AST.
     """
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         self._pos = None
         
@@ -213,13 +213,13 @@ class LuaASTEchoWriter(BaseLuaWriter):
         return ''.join(strs)
 
     def _get_name(self, node, tok):
-        """Gets the code for a TokName or TokNumber.
+        """Gets the code for a TokName.
 
         A subclass can override this to transform names.
 
         Args:
           node: The Node containing the name.
-          tok: The TokName or TokNumber token from the AST.
+          tok: The TokName token from the AST.
 
         Returns:
           The text for the name.
@@ -257,29 +257,29 @@ class LuaASTEchoWriter(BaseLuaWriter):
         """
         yield self._get_code_for_spaces(node)
 
-        if isinstance(node, lexer.Chunk):
+        if isinstance(node, parser.Chunk):
             for stat in node.stats:
                 for t in self._generate_code_for_node(stat):
                     yield t
         
-        elif isinstance(node, lexer.StatAssignment):
+        elif isinstance(node, parser.StatAssignment):
             for t in self._generate_code_for_node(node.varlist):
                 yield t
             yield self._get_text(node, '=')
             for t in self._generate_code_for_node(node.explist):
                 yield t
         
-        elif isinstance(node, lexer.StatFunctionCall):
+        elif isinstance(node, parser.StatFunctionCall):
             for t in self._generate_code_for_node(node.functioncall):
                 yield t
         
-        elif isinstance(node, lexer.StatDo):
+        elif isinstance(node, parser.StatDo):
             yield self._get_text(node, 'do')
             for t in self._generate_code_for_node(node.block):
                 yield t
             yield self._get_text(node, 'end')
             
-        elif isinstance(node, lexer.StatWhile):
+        elif isinstance(node, parser.StatWhile):
             yield self._get_text(node, 'while')
             for t in self._generate_code_for_node(node.exp):
                 yield t
@@ -288,7 +288,7 @@ class LuaASTEchoWriter(BaseLuaWriter):
                 yield t
             yield self._get_text(node, 'end')
         
-        elif isinstance(node, lexer.StatRepeat):
+        elif isinstance(node, parser.StatRepeat):
             yield self._get_text(node, 'repeat')
             for t in self._generate_code_for_node(node.block):
                 yield t
@@ -296,7 +296,7 @@ class LuaASTEchoWriter(BaseLuaWriter):
             for t in self._generate_code_for_node(node.exp):
                 yield t
         
-        elif isinstance(node, lexer.StatIf):
+        elif isinstance(node, parser.StatIf):
             short_if = getattr(node, 'short_if', False)
                 
             first = True
@@ -323,7 +323,7 @@ class LuaASTEchoWriter(BaseLuaWriter):
             if not short_if:
                 yield self._get_text(node, 'end')
         
-        elif isinstance(node, lexer.StatForStep):
+        elif isinstance(node, parser.StatForStep):
             yield self._get_text(node, 'for')
             yield self._get_name(node, node.name)
             yield self._get_text(node, '=')
@@ -341,7 +341,7 @@ class LuaASTEchoWriter(BaseLuaWriter):
                 yield t
             yield self._get_text(node, 'end')
         
-        elif isinstance(node, lexer.StatForIn):
+        elif isinstance(node, parser.StatForIn):
             yield self._get_text(node, 'for')
             for t in self._generate_code_for_node(node.namelist):
                 yield t
@@ -353,14 +353,14 @@ class LuaASTEchoWriter(BaseLuaWriter):
                 yield t
             yield self._get_text(node, 'end')
         
-        elif isinstance(node, lexer.StatFunction):
+        elif isinstance(node, parser.StatFunction):
             yield self._get_text(node, 'function')
             for t in self._generate_code_for_node(node.funcname):
                 yield t
             for t in self._generate_code_for_node(node.funcbody):
                 yield t
         
-        elif isinstance(node, lexer.StatLocalFunction):
+        elif isinstance(node, parser.StatLocalFunction):
             yield self._get_text(node, 'local')
             yield self._get_text(node, 'function')
             for t in self._generate_code_for_node(node.funcname):
@@ -368,7 +368,7 @@ class LuaASTEchoWriter(BaseLuaWriter):
             for t in self._generate_code_for_node(node.funcbody):
                 yield t
         
-        elif isinstance(node, lexer.StatLocalAssignment):
+        elif isinstance(node, parser.StatLocalAssignment):
             yield self._get_text(node, 'local')
             for t in self._generate_code_for_node(node.namelist):
                 yield t
@@ -377,26 +377,26 @@ class LuaASTEchoWriter(BaseLuaWriter):
                 for t in self._generate_code_for_node(node.explist):
                     yield t
         
-        elif isinstance(node, lexer.StatGoto):
+        elif isinstance(node, parser.StatGoto):
             yield self._get_text(node, 'goto')
             yield self._get_name(node, node.label)
         
-        elif isinstance(node, lexer.StatLabel):
+        elif isinstance(node, parser.StatLabel):
             yield self._get_code_for_spaces(node)
             yield '::'
             yield self._get_name(node, node.label)
             yield '::'
         
-        elif isinstance(node, lexer.StatBreak):
+        elif isinstance(node, parser.StatBreak):
             yield self._get_text(node, 'break')
         
-        elif isinstance(node, lexer.StatReturn):
+        elif isinstance(node, parser.StatReturn):
             yield self._get_text(node, 'return')
             if node.explist is not None:
                 for t in self._generate_code_for_node(node.explist):
                     yield t
         
-        elif isinstance(node, lexer.FunctionName):
+        elif isinstance(node, parser.FunctionName):
             yield self._get_name(node, node.namepath[0])
             if len(node.namepath) > 1:
                 for i in range(1, len(node.namepath)):
@@ -406,13 +406,13 @@ class LuaASTEchoWriter(BaseLuaWriter):
                 yield self._get_text(node, ':')
                 yield self._get_name(node, node.methodname)
         
-        elif isinstance(node, lexer.FunctionArgs):
+        elif isinstance(node, parser.FunctionArgs):
             yield self._get_text(node, '(')
             for t in self._generate_code_for_node(node.explist):
                 yield t
             yield self._get_text(node, ')')
         
-        elif isinstance(node, lexer.VarList):
+        elif isinstance(node, parser.VarList):
             for t in self._generate_code_for_node(node.vars[0]):
                 yield t
             if len(node.vars) > 1:
@@ -421,10 +421,10 @@ class LuaASTEchoWriter(BaseLuaWriter):
                     for t in self._generate_code_for_node(node.vars[i]):
                         yield t
         
-        elif isinstance(node, lexer.VarName):
+        elif isinstance(node, parser.VarName):
             yield self._get_name(node, node.name)
         
-        elif isinstance(node, lexer.VarIndex):
+        elif isinstance(node, parser.VarIndex):
             for t in self._generate_code_for_node(node.exp_prefix):
                 yield t
             yield self._get_text(node, '[')
@@ -432,13 +432,13 @@ class LuaASTEchoWriter(BaseLuaWriter):
                 yield t
             yield self._get_text(node, ']')
         
-        elif isinstance(node, lexer.VarAttribute):
+        elif isinstance(node, parser.VarAttribute):
             for t in self._generate_code_for_node(node.exp_prefix):
                 yield t
             yield self._get_text(node, '.')
             yield self._get_name(node, node.attr_name)
         
-        elif isinstance(node, lexer.NameList):
+        elif isinstance(node, parser.NameList):
             if node.names is not None:
                 yield self._get_name(node, node.names[0])
                 if len(node.names) > 1:
@@ -446,7 +446,7 @@ class LuaASTEchoWriter(BaseLuaWriter):
                         yield self._get_text(node, ',')
                         yield self._get_name(node, node.names[i])
         
-        elif isinstance(node, lexer.ExpList):
+        elif isinstance(node, parser.ExpList):
             if node.exps is not None:
                 for t in self._generate_code_for_node(node.exps[0]):
                     yield t
@@ -455,36 +455,39 @@ class LuaASTEchoWriter(BaseLuaWriter):
                         for t in self._generate_code_for_node(node.exps[i]):
                             yield t
         
-        elif isinstance(node, lexer.ExpValue):
+        elif isinstance(node, parser.ExpValue):
             if node.value == None:
                 yield self._get_text(node, 'nil')
             elif node.value == False:
                 yield self._get_text(node, 'false')
             elif node.value == True:
                 yield self._get_text(node, 'true')
-            elif isinstance(node.value, str):
-                # TokName or TokNumber
+            elif isinstance(node.value, lexer.TokName):
                 yield self._get_name(node, node.value)
+            elif isinstance(node.value, lexer.TokNumber):
+                yield self._get_code_for_spaces(node)
+                yield self._tokens[self._pos].code
+                self._pos += 1
             else:
                 for t in self._generate_code_for_node(node.value):
                     yield t
         
-        elif isinstance(node, lexer.VarargDots):
+        elif isinstance(node, parser.VarargDots):
             yield self._get_text(node, '...')
         
-        elif isinstance(node, lexer.ExpBinOp):
+        elif isinstance(node, parser.ExpBinOp):
             for t in self._generate_code_for_node(node.exp1):
                 yield t
             yield self._get_text(node.binop.code)
             for t in self._generate_code_for_node(node.exp2):
                 yield t
         
-        elif isinstance(node, lexer.ExpUnOp):
+        elif isinstance(node, parser.ExpUnOp):
             yield self._get_text(node.unop.code)
             for t in self._generate_code_for_node(node.exp):
                 yield t
         
-        elif isinstance(node, lexer.FunctionCall):
+        elif isinstance(node, parser.FunctionCall):
             for t in self._generate_code_for_node(node.exp_prefix):
                 yield t
             if args is None:
@@ -499,7 +502,7 @@ class LuaASTEchoWriter(BaseLuaWriter):
                 for t in self._generate_code_for_node(node.args):
                     yield t
         
-        elif isinstance(node, lexer.FunctionCallMethod):
+        elif isinstance(node, parser.FunctionCallMethod):
             for t in self._generate_code_for_node(node.exp_prefix):
                 yield t
             yield self._get_text(node, ':')
@@ -516,12 +519,12 @@ class LuaASTEchoWriter(BaseLuaWriter):
                 for t in self._generate_code_for_node(node.args):
                     yield t
         
-        elif isinstance(node, lexer.Function):
+        elif isinstance(node, parser.Function):
             yield self._get_text(node, 'function')
             for t in self._generate_code_for_node(node.funcbody):
                 yield t
         
-        elif isinstance(node, lexer.FunctionBody):
+        elif isinstance(node, parser.FunctionBody):
             yield self._get_text(node, '(')
             if node.parlist is not None:
                 for t in self._generate_code_for_node(node.parlist):
@@ -539,7 +542,7 @@ class LuaASTEchoWriter(BaseLuaWriter):
                 yield t
             yield self._get_text(node, 'end')
         
-        elif isinstance(node, lexer.TableConstructor):
+        elif isinstance(node, parser.TableConstructor):
             yield self._get_text(node, '{')
             if node.fields:
                 for t in self._generate_code_for_node(node.fields[0]):
@@ -554,7 +557,7 @@ class LuaASTEchoWriter(BaseLuaWriter):
                             yield t
             yield self._get_text(node, '}')
         
-        elif isinstance(node, lexer.FieldExpKey):
+        elif isinstance(node, parser.FieldExpKey):
             yield self._get_text(node, '[')
             for t in self._generate_code_for_node(node.key_exp):
                 yield t
@@ -563,13 +566,13 @@ class LuaASTEchoWriter(BaseLuaWriter):
             for t in self._generate_code_for_node(node.exp):
                 yield t
         
-        elif isinstance(node, lexer.FieldNamedKey):
+        elif isinstance(node, parser.FieldNamedKey):
             yield self._get_name(node, node.key_name)
             yield self._get_text(node, '=')
             for t in self._generate_code_for_node(node.exp):
                 yield t
         
-        elif isinstance(node, lexer.FieldExp):
+        elif isinstance(node, parser.FieldExp):
             for t in self._generate_code_for_node(node.exp):
                 yield t
           
@@ -580,10 +583,17 @@ class LuaASTEchoWriter(BaseLuaWriter):
           Lines of Lua code.
         """
         self._pos = 0
-        
+
+        linebuf = []
         for chunk in self._generate_code_for_node(self._root):
-            for l in chunk.split('\n'):
-                yield l + '\n'
+            parts = chunk.split('\n')
+            while len(parts) > 1:
+                linebuf.append(parts.pop(0))
+                yield ''.join(linebuf) + '\n'
+                linebuf.clear()
+            linebuf.append(parts.pop(0))
+        if linebuf:
+            yield ''.join(linebuf) + '\n'
 
 
 class LuaMinifyWriter(LuaASTEchoWriter):
@@ -603,11 +613,11 @@ class LuaMinifyWriter(LuaASTEchoWriter):
         return first + (NAME_CHARS[id % len(NAME_CHARS)])
         
     def _get_name(self, node, tok):
-        """Gets the minified name for a TokName, or text for a TokNumber.
+        """Gets the minified name for a TokName.
 
         Args:
           node: The Node containing the name.
-          tok: The TokName or TokNumber token from the AST.
+          tok: The TokName token from the AST.
 
         Returns:
           The text for the name.
@@ -616,15 +626,10 @@ class LuaMinifyWriter(LuaASTEchoWriter):
         assert tok.matches(lexer.TokName)
         self._pos += 1
 
-        # If called with a name string, replace the name.
-        if re.matches(r'^[a-zA-Z]', tok.code):
-            if tok.code not in self._name_map:
-                self._name_map[tok.code] = self._name_for_id(self._next_name_id)
-                self._next_name_id += 1
-            return spaces + self._name_map[tok.code]
-
-        # Called with a non-name string.
-        return spaces + tok.code
+        if tok.code not in self._name_map:
+            self._name_map[tok.code] = self._name_for_id(self._next_name_id)
+            self._next_name_id += 1
+        return spaces + self._name_map[tok.code]
     
     def _get_code_for_spaces(self, node):
         """Calculates the minified text for the space and comment tokens that

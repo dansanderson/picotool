@@ -105,7 +105,7 @@ _ast_node_types = (
     # (See _exp_binop). Right now, all binary operators chain right to left:
     # 1 + 2 - 3 => ExpBinOp(ExpBinOp(1, +, 2), -, 3)
     #
-    # value: None, False, True, number (as str), string, Function,
+    # value: None, False, True, TokNumber, TokString, Function,
     #   TableConstructor, Var*, FunctionCall, Exp*
     ('ExpValue', ('value',)),
     ('VarargDots', ()),
@@ -688,10 +688,10 @@ class Parser():
             return ExpValue(True, start=pos, end=self._pos)
         val = self._accept(lexer.TokNumber)
         if val is not None:
-            return ExpValue(val._data, start=pos, end=self._pos)
+            return ExpValue(val, start=pos, end=self._pos)
         val = self._accept(lexer.TokString)
         if val is not None:
-            return ExpValue(val._data, start=pos, end=self._pos)
+            return ExpValue(val, start=pos, end=self._pos)
         if self._accept(lexer.TokSymbol('...')) is not None:
             return VarargDots(start=pos, end=self._pos)
         val = self._function()

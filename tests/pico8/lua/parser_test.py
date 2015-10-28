@@ -210,14 +210,14 @@ class TestParser(unittest.TestCase):
         node = p._exp()
         self.assertIsNotNone(node)
         self.assertTrue(isinstance(node, parser.ExpValue))
-        self.assertEqual('123.45', node.value)
+        self.assertTrue(node.value.matches(lexer.TokNumber('123.45')))
         
     def testExpValueString(self):
         p = get_parser('"string literal"')
         node = p._exp()
         self.assertIsNotNone(node)
         self.assertTrue(isinstance(node, parser.ExpValue))
-        self.assertEqual('string literal', node.value)
+        self.assertTrue(node.value.matches(lexer.TokString('string literal')))
         
     def testExpValueDots(self):
         p = get_parser('...')

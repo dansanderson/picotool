@@ -67,14 +67,13 @@ class Token():
         Args:
           other: The other Token to compare.
         """
-        value_equal = None
+        if (type(self) != type(other) or
+            not isinstance(self, other.__class__)):
+            return False
         if (isinstance(self, TokKeyword) and
             isinstance(other, TokKeyword)):
-            value_equal = self._data.lower() == other._data.lower()
-        else:
-            value_equal = self._data == other._data
-        return (isinstance(self, other.__class__) and
-                value_equal)
+            return self._data.lower() == other._data.lower()
+        return self._data == other._data
             
     def matches(self, other):
         """Matches the token against either a token class or token data.
