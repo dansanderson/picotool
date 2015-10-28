@@ -970,7 +970,10 @@ class Parser():
         """
         self._tokens = list(tokens)
         self._pos = 0
-        self._ast = self._assert(self._chunk(), 'input to be a program')
+        try:
+            self._ast = self._assert(self._chunk(), 'input to be a program')
+        except ParserError as e:
+            raise
 
     @property
     def root(self):

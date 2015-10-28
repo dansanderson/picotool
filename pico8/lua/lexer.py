@@ -21,11 +21,11 @@ __all__ = [
     'LUA_KEYWORDS'
 ]
 
-LUA_KEYWORDS = [
+LUA_KEYWORDS = {
     'and', 'break', 'do', 'else', 'elseif', 'end', 'false', 'for',
     'function', 'goto', 'if', 'in', 'local', 'nil', 'not', 'or', 'repeat',
     'return', 'then', 'true', 'until', 'while'
-]
+}
 
 
 class LexerError(util.InvalidP8DataError):

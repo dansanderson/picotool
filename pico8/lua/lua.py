@@ -20,7 +20,7 @@ PICO8_LUA_TOKEN_LIMIT = 8192
 PICO8_LUA_COMPRESSED_CHAR_LIMIT = 15360
 
 
-PICO8_BUILTINS = [
+PICO8_BUILTINS = {
     '_init', '_update', '_draw',
     'load', 'save', 'folder', 'ls', 'run', 'resume', 'reboot', 'stat', 'info',
     'flip', 'printh', 'clip', 'pget', 'pset', 'sget', 'sset', 'fget', 'fset',
@@ -30,7 +30,8 @@ PICO8_BUILTINS = [
     'peek', 'poke', 'memcpy', 'reload', 'cstore', 'memset', 'max', 'min', 'mid',
     'flr', 'cos', 'sin', 'atan2', 'sqrt', 'abs', 'rnd', 'srand', 'band', 'bor',
     'bxor', 'bnot', 'shl', 'shr', 'cartdata', 'dget', 'dset',
-]
+    'count',  # deprecated function
+}
 
 
 class Lua():
@@ -664,12 +665,12 @@ class LuaMinifyWriter(LuaASTEchoWriter):
         self._next_name_id = 0
 
     NAME_CHARS = 'abcdefghijklmnopqrstuvwxyz'
-    PRESERVED_NAMES = lexer.LUA_KEYWORDS + PICO8_BUILTINS
+    PRESERVED_NAMES = lexer.LUA_KEYWORDS | PICO8_BUILTINS
 
     @classmethod
     def _name_for_id(cls, id):
         first = ''
-        if id > 26:
+        if id >= len(LuaMinifyWriter.NAME_CHARS):
             first = cls._name_for_id(int(id / len(LuaMinifyWriter.NAME_CHARS)))
         return first + (LuaMinifyWriter.NAME_CHARS[id % len(LuaMinifyWriter.NAME_CHARS)])
         
@@ -691,8 +692,13 @@ class LuaMinifyWriter(LuaASTEchoWriter):
             return spaces + tok.code
 
         if tok.code not in self._name_map:
-            self._name_map[tok.code] = self._name_for_id(self._next_name_id)
-            self._next_name_id += 1
+            new_name = None
+            while True:
+                new_name = self._name_for_id(self._next_name_id)
+                self._next_name_id += 1
+                if not new_name in LuaMinifyWriter.PRESERVED_NAMES:
+                    break
+            self._name_map[tok.code] = new_name
             
         return spaces + self._name_map[tok.code]
     

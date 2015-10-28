@@ -73,6 +73,7 @@ while true do
 end
 '''
 
+
 def get_tokens(s):
     lxr = lexer.Lexer(version=4)
     lxr.process_lines([(l + '\n') for l in s.split('\n')])
@@ -972,6 +973,36 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(node)
         self.assertEqual(1, p._pos)
         self.assertEqual('foobar', node.label)
+
+    def testStatAssignmentAnonymousFunctionTable(self):
+        p = get_parser('''
+player =
+{
+    init=function(this)
+        print(t1)
+    end,
+    update=function(this)
+        print(t2)
+    end,
+    draw=function(this)
+        print(t3)
+    end
+}
+''')
+        node = p._stat()
+        self.assertIsNotNone(node)
+        self.assertEqual(61, p._pos)
+        self.assertEqual(1, len(node.varlist.vars))
+        self.assertEqual('player', node.varlist.vars[0].name.value)
+        self.assertTrue(node.assignop.matches(lexer.TokSymbol('=')))
+        self.assertEqual(1, len(node.explist.exps))
+        self.assertEqual(3, len(node.explist.exps[0].value.fields))
+        self.assertEqual('init', node.explist.exps[0].value.fields[0].key_name.value)
+        self.assertTrue(isinstance(node.explist.exps[0].value.fields[0].exp.value, parser.Function))
+        self.assertEqual('update', node.explist.exps[0].value.fields[1].key_name.value)
+        self.assertTrue(isinstance(node.explist.exps[0].value.fields[1].exp.value, parser.Function))
+        self.assertEqual('draw', node.explist.exps[0].value.fields[2].key_name.value)
+        self.assertTrue(isinstance(node.explist.exps[0].value.fields[2].exp.value, parser.Function))
         
     def testChunk(self):
         p = get_parser(LUA_SAMPLE)

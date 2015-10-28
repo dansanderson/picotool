@@ -25,6 +25,25 @@ def _get_argparser():
         Commands:
           stats [--csv] <filename> [<filename>...]
             Display stats about one or more carts.
+          listlua <filename> [<filename>...]
+            List the Lua code for a cart to the console.
+          writep8 <filename> [<filename>...]
+            Convert a .p8.png cart to a .p8 cart.
+          luamin [--overwrite] <filename> [<filename>...]
+            Minify the Lua code for a cart, reducing the character count.
+          luafmt [--overwrite] <filename> [<filename>...]
+            Make the Lua code for a cart easier to read by adjusting indentation.
+
+          listtokens <filename> [<filename>...]
+            List the tokens for a cart to the console (for debugging picotool).
+          printast <filename> [<filename>...]
+            Print the picotool parser tree to the console (for debugging picotool).
+
+          By default, commands that write to files (writep8, luamin,
+          luafmt) will create or replace a file named similar to the
+          cart filename but ending in "_fmt.p8". If you provide the
+          --overwrite argument, the command will overwrite the
+          original. (Be careful!)
         '''))
     parser.add_argument(
         'command', type=str,
@@ -215,6 +234,9 @@ def writep8(args):
     """
     for fname, g in _games_for_filenames(args.filename,
                                          print_tracebacks=args.debug):
+
+        # TODO: Only allow overwrite with luafmt. Too dangerous to allow it with
+        # luamin.
         if args.overwrite and fname.endswith('.p8'):
             out_fname = fname
         else:
@@ -223,6 +245,8 @@ def writep8(args):
             else:
                 out_fname = fname[:-len('.p8')] + '_fmt.p8'
 
+        # TODO: Write to a temporary file, then move into place. This corrupts
+        # the output file if there is a parser error.
         with open(out_fname, 'w') as fh:
             g.to_p8_file(fh, filename=out_fname)
             
@@ -238,6 +262,7 @@ def luamin(args):
     Returns:
       0 on success, 1 on failure.
     """
+    # TODO: --debug flag to dump the name mappings
     for fname, g in _games_for_filenames(args.filename,
                                          print_tracebacks=args.debug):
         if args.overwrite and fname.endswith('.p8'):
