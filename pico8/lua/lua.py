@@ -610,6 +610,11 @@ class LuaASTEchoWriter(BaseLuaWriter):
                         yield self._get_text(node, self._tokens[self._pos].code)
                         for t in self._generate_code_for_node(node.fields[i]):
                             yield t
+            # Process a trailing fieldsep, if any.
+            yield self._get_code_for_spaces(node)
+            if (self._tokens[self._pos].matches(lexer.TokSymbol(',')) or
+                self._tokens[self._pos].matches(lexer.TokSymbol(';'))):
+                yield self._get_text(node, self._tokens[self._pos].code)
             yield self._get_text(node, '}')
         
         elif isinstance(node, parser.FieldExpKey):
