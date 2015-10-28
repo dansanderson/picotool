@@ -530,7 +530,6 @@ class LuaASTEchoWriter(BaseLuaWriter):
         elif isinstance(node, parser.ExpBinOp):
             for t in self._generate_code_for_node(node.exp1):
                 yield t
-            print('DEBUG: pos={} tokens={}'.format(self._pos, self._tokens[self._pos:self._pos+5]))
             yield self._get_text(node, node.binop.code)
             for t in self._generate_code_for_node(node.exp2):
                 yield t
