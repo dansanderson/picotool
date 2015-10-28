@@ -549,11 +549,10 @@ class LuaASTEchoWriter(BaseLuaWriter):
             if node.args is None:
                 yield self._get_text(node, '(')
                 yield self._get_text(node, ')')
-            elif isinstance(node.args, str):
-                # args is the parsed string, but we need the original token to
-                # recreate the escaped string with its original punctuation.
+            elif isinstance(node.args, lexer.TokString):
                 yield self._get_code_for_spaces(node)
-                yield self._tokens[self._pos].code
+                self._pos += 1
+                yield node.args.code
             else:
                 for t in self._generate_code_for_node(node.args):
                     yield t
@@ -763,7 +762,8 @@ class LuaMinifyWriter(LuaASTEchoWriter):
             spaces = self._get_code_for_spaces(node)
             if self._tokens[self._pos].matches(lexer.TokSymbol(';')):
                 self._pos += 1
-                spaces_without_semis.append(spaces)
+                # Insert a space where the semi was.
+                spaces_without_semis.append(spaces + ' ')
             else:
                 spaces_without_semis.append(spaces)
                 break

@@ -761,6 +761,16 @@ class TestParser(unittest.TestCase):
         self.assertEqual(1, len(node.block.stats))
         self.assertTrue(isinstance(node.block.stats[0], parser.StatBreak))
         
+    def testStatWhileLiveExample(self):
+        p = get_parser('\t\twhile(s.y<b.y)do\n'
+                       '\t\t\ts.y+=1;e.y+=1;s.x+=dx1;e.x+=dx2;\n'
+                       '\t\t\tline(s.x,s.y,e.x,e.y);\n'
+                       '\t\tend\n')
+        node = p._stat()
+        self.assertIsNotNone(node)
+        self.assertEqual(62, p._pos)
+        self.assertEqual(5, len(node.block.stats))
+        
     def testStatRepeat(self):
         p = get_parser('repeat break until true')
         node = p._stat()

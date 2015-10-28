@@ -108,7 +108,7 @@ class Game():
         """
         assert filename.endswith('.p8.png') or filename.endswith('.p8')
         if filename.endswith('.p8'):
-            with open(filename, 'r') as fh:
+            with open(filename, 'r', encoding='utf-8') as fh:
                 g = Game.from_p8_file(fh, filename=filename)
         else:
             with open(filename, 'rb') as fh:

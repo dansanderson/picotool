@@ -133,9 +133,9 @@ def stats(args):
 
     for fname, g in _games_for_filenames(args.filename):
         if g is None:
-            util.error('{}: could not load cart'.format(fname))
+            util.error('{}: could not load cart\n'.format(fname))
             continue
-        
+
         if args.csv:
             csv_writer.writerow([
                 os.path.basename(fname),
@@ -244,11 +244,11 @@ def process_game_files(filenames, procfunc, overwrite=False, args=None):
                 out_fname = fname[:-len('.p8')] + '_fmt.p8'
 
         util.write('{} -> {}\n'.format(fname, out_fname))
-        with tempfile.TemporaryFile(mode='w+') as outfh:
+        with tempfile.TemporaryFile(mode='w+', encoding='utf-8') as outfh:
             procfunc(g, outfh, out_fname, args=args)
             
             outfh.seek(0)
-            with open(out_fname, 'w') as finalfh:
+            with open(out_fname, 'w', encoding='utf-8') as finalfh:
                 finalfh.write(outfh.read())
 
     if has_errors:

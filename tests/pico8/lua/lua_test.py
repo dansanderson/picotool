@@ -108,6 +108,14 @@ class TestLua(unittest.TestCase):
         result = lua.Lua.from_lines(VALID_LUA_SHORT_LINES, 4)
         self.assertEqual(7, result.get_token_count())
 
+    def testGetTokenCountCarriageReturns(self):
+        result = lua.Lua.from_lines([
+            'function foo()\r\n',
+            '  return 999\r\n',
+            'end\r\n'
+        ], 4)
+        self.assertEqual(10, result.get_token_count())
+        
     def testGetTitle(self):
         result = lua.Lua.from_lines(VALID_LUA_SHORT_LINES, 4)
         self.assertEqual('short test', result.get_title())
