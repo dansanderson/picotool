@@ -82,6 +82,10 @@ mytable = {
 }
 
 a=1; b=2; c=3
+
+if ((x < 1) or (x > width) or (y < 1) or (y > height)) then
+  return 0
+end
 '''.split('\n')]
 
 

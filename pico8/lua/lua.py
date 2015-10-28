@@ -499,6 +499,12 @@ class LuaASTEchoWriter(BaseLuaWriter):
                             yield t
         
         elif isinstance(node, parser.ExpValue):
+            yield self._get_code_for_spaces(node)
+            in_parens = False
+            if self._tokens[self._pos].matches(lexer.TokSymbol('(')):
+                yield '('
+                in_parens = True
+                self._pos += 1
             if node.value == None:
                 yield self._get_text(node, 'nil')
             elif node.value == False:
@@ -515,6 +521,8 @@ class LuaASTEchoWriter(BaseLuaWriter):
             else:
                 for t in self._generate_code_for_node(node.value):
                     yield t
+            if in_parens:
+                yield self._get_text(node, ')')
         
         elif isinstance(node, parser.VarargDots):
             yield self._get_text(node, '...')
@@ -522,6 +530,7 @@ class LuaASTEchoWriter(BaseLuaWriter):
         elif isinstance(node, parser.ExpBinOp):
             for t in self._generate_code_for_node(node.exp1):
                 yield t
+            print('DEBUG: pos={} tokens={}'.format(self._pos, self._tokens[self._pos:self._pos+5]))
             yield self._get_text(node, node.binop.code)
             for t in self._generate_code_for_node(node.exp2):
                 yield t
