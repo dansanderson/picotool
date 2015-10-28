@@ -248,7 +248,7 @@ By default, this produces an HTML coverage report in the `cover` subdirectory. O
 
 * picotool and Pico-8 count tokens in slightly different ways, resulting in different counts. More refinement is needed so that picotool matches Pico-8. As far as I can tell, with picotool making some concessions to match Pico-8 in known cases, Pico-8's counts are consistently higher. So I'm missing a few cases where Pico-8 over-counts (or picotool under-counts). In most cases, the difference is only by a few tokens, even for large carts.
 
-* Pico-8's special single-line short form of the Lua `if` statement has some undocumented behavior that is currently not supported by picotool. Of all of the carts analyzed so far, only one such behavior is used but not yet supported: if the statement after the condition is a `do ... end` block, then the block is allowed to use multiple lines. `if (cond) do ... end` can always be rewritten as `if cond then ... end`.
+* Pico-8's special single-line short form of the Lua `if` statement has some undocumented behavior that is currently not supported by picotool. Of all of the carts analyzed so far, only one such behavior is used but not yet supported: if the statement after the condition is a `do ... end` block, then the block is allowed to use multiple lines. For now, picotool does not support this. `if (cond) do ... end` can always be rewritten as `if cond then ... end`.
 
 * There may be obscure issues with old carts that cause the picotool's .p8 output to differ slightly from Pico-8's .p8 output for the same .p8.png input. In general, it appears Pico-8 manages some legacy format bugs internally. It is unlikely picotool can ever hope (or should ever try) to recreate the entire internal upgrade path.
   * helloworld.p8.png: The 2nd sfx pattern is has four note volumes in the PNG data that do not match Pico-8's RAM data when the cart is loaded.
@@ -259,19 +259,25 @@ By default, this produces an HTML coverage report in the `cover` subdirectory. O
 
 ## Future plans
 
-picotool began as a simple project to build a code formatter/minifier for Pico-8, and eventually became a general purpose library for manipulating Pico-8 cart data. The goal is to make it easy to build new tools and experiments for analyzing and transforming carts, as well as to make new and interesting tools for Pico-8 developers.
+picotool began as a simple project to build a code formatter for Pico-8, and eventually became a general purpose library for manipulating Pico-8 cart data. The goal is to make it easy to build new tools and experiments for analyzing and transforming carts, as well as to make new and interesting tools for Pico-8 developers.
 
 TODO:
 
+* Implement luafmt
 * Semantic APIs for the non-Lua sections
-* Fix the last few token counting discrepancies
-* luamin can go further by eliminating space between symbols and words
-* Tool: stats with info about other regions, e.g. color histograms
-* Tool: Lua "linker" (import stitching)
-* Tool: Game launcher menu
+* Find and fix token counting discrepancies
+* luamin: eliminate space between symbols and words
+* luamin: eliminate space left behind by removing semicolons
+* stats: report info about other regions, e.g. color histograms
 * Rewrite expression AST to represent operator precedence
 * Improved API docs, especially the AST API
 * Improved reporting of parser errors
 * Automated tests for tool.py
 * Recreate Lua compression algorithm to report on compressed size stats
-* PNG saving?
+* PNG saving to update an existing PNG cart
+  * ... to create a new PNG cart from a given/generated image
+  * Update stats to report on compressed Lua size when starting from .p8
+* New tool: Game launcher menu
+* New tool: Lua "linker" (import stitching)
+  * Allow selective imports, e.g. import a function or class
+  * Detect and remove unused functions/classes automatically
