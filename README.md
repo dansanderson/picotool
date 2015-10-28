@@ -1,8 +1,8 @@
 ># picotool: Tools and Python libraries for manipulating Pico-8 game files
 
-[Pico-8](http://www.lexaloffle.com/pico-8.php) is a *fantasy game console* by [Lexaloffle Games](http://www.lexaloffle.com/). The Pico-8 runtime environment runs *cartridges* (or *carts*): game files containing code, graphics, sound, and music data. The console includes a built-in cartridge editor for writing games. Game cartridge files can also be played in a browser, and can be posted to the Lexaloffle bulletin board or exported to any website.
+[Pico-8](http://www.lexaloffle.com/pico-8.php) is a *fantasy game console* by [Lexaloffle Games](http://www.lexaloffle.com/). The Pico-8 runtime environment runs *cartridges* (or *carts*): game files containing code, graphics, sound, and music data. The console includes a built-in editor for writing games. Game cartridge files can be played in a browser, and can be posted to the Lexaloffle bulletin board or exported to any website.
 
-There are two major cartridge data formats supported by Pico-8: a text-based format (`.p8`), and a PNG-based binary format (`.p8.png`). The PNG file can be viewed as an image that serves as a cover image for the cartridge; the actual game data is encoded in the image data.
+There are two major cartridge data formats supported by Pico-8: a text-based format (`.p8`), and a PNG-based binary format (`.p8.png`). The PNG file can be viewed as an image that serves as a cover image for the cartridge. The actual game data is encoded in the image data.
 
 The `picotool` suite of tools and libraries can read `.p8` and `.p8.png` files, and can write `.p8` files. The suite is implemented entirely in [Python 3](https://www.python.org/). The tools can examine and transform cartridges in various ways, and you can implement your own tools to access and modify cartridge data with the Python libraries.
 
@@ -108,7 +108,7 @@ function _draw()
 
 The `luamin` tool rewrites the Lua region of a cart to use as few characters as possible. It does this by discarding comments and extraneous space characters, and renaming variables and functions. This does not change the token count.
 
-I don't recommend using this tool. Statistically, you will run out of tokens before you run out of characters, and minifying is unlikely to affect the compressed character count. Carts are more useful to the Pico-8 community if the code in a published cart is readable and well-commented. I only wrote `luamin` because it's an obvious kind of code transformation to try with the library.
+I don't recommend using this tool when publishing your games. Statistically, you will run out of tokens before you run out of characters, and minifying is unlikely to affect the compressed character count. Carts are more useful to the Pico-8 community if the code in a published cart is readable and well-commented. I only wrote `luamin` because it's an obvious kind of code transformation to try with the library.
 
 ```
 % ./picotool-master/p8tool luamin helloworld.p8.png 
@@ -158,7 +158,7 @@ The `listtokens` tool is similar to `listlua`, but it identifies which character
 
 When picotool parses Lua code, it separates out comments, newlines, and spaces, as well as proper Lua tokens. The Lua tokens appear with an ascending number, illustrating how picotool counts the tokens. Non-token elements appear with similar angle brackets but no number. Newlines are rendered as is, without brackets, to make them easy to read.
 
-**Note:** picotool does not currently count tokens the same way Pico-8 does. One purpose of this tool is to help troubleshoot and fix this discrepancy. See "Known issues."
+**Note:** picotool does not currently count tokens the same way Pico-8 does. One purpose of `listtokens` is to help troubleshoot and fix this discrepancy. See "Known issues."
 
 
 ### p8tool printast
@@ -225,6 +225,13 @@ Aspects of the game are accessible as attributes of the `Game` object:
 * `map`
 * `sfx`
 * `music`
+
+
+### API under construction!
+
+While the library in its current state is featureful enough for building simple tools, it is not yet ready to promise backwards compatibility in future releases. Feel free to mess with it, but please be patient if I change things.
+
+See "Known issues" and "Future plans."
 
 
 ## Developing picotool
