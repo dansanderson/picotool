@@ -15,9 +15,10 @@ VERBOSITY_QUIET = 1    # error
 VERBOSITY_NORMAL = 2   # write and error
 VERBOSITY_DEBUG = 3    # debug, write and error
 _verbosity = VERBOSITY_NORMAL
-_write_stream = sys.stdout.buffer
-_error_stream = sys.stderr.buffer
 
+_write_stream = sys.stdout
+_error_stream = sys.stderr
+    
 
 class Error(Exception):
     """A base class for all errors in the picotool libraries."""
@@ -47,9 +48,7 @@ def debug(msg):
       msg: The message to write.
     """
     if _verbosity >= VERBOSITY_DEBUG:
-        _write_stream.write(msg.encode('utf-8'))
-        if hasattr(_write_stream, 'flush'):
-            _write_stream.flush()
+        _write_stream.write(msg)
 
         
 def write(msg):
@@ -66,9 +65,7 @@ def write(msg):
       msg: The message to write.
     """
     if _verbosity >= VERBOSITY_NORMAL:
-        _write_stream.write(msg.encode('utf-8'))
-        if hasattr(_write_stream, 'flush'):
-            _write_stream.flush()
+        _write_stream.write(msg)
 
 
 def error(msg):
@@ -79,9 +76,7 @@ def error(msg):
     Args:
       msg: The error message to write.
     """
-    _error_stream.write(msg.encode('utf-8'))
-    if hasattr(_error_stream, 'flush'):
-        _error_stream.flush()
+    _error_stream.write(msg)
 
 
 class BaseSection():

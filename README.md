@@ -254,7 +254,7 @@ By default, this produces an HTML coverage report in the `cover` subdirectory. O
   * helloworld.p8.png: The 2nd sfx pattern is has four note volumes in the PNG data that do not match Pico-8's RAM data when the cart is loaded.
   * Tower of Archeos: An old short-if syntax bug allowed this cart at .p8 version 0, but is a syntax error at .p8 version 5.
 
-* Pico-8 doesn't like UTF-8 encoding for high characters. This is almost never an issue because you can't enter high chars in the editor nor print them with the Pico-8 font. I found one case (11968) where there's a high char in a string, and Pico-8 treats it as a similar low char. picotool currently assumes everything is UTF-8, but this results in a mutation that causes Pico-8 to drop the high char.
+* Pico-8 has implicit support for a non-ASCII character encoding, but it isn't UTF-8, and I'm not sure what it is. This is almost never an issue because you can't enter high chars in the editor nor print them with the Pico-8 font. I found one case (cart 11968) where there's a high char in a string, and Pico-8 treats it as a similar low char. For now, picotool replaces non-ASCII chars in Lua code with underscores.
 
 
 ## Future plans

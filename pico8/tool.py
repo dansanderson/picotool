@@ -182,7 +182,11 @@ def listlua(args):
         if len(args.filename) > 1:
             util.write('=== {} ===\n'.format(g.filename))
         for l in g.lua.to_lines():
-            util.write(l)
+            try:
+                util.write(l)
+            except UnicodeEncodeError as e:
+                new_l = ''.join(c if ord(c) < 128 else '_' for c in l)
+                util.write(new_l)
         util.write('\n')
         
     return 0

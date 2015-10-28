@@ -11,13 +11,15 @@ from pico8 import util
 
 class TestUtil(unittest.TestCase):
     def setUp(self):
+        self.orig_write_stream = util._write_stream
+        self.orig_error_stream = util._error_stream
         util._write_stream = io.StringIO()
         util._error_stream = io.StringIO()
         
     def tearDown(self):
         util._verbosity = util.VERBOSITY_NORMAL
-        util._write_stream = sys.stdout
-        util._error_stream = sys.stderr
+        util._write_stream = self.orig_write_stream
+        util._error_stream = self.orig_error_stream
 
     def testWrite(self):
         s = 'test1'

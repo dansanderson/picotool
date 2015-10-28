@@ -114,7 +114,7 @@ class TestLua(unittest.TestCase):
             '  return 999\r\n',
             'end\r\n'
         ], 4)
-        self.assertEqual(10, result.get_token_count())
+        self.assertEqual(7, result.get_token_count())
         
     def testGetTitle(self):
         result = lua.Lua.from_lines(VALID_LUA_SHORT_LINES, 4)
@@ -201,7 +201,7 @@ end
 a(g)
 end
 ''', txt)
-        self.assertIn('f=1 n=2 o=3', txt)
+        self.assertIn('f=1  n=2  o=3', txt)
 
         
 if __name__ == '__main__':

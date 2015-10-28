@@ -762,7 +762,10 @@ class LuaMinifyWriter(LuaASTEchoWriter):
             spaces = self._get_code_for_spaces(node)
             if self._tokens[self._pos].matches(lexer.TokSymbol(';')):
                 self._pos += 1
-                # Insert a space where the semi was.
+                # Insert a space where the semi was to prevent 'a;b' from
+                # becoming 'ab'.
+                # TODO: This is an extraneous space in cases where the
+                # semicolon had a space before or after it.
                 spaces_without_semis.append(spaces + ' ')
             else:
                 spaces_without_semis.append(spaces)
