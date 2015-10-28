@@ -204,7 +204,8 @@ class LuaASTEchoWriter(BaseLuaWriter):
           A string representing the tokens.
         """
         strs = []
-        while (self._pos < node.end_pos and
+        while (((node is None and self._pos < len(self._tokens)) or
+                (node is not None and self._pos < node.end_pos)) and
                (isinstance(self._tokens[self._pos], lexer.TokSpace) or
                 isinstance(self._tokens[self._pos], lexer.TokNewline) or
                 isinstance(self._tokens[self._pos], lexer.TokComment))):
@@ -265,7 +266,7 @@ class LuaASTEchoWriter(BaseLuaWriter):
         elif isinstance(node, parser.StatAssignment):
             for t in self._generate_code_for_node(node.varlist):
                 yield t
-            yield self._get_text(node, '=')
+            yield self._get_text(node, node.assignop.code)
             for t in self._generate_code_for_node(node.explist):
                 yield t
         
@@ -312,7 +313,9 @@ class LuaASTEchoWriter(BaseLuaWriter):
                         for t in self._generate_code_for_node(exp):
                             yield t
                         yield self._get_text(node, ')')
-                    if not short_if:
+                    else:
+                        for t in self._generate_code_for_node(exp):
+                            yield t
                         yield self._get_text(node, 'then')
                     for t in self._generate_code_for_node(block):
                         yield t
@@ -363,8 +366,7 @@ class LuaASTEchoWriter(BaseLuaWriter):
         elif isinstance(node, parser.StatLocalFunction):
             yield self._get_text(node, 'local')
             yield self._get_text(node, 'function')
-            for t in self._generate_code_for_node(node.funcname):
-                yield t
+            yield self._get_name(node, node.funcname)
             for t in self._generate_code_for_node(node.funcbody):
                 yield t
         
@@ -379,12 +381,12 @@ class LuaASTEchoWriter(BaseLuaWriter):
         
         elif isinstance(node, parser.StatGoto):
             yield self._get_text(node, 'goto')
-            yield self._get_name(node, node.label)
+            yield self._get_name(node, lexer.TokName(node.label))
         
         elif isinstance(node, parser.StatLabel):
             yield self._get_code_for_spaces(node)
             yield '::'
-            yield self._get_name(node, node.label)
+            yield self._get_name(node, lexer.TokName(node.label))
             yield '::'
         
         elif isinstance(node, parser.StatBreak):
@@ -408,15 +410,16 @@ class LuaASTEchoWriter(BaseLuaWriter):
         
         elif isinstance(node, parser.FunctionArgs):
             yield self._get_text(node, '(')
-            for t in self._generate_code_for_node(node.explist):
-                yield t
+            if node.explist is not None:
+                for t in self._generate_code_for_node(node.explist):
+                    yield t
             yield self._get_text(node, ')')
         
         elif isinstance(node, parser.VarList):
             for t in self._generate_code_for_node(node.vars[0]):
                 yield t
             if len(node.vars) > 1:
-                for i in range(1, node.vars):
+                for i in range(1, len(node.vars)):
                     yield self._get_text(node, ',')
                     for t in self._generate_code_for_node(node.vars[i]):
                         yield t
@@ -452,6 +455,7 @@ class LuaASTEchoWriter(BaseLuaWriter):
                     yield t
                 if len(node.exps) > 1:
                     for i in range(1, len(node.exps)):
+                        yield self._get_text(node, ',')
                         for t in self._generate_code_for_node(node.exps[i]):
                             yield t
         
@@ -464,7 +468,8 @@ class LuaASTEchoWriter(BaseLuaWriter):
                 yield self._get_text(node, 'true')
             elif isinstance(node.value, lexer.TokName):
                 yield self._get_name(node, node.value)
-            elif isinstance(node.value, lexer.TokNumber):
+            elif (isinstance(node.value, lexer.TokNumber) or
+                  isinstance(node.value, lexer.TokString)):
                 yield self._get_code_for_spaces(node)
                 yield self._tokens[self._pos].code
                 self._pos += 1
@@ -478,22 +483,22 @@ class LuaASTEchoWriter(BaseLuaWriter):
         elif isinstance(node, parser.ExpBinOp):
             for t in self._generate_code_for_node(node.exp1):
                 yield t
-            yield self._get_text(node.binop.code)
+            yield self._get_text(node, node.binop.code)
             for t in self._generate_code_for_node(node.exp2):
                 yield t
         
         elif isinstance(node, parser.ExpUnOp):
-            yield self._get_text(node.unop.code)
+            yield self._get_text(node, node.unop.code)
             for t in self._generate_code_for_node(node.exp):
                 yield t
         
         elif isinstance(node, parser.FunctionCall):
             for t in self._generate_code_for_node(node.exp_prefix):
                 yield t
-            if args is None:
+            if node.args is None:
                 yield self._get_text(node, '(')
                 yield self._get_text(node, ')')
-            elif isinstance(args, str):
+            elif isinstance(node.args, str):
                 # args is the parsed string, but we need the original token to
                 # recreate the escaped string with its original punctuation.
                 yield self._get_code_for_spaces(node)
@@ -507,15 +512,16 @@ class LuaASTEchoWriter(BaseLuaWriter):
                 yield t
             yield self._get_text(node, ':')
             yield self._get_name(node, node.methodname)
-            if args is None:
+            if node.args is None:
                 yield self._get_text(node, '(')
                 yield self._get_text(node, ')')
-            elif isinstance(args, str):
-                # args is the parsed string, but we need the original token to
-                # recreate the escaped string with its original punctuation.
+            elif isinstance(node.args, lexer.TokString):
                 yield self._get_code_for_spaces(node)
-                yield self._tokens[self._pos].code
+                assert node.args.matches(self._tokens[self._pos])
+                self._pos += 1
+                yield node.args.code
             else:
+                # FunctionArgs or TableConstructor
                 for t in self._generate_code_for_node(node.args):
                     yield t
         
@@ -530,7 +536,7 @@ class LuaASTEchoWriter(BaseLuaWriter):
                 for t in self._generate_code_for_node(node.parlist):
                     yield t
                 if node.dots is not None:
-                    self._get_text(node, ',')
+                    yield self._get_text(node, ',')
                     for t in self._generate_code_for_node(node.dots):
                         yield t
             else:
@@ -549,8 +555,8 @@ class LuaASTEchoWriter(BaseLuaWriter):
                     yield t
                 if len(node.fields) > 1:
                     for i in range(1, len(node.fields)):
-                        # The parser doesn't store which field separator was used,
-                        # so we have to find it in the token stream.
+                        # The parser doesn't store which field separator was
+                        # used, so we have to find it in the token stream.
                         yield self._get_code_for_spaces(node)
                         yield self._get_text(node, self._tokens[self._pos].code)
                         for t in self._generate_code_for_node(node.fields[i]):
@@ -592,9 +598,15 @@ class LuaASTEchoWriter(BaseLuaWriter):
                 yield ''.join(linebuf) + '\n'
                 linebuf.clear()
             linebuf.append(parts.pop(0))
-        if linebuf:
-            yield ''.join(linebuf) + '\n'
 
+        # Write the last line and any trailing spaces, as lines.
+        last = ''.join(linebuf) + self._get_code_for_spaces(None)
+        parts = last.split('\n')
+        for i in range(len(parts)-1):
+            yield parts[i] + '\n'
+        if parts[-1]:
+            yield parts[-1]
+        
 
 class LuaMinifyWriter(LuaASTEchoWriter):
     """Writes the Lua code to use a minimal number of characters.

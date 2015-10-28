@@ -246,7 +246,7 @@ class TestParser(unittest.TestCase):
         self.assertTrue(isinstance(node, parser.ExpUnOp))
         self.assertEqual('-', node.unop.value)
         self.assertTrue(isinstance(node.exp, parser.ExpValue))
-        self.assertEqual('45', node.exp.value)
+        self.assertTrue(node.exp.value.matches(lexer.TokNumber('45')))
 
     def testExpBinOp(self):
         p = get_parser('1 + 2')
@@ -261,21 +261,21 @@ class TestParser(unittest.TestCase):
         self.assertEqual(29, p._pos)
         self.assertEqual('foo', node.exp2.value.name.value)
         self.assertEqual('!=', node.binop.value)
-        self.assertEqual('8', node.exp1.exp2.value)
+        self.assertTrue(node.exp1.exp2.value.matches(lexer.TokNumber('8')))
         self.assertEqual('>', node.exp1.binop.value)
-        self.assertEqual('7', node.exp1.exp1.exp2.value)
+        self.assertTrue(node.exp1.exp1.exp2.value.matches(lexer.TokNumber('7')))
         self.assertEqual('^', node.exp1.exp1.binop.value)
-        self.assertEqual('6', node.exp1.exp1.exp1.exp2.value)
+        self.assertTrue(node.exp1.exp1.exp1.exp2.value.matches(lexer.TokNumber('6')))
         self.assertEqual('..', node.exp1.exp1.exp1.binop.value)
-        self.assertEqual('5', node.exp1.exp1.exp1.exp1.exp2.value)
+        self.assertTrue(node.exp1.exp1.exp1.exp1.exp2.value.matches(lexer.TokNumber('5')))
         self.assertEqual('/', node.exp1.exp1.exp1.exp1.binop.value)
-        self.assertEqual('4', node.exp1.exp1.exp1.exp1.exp1.exp2.value)
+        self.assertTrue(node.exp1.exp1.exp1.exp1.exp1.exp2.value.matches(lexer.TokNumber('4')))
         self.assertEqual('-', node.exp1.exp1.exp1.exp1.exp1.binop.value)
-        self.assertEqual('3', node.exp1.exp1.exp1.exp1.exp1.exp1.exp2.value)
+        self.assertTrue(node.exp1.exp1.exp1.exp1.exp1.exp1.exp2.value.matches(lexer.TokNumber('3')))
         self.assertEqual('*', node.exp1.exp1.exp1.exp1.exp1.exp1.binop.value)
-        self.assertEqual('2', node.exp1.exp1.exp1.exp1.exp1.exp1.exp1.exp2.value)
+        self.assertTrue(node.exp1.exp1.exp1.exp1.exp1.exp1.exp1.exp2.value.matches(lexer.TokNumber('2')))
         self.assertEqual('+', node.exp1.exp1.exp1.exp1.exp1.exp1.exp1.binop.value)
-        self.assertEqual('1', node.exp1.exp1.exp1.exp1.exp1.exp1.exp1.exp1.value)
+        self.assertTrue(node.exp1.exp1.exp1.exp1.exp1.exp1.exp1.exp1.value.matches(lexer.TokNumber('1')))
 
     def testExpList(self):
         p = get_parser('1, 2, 3 - 4, 5..6^7, foo')
@@ -283,16 +283,16 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(node)
         self.assertEqual(21, p._pos)
         self.assertEqual(5, len(node.exps))
-        self.assertEqual('1', node.exps[0].value)
-        self.assertEqual('2', node.exps[1].value)
-        self.assertEqual('3', node.exps[2].exp1.value)
+        self.assertTrue(node.exps[0].value.matches(lexer.TokNumber('1')))
+        self.assertTrue(node.exps[1].value.matches(lexer.TokNumber('2')))
+        self.assertTrue(node.exps[2].exp1.value.matches(lexer.TokNumber('3')))
         self.assertEqual('-', node.exps[2].binop.value)
-        self.assertEqual('4', node.exps[2].exp2.value)
-        self.assertEqual('5', node.exps[3].exp1.exp1.value)
+        self.assertTrue(node.exps[2].exp2.value.matches(lexer.TokNumber('4')))
+        self.assertTrue(node.exps[3].exp1.exp1.value.matches(lexer.TokNumber('5')))
         self.assertEqual('..', node.exps[3].exp1.binop.value)
-        self.assertEqual('6', node.exps[3].exp1.exp2.value)
+        self.assertTrue(node.exps[3].exp1.exp2.value.matches(lexer.TokNumber('6')))
         self.assertEqual('^', node.exps[3].binop.value)
-        self.assertEqual('7', node.exps[3].exp2.value)
+        self.assertTrue(node.exps[3].exp2.value.matches(lexer.TokNumber('7')))
         self.assertEqual('foo', node.exps[4].value.name.value)
 
     def testExpListErr(self):
@@ -318,9 +318,9 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(node)
         self.assertEqual(7, p._pos)
         self.assertTrue(isinstance(node, parser.ExpBinOp))
-        self.assertEqual('2', node.exp1.value)
+        self.assertTrue(node.exp1.value.matches(lexer.TokNumber('2')))
         self.assertEqual('+', node.binop.value)
-        self.assertEqual('3', node.exp2.value)
+        self.assertTrue(node.exp2.value.matches(lexer.TokNumber('3')))
         
     def testPrefixExpIndex(self):
         p = get_parser('foo[4 + 5]')
@@ -329,9 +329,9 @@ class TestParser(unittest.TestCase):
         self.assertEqual(8, p._pos)
         self.assertTrue(isinstance(node, parser.VarIndex))
         self.assertEqual('foo', node.exp_prefix.name.value)
-        self.assertEqual('4', node.exp_index.exp1.value)
+        self.assertTrue(node.exp_index.exp1.value.matches(lexer.TokNumber('4')))
         self.assertEqual('+', node.exp_index.binop.value)
-        self.assertEqual('5', node.exp_index.exp2.value)
+        self.assertTrue(node.exp_index.exp2.value.matches(lexer.TokNumber('5')))
         
     def testPrefixExpAttribute(self):
         p = get_parser('foo.bar')
@@ -354,9 +354,9 @@ class TestParser(unittest.TestCase):
         self.assertTrue(isinstance(node.exp_prefix.exp_prefix, parser.VarIndex))
         self.assertEqual('foo', node.exp_prefix.exp_prefix.exp_index.value.name.value)
         self.assertTrue(isinstance(node.exp_prefix.exp_prefix.exp_prefix, parser.ExpBinOp))
-        self.assertEqual('1', node.exp_prefix.exp_prefix.exp_prefix.exp1.value)
+        self.assertTrue(node.exp_prefix.exp_prefix.exp_prefix.exp1.value.matches(lexer.TokNumber('1')))
         self.assertEqual('+', node.exp_prefix.exp_prefix.exp_prefix.binop.value)
-        self.assertEqual('2', node.exp_prefix.exp_prefix.exp_prefix.exp2.value)
+        self.assertTrue(node.exp_prefix.exp_prefix.exp_prefix.exp2.value.matches(lexer.TokNumber('2')))
 
     def testFuncname(self):
         p = get_parser('foo')
@@ -416,7 +416,7 @@ class TestParser(unittest.TestCase):
         node = p._args()
         self.assertIsNotNone(node)
         self.assertEqual(1, p._pos)
-        self.assertEqual('string literal', node)
+        self.assertTrue(node.matches(lexer.TokString('string literal')))
     
     def testArgsNone(self):
         p = get_parser('')
@@ -502,8 +502,8 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(node)
         self.assertEqual(7, p._pos)
         self.assertTrue(isinstance(node, parser.FieldExpKey))
-        self.assertEqual('1', node.key_exp.value)
-        self.assertEqual('2', node.exp.value)
+        self.assertTrue(node.key_exp.value.matches(lexer.TokNumber('1')))
+        self.assertTrue(node.exp.value.matches(lexer.TokNumber('2')))
         
     def testFieldNamedKey(self):
         p = get_parser('foo = 3')
@@ -512,7 +512,7 @@ class TestParser(unittest.TestCase):
         self.assertEqual(5, p._pos)
         self.assertTrue(isinstance(node, parser.FieldNamedKey))
         self.assertEqual('foo', node.key_name.value)
-        self.assertEqual('3', node.exp.value)
+        self.assertTrue(node.exp.value.matches(lexer.TokNumber('3')))
         
     def testFieldExp(self):
         p = get_parser('foo')
@@ -531,15 +531,15 @@ class TestParser(unittest.TestCase):
         self.assertEqual(3, len(node.fields))
 
         self.assertTrue(isinstance(node.fields[0], parser.FieldExpKey))
-        self.assertEqual('1', node.fields[0].key_exp.value)
-        self.assertEqual('2', node.fields[0].exp.value)
+        self.assertTrue(node.fields[0].key_exp.value.matches(lexer.TokNumber('1')))
+        self.assertTrue(node.fields[0].exp.value.matches(lexer.TokNumber('2')))
 
         self.assertTrue(isinstance(node.fields[1], parser.FieldNamedKey))
         self.assertEqual('foo', node.fields[1].key_name.value)
-        self.assertEqual('3', node.fields[1].exp.value)
+        self.assertTrue(node.fields[1].exp.value.matches(lexer.TokNumber('3')))
 
         self.assertTrue(isinstance(node.fields[2], parser.FieldExp))
-        self.assertEqual('4', node.fields[2].exp.value)
+        self.assertTrue(node.fields[2].exp.value.matches(lexer.TokNumber('4')))
 
     def testTableConstructorTrailingSep(self):
         p = get_parser('{5,}')
@@ -547,7 +547,7 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(node)
         self.assertEqual(4, p._pos)
         self.assertEqual(1, len(node.fields))
-        self.assertEqual('5', node.fields[0].exp.value)
+        self.assertTrue(node.fields[0].exp.value.matches(lexer.TokNumber('5')))
 
     def testTableConstructorEmpty(self):
         p = get_parser('{   }')
@@ -563,7 +563,7 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(node)
         self.assertEqual(4, p._pos)
         self.assertEqual(1, len(node.value.fields))
-        self.assertEqual('5', node.value.fields[0].exp.value)
+        self.assertTrue(node.value.fields[0].exp.value.matches(lexer.TokNumber('5')))
         
     def testArgsTableConstructor(self):
         p = get_parser('{5,}')
@@ -571,7 +571,7 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(node)
         self.assertEqual(4, p._pos)
         self.assertEqual(1, len(node.fields))
-        self.assertEqual('5', node.fields[0].exp.value)
+        self.assertTrue(node.fields[0].exp.value.matches(lexer.TokNumber('5')))
 
     def testFuncBodyEmptyParList(self):
         p = get_parser('() return end')
@@ -665,7 +665,7 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(node)
         self.assertEqual(4, p._pos)
         self.assertEqual('bar', node.exp_prefix.name.value)
-        self.assertEqual('7', node.exp_index.value)
+        self.assertTrue(node.exp_index.value.matches(lexer.TokNumber('7')))
         
     def testVarAttribute(self):
         p = get_parser('baz.bat')
@@ -683,7 +683,7 @@ class TestParser(unittest.TestCase):
         self.assertEqual(3, len(node.vars))
         self.assertEqual('foo', node.vars[0].name.value)
         self.assertEqual('bar', node.vars[1].exp_prefix.name.value)
-        self.assertEqual('7', node.vars[1].exp_index.value)
+        self.assertTrue(node.vars[1].exp_index.value.matches(lexer.TokNumber('7')))
         self.assertEqual('baz', node.vars[2].exp_prefix.name.value)
         self.assertEqual('bat', node.vars[2].attr_name.value)
 
@@ -726,10 +726,11 @@ class TestParser(unittest.TestCase):
         self.assertEqual('foo', node.varlist.vars[0].name.value)
         self.assertEqual('bar', node.varlist.vars[1].name.value)
         self.assertEqual('baz', node.varlist.vars[2].name.value)
+        self.assertTrue(node.assignop.matches(lexer.TokSymbol('=')))
         self.assertEqual(3, len(node.explist.exps))
-        self.assertEqual('1', node.explist.exps[0].value)
-        self.assertEqual('2', node.explist.exps[1].value)
-        self.assertEqual('3', node.explist.exps[2].value)
+        self.assertTrue(node.explist.exps[0].value.matches(lexer.TokNumber('1')))
+        self.assertTrue(node.explist.exps[1].value.matches(lexer.TokNumber('2')))
+        self.assertTrue(node.explist.exps[2].value.matches(lexer.TokNumber('3')))
         
     def testStatFunctionCall(self):
         p = get_parser('foo(1, 2, 3)')
@@ -738,9 +739,9 @@ class TestParser(unittest.TestCase):
         self.assertEqual(10, p._pos)
         self.assertEqual('foo', node.functioncall.exp_prefix.name.value)
         self.assertEqual(3, len(node.functioncall.args.explist.exps))
-        self.assertEqual('1', node.functioncall.args.explist.exps[0].value)
-        self.assertEqual('2', node.functioncall.args.explist.exps[1].value)
-        self.assertEqual('3', node.functioncall.args.explist.exps[2].value)
+        self.assertTrue(node.functioncall.args.explist.exps[0].value.matches(lexer.TokNumber('1')))
+        self.assertTrue(node.functioncall.args.explist.exps[1].value.matches(lexer.TokNumber('2')))
+        self.assertTrue(node.functioncall.args.explist.exps[2].value.matches(lexer.TokNumber('3')))
         
     def testStatDo(self):
         p = get_parser('do break end')
@@ -871,8 +872,8 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(node)
         self.assertEqual(13, p._pos)
         self.assertEqual('foo', node.name.value)
-        self.assertEqual('1', node.exp_init.value)
-        self.assertEqual('3', node.exp_end.value)
+        self.assertTrue(node.exp_init.value.matches(lexer.TokNumber('1')))
+        self.assertTrue(node.exp_end.value.matches(lexer.TokNumber('3')))
         self.assertIsNone(node.exp_step)
         self.assertEqual(1, len(node.block.stats))
         self.assertTrue(isinstance(node.block.stats[0], parser.StatBreak))
@@ -883,9 +884,9 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(node)
         self.assertEqual(15, p._pos)
         self.assertEqual('foo', node.name.value)
-        self.assertEqual('1', node.exp_init.value)
-        self.assertEqual('3', node.exp_end.value)
-        self.assertEqual('10', node.exp_step.value)
+        self.assertTrue(node.exp_init.value.matches(lexer.TokNumber('1')))
+        self.assertTrue(node.exp_end.value.matches(lexer.TokNumber('3')))
+        self.assertTrue(node.exp_step.value.matches(lexer.TokNumber('10')))
         self.assertEqual(1, len(node.block.stats))
         self.assertTrue(isinstance(node.block.stats[0], parser.StatBreak))
 
@@ -898,8 +899,8 @@ class TestParser(unittest.TestCase):
         self.assertEqual('foo', node.namelist.names[0].value)
         self.assertEqual('bar', node.namelist.names[1].value)
         self.assertEqual(2, len(node.explist.exps))
-        self.assertEqual('1', node.explist.exps[0].value)
-        self.assertEqual('3', node.explist.exps[1].value)
+        self.assertTrue(node.explist.exps[0].value.matches(lexer.TokNumber('1')))
+        self.assertTrue(node.explist.exps[1].value.matches(lexer.TokNumber('3')))
         self.assertEqual(1, len(node.block.stats))
         self.assertTrue(isinstance(node.block.stats[0], parser.StatBreak))
         
@@ -954,9 +955,9 @@ class TestParser(unittest.TestCase):
         self.assertEqual('bar', node.namelist.names[1].value)
         self.assertEqual('baz', node.namelist.names[2].value)
         self.assertEqual(3, len(node.explist.exps))
-        self.assertEqual('1', node.explist.exps[0].value)
-        self.assertEqual('2', node.explist.exps[1].value)
-        self.assertEqual('3', node.explist.exps[2].value)
+        self.assertTrue(node.explist.exps[0].value.matches(lexer.TokNumber('1')))
+        self.assertTrue(node.explist.exps[1].value.matches(lexer.TokNumber('2')))
+        self.assertTrue(node.explist.exps[2].value.matches(lexer.TokNumber('3')))
 
     def testStatGoto(self):
         p = get_parser('goto foobar')

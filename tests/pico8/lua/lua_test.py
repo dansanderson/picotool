@@ -15,6 +15,74 @@ VALID_LUA_SHORT_LINES = [
     'end\n'
 ]
 
+VALID_LUA_EVERY_NODE = [l + '\n' for l in '''
+-- the code with the nodes
+-- doesn't have to make sense
+
+function f(arg1, ...)
+  local t = {}
+  t[arg1] = 999
+  t['extra'] = ...
+  return t
+end
+
+local function myprint(msg)
+  print(msg)
+end
+
+a = 1
+f(a, a+1 , a + 2 )
+beta, gamma = 2, 3
+
+do
+  gamma = 4
+  break
+end
+
+while a < 10 do
+  -- increase a
+  a += 1
+  if a % 2 == 0 then
+    f(a)
+  elseif a > 5 then
+    f(a, 5)
+  else
+    f(a, 1)
+    beta *= 2
+  end
+end
+
+repeat
+  -- reduce a
+  a -= 1
+  f(a)
+until a <= 0
+
+for a=3, 10, 2 do
+    f(a)
+end
+
+for beta in vals() do
+      f(beta)
+end
+
+if a < 20 then
+  goto mylabel
+end
+a = -20 + 2 - .1
+gamma = 9.999e-3
+::mylabel::
+
+if (a * 10 > 100) myprint('yup')
+
+prefix = 'foo'
+mytable = {
+  [prefix..'key'] = 111,
+  barkey= 222;
+  333
+}
+'''.split('\n')]
+
 
 class TestLua(unittest.TestCase):
     def testInit(self):
@@ -65,8 +133,12 @@ class TestLuaASTEchoWriter(unittest.TestCase):
     def testToLinesASTEchoWriter(self):
         result = lua.Lua.from_lines(VALID_LUA_SHORT_LINES, 4)
         lines = list(result.to_lines(writer_cls=lua.LuaASTEchoWriter))
-        print('DEBUG: writer-generated lines:\n{}\n'.format('\n'.join(repr(l) for l in lines)))
         self.assertEqual(lines, VALID_LUA_SHORT_LINES)
+
+    def testToLinesASTEchoWriterEveryNode(self):
+        result = lua.Lua.from_lines(VALID_LUA_EVERY_NODE, 4)
+        lines = list(result.to_lines(writer_cls=lua.LuaASTEchoWriter))
+        self.assertEqual(lines, VALID_LUA_EVERY_NODE)
 
         
 if __name__ == '__main__':

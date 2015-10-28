@@ -77,7 +77,7 @@ class Node():
 # module's namespace in the loop below the list.
 _ast_node_types = (
     ('Chunk', ('stats',)),
-    ('StatAssignment', ('varlist', 'explist')),
+    ('StatAssignment', ('varlist', 'assignop', 'explist')),
     ('StatFunctionCall', ('functioncall',)),
     ('StatDo', ('block',)),
     ('StatWhile', ('exp', 'block')),
@@ -86,7 +86,10 @@ _ast_node_types = (
     ('StatForStep', ('name', 'exp_init', 'exp_end', 'exp_step', 'block')),
     ('StatForIn', ('namelist', 'explist', 'block')),
     ('StatFunction', ('funcname', 'funcbody')),
+
+    # StatLocalFunction funcname is a TokName, not a FunctionName
     ('StatLocalFunction', ('funcname', 'funcbody')),
+
     ('StatLocalAssignment', ('namelist', 'explist')),
     ('StatGoto', ('label',)),
     ('StatLabel', ('label',)),
@@ -317,7 +320,7 @@ class Parser():
                  ::label::
 
         Returns:
-          StatAssignment(varlist, explist)
+          StatAssignment(varlist, assignop, explist)
           StatFunctionCall(functioncall)
           StatDo(block)
           StatWhile(exp, block)
@@ -337,15 +340,17 @@ class Parser():
         if varlist is not None:
             # (Missing '=' is not a fatal error because varlist might also match
             # the beginning of a functioncall.)
-            if ((self._accept(lexer.TokSymbol('=')) is not None) or
-                (self._accept(lexer.TokSymbol('+=')) is not None) or
-                (self._accept(lexer.TokSymbol('-=')) is not None) or
-                (self._accept(lexer.TokSymbol('*=')) is not None) or
-                (self._accept(lexer.TokSymbol('/=')) is not None) or
-                (self._accept(lexer.TokSymbol('%=')) is not None)):
+            assign_op = (self._accept(lexer.TokSymbol('=')) or
+                         self._accept(lexer.TokSymbol('+=')) or
+                         self._accept(lexer.TokSymbol('-=')) or
+                         self._accept(lexer.TokSymbol('*=')) or
+                         self._accept(lexer.TokSymbol('/=')) or
+                         self._accept(lexer.TokSymbol('%=')))
+            if assign_op is not None:
                 explist = self._assert(self._explist(),
                                        'Expected expression in assignment')
-                return StatAssignment(varlist, explist, start=pos, end=self._pos)
+                return StatAssignment(varlist, assign_op, explist,
+                                      start=pos, end=self._pos)
         self._pos = pos
         
         functioncall = self._functioncall()
@@ -823,7 +828,7 @@ class Parser():
         Returns:
           ExpList(exps)
           TableConstructor(fields)
-          str
+          lexer.TokString
           None
         """
         pos = self._pos
@@ -838,7 +843,7 @@ class Parser():
         
         string_lit = self._accept(lexer.TokString)
         if string_lit is not None:
-            return string_lit._data
+            return string_lit
         
         return None
         
@@ -874,11 +879,13 @@ class Parser():
         dots = None
         if namelist is not None:
             if self._accept(lexer.TokSymbol(',')) is not None:
+                dots_pos = self._pos
                 dots = self._expect(lexer.TokSymbol('...'))
         else:
+            dots_pos = self._pos
             dots = self._accept(lexer.TokSymbol('...'))
         if dots is not None:
-            dots = VarargDots()
+            dots = VarargDots(start=dots_pos, end=self._pos)
 
         self._expect(lexer.TokSymbol(')'))
         block = self._assert(self._chunk(), 'block in funcbody')
