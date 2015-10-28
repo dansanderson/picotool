@@ -32,6 +32,7 @@ PICO8_BUILTINS = {
     'flr', 'cos', 'sin', 'atan2', 'sqrt', 'abs', 'rnd', 'srand', 'band', 'bor',
     'bxor', 'bnot', 'shl', 'shr', 'cartdata', 'dget', 'dset',
     'count',  # deprecated function
+    'mapdraw',  # deprecated function
 }
 
 

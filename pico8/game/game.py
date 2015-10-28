@@ -283,7 +283,13 @@ class Game():
           filename: The output filename, for error messages.
         """
         outstr.write(HEADER_TITLE_STR)
-        outstr.write(HEADER_VERSION_PAT.format(self.version))
+        
+        # Even though we can get the original cart version, we
+        # hard-code version 5 for output because we only know how to
+        # write v5 .p8 files. There are minor changes from previous
+        # versions of .p8 that don't apply to .p8.png (such as the gff
+        # section).
+        outstr.write(HEADER_VERSION_PAT.format(5))
 
         outstr.write(SECTION_DELIM_PAT.format('lua'))
         ended_in_newline = None
