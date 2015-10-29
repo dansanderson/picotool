@@ -136,7 +136,7 @@ The `luafmt` tool rewrites the Lua region of a cart to make it easier to read, u
 The command takes one or more cart filenames as arguments. For each cart with a name like `xxx.p8.png`, it writes a new cart with a name like `xxx_fmt.p8`.
 
 ```
-% ./picotool-master/p8tool luamin helloworld.p8.png 
+% ./picotool-master/p8tool luafmt helloworld.p8.png 
 % cat helloworld_fmt.p8
 pico-8 cartridge // http://www.pico-8.com
 version 5
@@ -165,7 +165,7 @@ function _draw()
 By default, the indentation width is 2 spaces. You can change the desired indentation width by specifying the `--indentwidth=...` argument:
 
 ```
-% ./picotool-master/p8tool luamin --indentwidth=4 helloworld.p8.png 
+% ./picotool-master/p8tool luafmt --indentwidth=4 helloworld.p8.png 
 % cat helloworld_fmt.p8
 ...
 function _update()
