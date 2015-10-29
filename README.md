@@ -108,6 +108,8 @@ function _draw()
 
 The `luamin` tool rewrites the Lua region of a cart to use as few characters as possible. It does this by discarding comments and extraneous space characters, and renaming variables and functions. This does not change the token count.
 
+The command takes one or more cart filenames as arguments. For each cart with a name like `xxx.p8.png`, it writes a new cart with a name like `xxx_fmt.p8`.
+
 I don't recommend using this tool when publishing your games. Statistically, you will run out of tokens before you run out of characters, and minifying is unlikely to affect the compressed character count. Carts are more useful to the Pico-8 community if the code in a published cart is readable and well-commented. I only wrote `luamin` because it's an obvious kind of code transformation to try with the library.
 
 ```
@@ -123,14 +125,64 @@ a += 1
 end
 function _draw()
 cls()
-
 ...
 ```
 
 
 ### p8tool luafmt
 
-**(Not yet implemented.)**
+The `luafmt` tool rewrites the Lua region of a cart to make it easier to read, using regular indentation and spacing. This does not change the token count, but it may increase the character count, depending on the initial state of the code.
+
+The command takes one or more cart filenames as arguments. For each cart with a name like `xxx.p8.png`, it writes a new cart with a name like `xxx_fmt.p8`.
+
+```
+% ./picotool-master/p8tool luamin helloworld.p8.png 
+% cat helloworld_fmt.p8
+pico-8 cartridge // http://www.pico-8.com
+version 5
+__lua__
+-- hello world
+-- by zep
+
+t = 0
+
+music(0)
+
+function _update()
+  t += 1
+end
+
+function _draw()
+  cls()
+
+  for i=1,11 do
+    for j0=0,7 do
+      j = 7-j0
+      col = 7+j
+...
+```
+
+By default, the indentation width is 2 spaces. You can change the desired indentation width by specifying the `--indentwidth=...` argument:
+
+```
+% ./picotool-master/p8tool luamin --indentwidth=4 helloworld.p8.png 
+% cat helloworld_fmt.p8
+...
+function _update()
+    t += 1
+end
+
+function _draw()
+    cls()
+
+    for i=1,11 do
+        for j0=0,7 do
+            j = 7-j0
+            col = 7+j
+...
+```
+
+The current version of `luafmt` is simple and mostly just adjusts indentation. It does not adjust spaces between tokens on a line, align elements to brackets, or wrap long lines.
 
 
 ### p8tool listtokens
@@ -270,11 +322,11 @@ picotool began as a simple project to build a code formatter for Pico-8, and eve
 
 TODO:
 
-* Implement luafmt
 * Semantic APIs for the non-Lua sections
 * Find and fix token counting discrepancies
 * luamin: eliminate space between symbols and words
 * luamin: eliminate space left behind by removing semicolons
+* luafmt: adjust spacing between things
 * stats: report info about other regions, e.g. color histograms
 * Rewrite expression AST to represent operator precedence
 * Improved API docs, especially the AST API
@@ -284,7 +336,3 @@ TODO:
 * PNG saving to update an existing PNG cart
   * ... to create a new PNG cart from a given/generated image
   * Update stats to report on compressed Lua size when starting from .p8
-* New tool: Game launcher menu
-* New tool: Lua "linker" (import stitching)
-  * Allow selective imports, e.g. import a function or class
-  * Detect and remove unused functions/classes automatically

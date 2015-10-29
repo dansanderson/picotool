@@ -364,8 +364,10 @@ class LuaASTEchoWriter(BaseLuaWriter):
                         yield self._get_text(node, 'elseif')
                     if short_if:
                         yield self._get_text(node, '(')
+                        self._indent += 1
                         for t in self._generate_code_for_node(exp):
                             yield t
+                        self._indent -= 1
                         yield self._get_text(node, ')')
                     else:
                         for t in self._generate_code_for_node(exp):
@@ -473,9 +475,11 @@ class LuaASTEchoWriter(BaseLuaWriter):
         
         elif isinstance(node, parser.FunctionArgs):
             yield self._get_text(node, '(')
+            self._indent += 1
             if node.explist is not None:
                 for t in self._generate_code_for_node(node.explist):
                     yield t
+            self._indent -= 1
             yield self._get_text(node, ')')
         
         elif isinstance(node, parser.VarList):
@@ -494,8 +498,10 @@ class LuaASTEchoWriter(BaseLuaWriter):
             for t in self._generate_code_for_node(node.exp_prefix):
                 yield t
             yield self._get_text(node, '[')
+            self._indent += 1
             for t in self._generate_code_for_node(node.exp_index):
                 yield t
+            self._indent -= 1
             yield self._get_text(node, ']')
         
         elif isinstance(node, parser.VarAttribute):
@@ -529,6 +535,7 @@ class LuaASTEchoWriter(BaseLuaWriter):
                 yield '('
                 in_parens = True
                 self._pos += 1
+                self._indent += 1
             if node.value == None:
                 yield self._get_text(node, 'nil')
             elif node.value == False:
@@ -546,6 +553,7 @@ class LuaASTEchoWriter(BaseLuaWriter):
                 for t in self._generate_code_for_node(node.value):
                     yield t
             if in_parens:
+                self._indent -= 1
                 yield self._get_text(node, ')')
         
         elif isinstance(node, parser.VarargDots):
@@ -602,6 +610,7 @@ class LuaASTEchoWriter(BaseLuaWriter):
         
         elif isinstance(node, parser.FunctionBody):
             yield self._get_text(node, '(')
+            self._indent += 1
             if node.parlist is not None:
                 for t in self._generate_code_for_node(node.parlist):
                     yield t
@@ -613,6 +622,7 @@ class LuaASTEchoWriter(BaseLuaWriter):
                 if node.dots is not None:
                     for t in self._generate_code_for_node(node.dots):
                         yield t
+            self._indent -= 1
             yield self._get_text(node, ')')
             self._indent += 1
             for t in self._generate_code_for_node(node.block):
@@ -644,8 +654,10 @@ class LuaASTEchoWriter(BaseLuaWriter):
         
         elif isinstance(node, parser.FieldExpKey):
             yield self._get_text(node, '[')
+            self._indent += 1
             for t in self._generate_code_for_node(node.key_exp):
                 yield t
+            self._indent -= 1
             yield self._get_text(node, ']')
             yield self._get_text(node, '=')
             for t in self._generate_code_for_node(node.exp):
@@ -819,6 +831,7 @@ class LuaFormatterWriter(LuaASTEchoWriter):
         Returns:
           A string representing the minified spaces.
         """
+        start_pos = self._pos
         strs = []
         while (((node is None and self._pos < len(self._tokens)) or
                 (node is not None and self._pos < node.end_pos)) and
@@ -840,21 +853,30 @@ class LuaFormatterWriter(LuaASTEchoWriter):
 
         # If a comment is on the same line as previous, separate it by two
         # spaces.
-        spaces = re.sub(r'^ *--', '  --', spaces)
+        if start_pos != 0:
+            spaces = re.sub(r'^ *--', '  --', spaces)
 
         # If a comment is on its own line, indent it at the indent level.
         spaces = re.sub(r'\n *--',
                         '\n' + ' ' * self._indent_mult * self._indent + '--',
                         spaces)
+        if start_pos == 0:
+            spaces = re.sub(r'^ *--', '--', spaces)
 
         # If next non-space is on its own line, indent it at the indent level.
         spaces = re.sub(r'\n *$', '\n' + ' ' * self._indent_mult * self._indent,
                         spaces)
+        if start_pos == 0:
+            spaces = re.sub(r'^ *$', '', spaces)
 
         # Collapse regions of 2+ consecutive newlines to 2 newlines.
         # TODO: two blank lines before function defs? classes?
         spaces = re.sub(r'\n\n+', '\n\n', spaces)
 
+        # Remove excess trailing whitespace at end of file.
+        if self._pos == len(self._tokens):
+            spaces = re.sub(r'[ \n]+$', '\n', spaces)
+        
         # TODO: same-line spacing patterns:
         # - one space before and after binop
         # - one space before unop, no space after (except "not")
@@ -864,9 +886,5 @@ class LuaFormatterWriter(LuaASTEchoWriter):
         # - no "empty" semicolon statements; non-empty semicolon should be
         #    adjacent to its statement
         # - block starts on a new line; 'end' always on its own line
-
-        # TODO: edge cases
-        # - whitespace at beginning of first line (not preceded by a newline)
-        # - trailing whitespace at end of file
 
         return spaces
