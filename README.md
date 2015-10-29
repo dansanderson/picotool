@@ -190,7 +190,7 @@ The current version of `luafmt` is simple and mostly just adjusts indentation. I
 The `listtokens` tool is similar to `listlua`, but it identifies which characters picotool recognizes as a single token.
 
 ```
-% ./picotool-master/p8tool stats ./picotool-master/tests/testdata/helloworld.p8.png 
+% ./picotool-master/p8tool listtokens ./picotool-master/tests/testdata/helloworld.p8.png 
 <-- hello world>
 <-- by zep>
 
@@ -218,7 +218,7 @@ When picotool parses Lua code, it separates out comments, newlines, and spaces, 
 The `printast` tool prints a visualization of the abstract syntax tree (AST) determined by the parser. This is a representation of the structure of the Lua code. This is useful for understanding the AST structure when writing a new tool based on the picotool library.
 
 ```
-% ./picotool-master/p8tool stats ./picotool-master/tests/testdata/helloworld.p8.png 
+% ./picotool-master/p8tool printast ./picotool-master/tests/testdata/helloworld.p8.png 
 
 Chunk
   * stats: [list:]
