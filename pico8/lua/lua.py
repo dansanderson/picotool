@@ -140,34 +140,38 @@ class Lua():
         self._lexer.process_lines(lines)
         self._parser.process_tokens(self._lexer.tokens)
 
-    def to_lines(self, writer_cls=None):
+    def to_lines(self, writer_cls=None, writer_args=None):
         """Generates lines of Lua source based on the parser output.
 
         Args:
           writer_cls: The writer class to use. If None, defaults to
             LuaEchoWriter.
+          writer_args: Args for the writer.
 
         Yields:
           A line of Lua code.
         """
         if writer_cls is None:
             writer_cls = LuaEchoWriter
-        writer = writer_cls(tokens=self._lexer.tokens, root=self._parser.root)
+        writer = writer_cls(tokens=self._lexer.tokens, root=self._parser.root,
+                            args=writer_args)
         for line in writer.to_lines():
             yield line
 
 
 class BaseLuaWriter():
     """A base class for Lua writers."""
-    def __init__(self, tokens, root):
+    def __init__(self, tokens, root, args=None):
         """Initializer.
 
         Args:
           tokens: The lexer tokens.
           root: The root of the AST produced by the parser.
+          args: Additional args for the writer.
         """
         self._tokens = tokens
         self._root = root
+        self._args = args or {}
         
     def to_lines(self):
         """Generates lines of Lua source based on the parser output.
@@ -210,6 +214,7 @@ class LuaASTEchoWriter(BaseLuaWriter):
         super().__init__(*args, **kwargs)
 
         self._pos = None
+        self._indent = 0
         
     def _get_code_for_spaces(self, node):
         """Calculates the text for the space and comment tokens that prefix the
@@ -319,8 +324,10 @@ class LuaASTEchoWriter(BaseLuaWriter):
         
         elif isinstance(node, parser.StatDo):
             yield self._get_text(node, 'do')
+            self._indent += 1
             for t in self._generate_code_for_node(node.block):
                 yield t
+            self._indent -= 1
             yield self._get_text(node, 'end')
             
         elif isinstance(node, parser.StatWhile):
@@ -328,14 +335,18 @@ class LuaASTEchoWriter(BaseLuaWriter):
             for t in self._generate_code_for_node(node.exp):
                 yield t
             yield self._get_text(node, 'do')
+            self._indent += 1
             for t in self._generate_code_for_node(node.block):
                 yield t
+            self._indent -= 1
             yield self._get_text(node, 'end')
         
         elif isinstance(node, parser.StatRepeat):
             yield self._get_text(node, 'repeat')
+            self._indent += 1
             for t in self._generate_code_for_node(node.block):
                 yield t
+            self._indent -= 1
             yield self._get_text(node, 'until')
             for t in self._generate_code_for_node(node.exp):
                 yield t
@@ -360,12 +371,17 @@ class LuaASTEchoWriter(BaseLuaWriter):
                         for t in self._generate_code_for_node(exp):
                             yield t
                         yield self._get_text(node, 'then')
+                        self._indent += 1
                     for t in self._generate_code_for_node(block):
                         yield t
+                    if not short_if:
+                        self._indent -= 1
                 else:
                     yield self._get_text(node, 'else')
+                    self._indent += 1
                     for t in self._generate_code_for_node(block):
                         yield t
+                    self._indent -= 1
             if not short_if:
                 yield self._get_text(node, 'end')
         
@@ -383,8 +399,10 @@ class LuaASTEchoWriter(BaseLuaWriter):
                 for t in self._generate_code_for_node(node.exp_step):
                     yield t
             yield self._get_text(node, 'do')
+            self._indent += 1
             for t in self._generate_code_for_node(node.block):
                 yield t
+            self._indent -= 1
             yield self._get_text(node, 'end')
         
         elif isinstance(node, parser.StatForIn):
@@ -395,8 +413,10 @@ class LuaASTEchoWriter(BaseLuaWriter):
             for t in self._generate_code_for_node(node.explist):
                 yield t
             yield self._get_text(node, 'do')
+            self._indent += 1
             for t in self._generate_code_for_node(node.block):
                 yield t
+            self._indent -= 1
             yield self._get_text(node, 'end')
         
         elif isinstance(node, parser.StatFunction):
@@ -594,12 +614,15 @@ class LuaASTEchoWriter(BaseLuaWriter):
                     for t in self._generate_code_for_node(node.dots):
                         yield t
             yield self._get_text(node, ')')
+            self._indent += 1
             for t in self._generate_code_for_node(node.block):
                 yield t
+            self._indent -= 1
             yield self._get_text(node, 'end')
         
         elif isinstance(node, parser.TableConstructor):
             yield self._get_text(node, '{')
+            self._indent += 1
             if node.fields:
                 for t in self._generate_code_for_node(node.fields[0]):
                     yield t
@@ -612,6 +635,7 @@ class LuaASTEchoWriter(BaseLuaWriter):
                         for t in self._generate_code_for_node(node.fields[i]):
                             yield t
             # Process a trailing fieldsep, if any.
+            self._indent -= 1
             yield self._get_code_for_spaces(node)
             if (self._tokens[self._pos].matches(lexer.TokSymbol(',')) or
                 self._tokens[self._pos].matches(lexer.TokSymbol(';'))):
@@ -776,8 +800,14 @@ class LuaMinifyWriter(LuaASTEchoWriter):
 class LuaFormatterWriter(LuaASTEchoWriter):
     """Writes the Lua code to use good spacing style.
     """
+    DEFAULT_INDENT_WIDTH = 2
+    
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        self._indent_mult = self._args.get(
+            'indentwidth',
+            LuaFormatterWriter.DEFAULT_INDENT_WIDTH)
         
     def _get_code_for_spaces(self, node):
         """Calculates the formatted text for the space and comment tokens that
@@ -789,7 +819,6 @@ class LuaFormatterWriter(LuaASTEchoWriter):
         Returns:
           A string representing the minified spaces.
         """
-        # TODO: Track last-seen states, skip comments, compress space and newlines
         strs = []
         while (((node is None and self._pos < len(self._tokens)) or
                 (node is not None and self._pos < node.end_pos)) and
@@ -798,4 +827,46 @@ class LuaFormatterWriter(LuaASTEchoWriter):
                 isinstance(self._tokens[self._pos], lexer.TokComment))):
             strs.append(self._tokens[self._pos].code)
             self._pos += 1
-        return ''.join(strs)
+        spaces = ''.join(strs)
+
+        # Normalize space characters.
+        spaces = re.sub(r'\t', ' ', spaces)
+        spaces = re.sub(r'\r\n', '\n', spaces)
+        spaces = re.sub(r'\n\r', '\n', spaces)
+        spaces = re.sub(r'\r', '\n', spaces)
+        
+        # Delete trailing whitespace.
+        spaces = re.sub(r' +\n', '\n', spaces)
+
+        # If a comment is on the same line as previous, separate it by two
+        # spaces.
+        spaces = re.sub(r'^ *--', '  --', spaces)
+
+        # If a comment is on its own line, indent it at the indent level.
+        spaces = re.sub(r'\n *--',
+                        '\n' + ' ' * self._indent_mult * self._indent + '--',
+                        spaces)
+
+        # If next non-space is on its own line, indent it at the indent level.
+        spaces = re.sub(r'\n *$', '\n' + ' ' * self._indent_mult * self._indent,
+                        spaces)
+
+        # Collapse regions of 2+ consecutive newlines to 2 newlines.
+        # TODO: two blank lines before function defs? classes?
+        spaces = re.sub(r'\n\n+', '\n\n', spaces)
+
+        # TODO: same-line spacing patterns:
+        # - one space before and after binop
+        # - one space before unop, no space after (except "not")
+        # - no space inside parens or braces
+        # - no space to left of comma or semicolon; one space after
+        # - no space around colons (for methods)
+        # - no "empty" semicolon statements; non-empty semicolon should be
+        #    adjacent to its statement
+        # - block starts on a new line; 'end' always on its own line
+
+        # TODO: edge cases
+        # - whitespace at beginning of first line (not preceded by a newline)
+        # - trailing whitespace at end of file
+
+        return spaces

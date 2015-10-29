@@ -300,7 +300,8 @@ def luafmt(g, outfh, out_fname, args=None):
       args: The argparse parsed args object, or None.
     """
     g.to_p8_file(outfh, filename=out_fname,
-                 lua_writer_cls=lua.LuaFormatterWriter)
+                 lua_writer_cls=lua.LuaFormatterWriter,
+                 lua_writer_args={'indentwidth': args.indentwidth})
 
 
 _PRINTAST_INDENT_SIZE = 2

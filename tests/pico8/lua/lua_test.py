@@ -203,6 +203,279 @@ end
 ''', txt)
         self.assertIn('f=1  n=2  o=3', txt)
 
+
+class TestLuaFormatterWriter(unittest.TestCase):
+    def testNormalizesSpaceCharacters(self):
+        result = lua.Lua.from_lines(['a\t=\tb\r\n'], 4)
+        lines = list(result.to_lines(writer_cls=lua.LuaFormatterWriter))
+        txt = ''.join(lines)
+        self.assertEqual('a = b\n', txt)
+
+    def testTrailingWhitespace(self):
+        result = lua.Lua.from_lines(['a = b   \nc = d   \n'], 4)
+        lines = list(result.to_lines(writer_cls=lua.LuaFormatterWriter))
+        txt = ''.join(lines)
+        self.assertEqual('a = b\nc = d\n', txt)
+
+    def testCommentAtEndOfLine(self):
+        result = lua.Lua.from_lines(['a = b     -- comment\nc = d\n'], 4)
+        print('DEBUG: tokens={}'.format(result.tokens))
+        lines = list(result.to_lines(writer_cls=lua.LuaFormatterWriter))
+        txt = ''.join(lines)
+        self.assertEqual('a = b  -- comment\nc = d\n', txt)
+
+    def testCommentOnOwnLine(self):
+        result = lua.Lua.from_lines(['a = b\n    -- comment\nc = d\n'], 4)
+        lines = list(result.to_lines(writer_cls=lua.LuaFormatterWriter))
+        txt = ''.join(lines)
+        self.assertEqual('a = b\n-- comment\nc = d\n', txt)
+
+    def testIndentZero(self):
+        result = lua.Lua.from_lines(['\n  a = b\n        c = d\n'], 4)
+        lines = list(result.to_lines(writer_cls=lua.LuaFormatterWriter))
+        txt = ''.join(lines)
+        self.assertEqual('\na = b\nc = d\n', txt)
+
+    def testIndentBlock(self):
+        result = lua.Lua.from_lines(['''
+a = 1
+do
+b = 2
+    c = 3
+end
+ d = 4
+
+while foo do
+ e = 5
+  end
+repeat
+  f = 6
+ g = 7
+    h = 8
+until foo
+
+if foo then
+ i = 9
+  elseif bar then
+   j = 10
+    else
+     k = 11
+      end
+
+for x=1,10,2 do
+      l = 12
+       m = 13
+end
+for x in foo do
+        n = 14
+         o = 15
+end
+'''], 4)
+        lines = list(result.to_lines(writer_cls=lua.LuaFormatterWriter))
+        txt = ''.join(lines)
+        self.assertEqual('''
+a = 1
+do
+  b = 2
+  c = 3
+end
+d = 4
+
+while foo do
+  e = 5
+end
+repeat
+  f = 6
+  g = 7
+  h = 8
+until foo
+
+if foo then
+  i = 9
+elseif bar then
+  j = 10
+else
+  k = 11
+end
+
+for x=1,10,2 do
+  l = 12
+  m = 13
+end
+for x in foo do
+  n = 14
+  o = 15
+end
+''', txt)
+
+    def testIndentMulti(self):
+        result = lua.Lua.from_lines(['''
+do
+a = 1
+while foo do
+b = 2
+if bar then
+c = 3
+elseif baz then
+d = 4
+repeat
+e = 5
+until bing
+else
+f = 6
+end
+end
+g = 7
+end
+h = 8
+'''], 4)
+        lines = list(result.to_lines(writer_cls=lua.LuaFormatterWriter))
+        txt = ''.join(lines)
+        self.assertEqual('''
+do
+  a = 1
+  while foo do
+    b = 2
+    if bar then
+      c = 3
+    elseif baz then
+      d = 4
+      repeat
+        e = 5
+      until bing
+    else
+      f = 6
+    end
+  end
+  g = 7
+end
+h = 8
+''', txt)
+
+    def testIndentCommentsAndStatements(self):
+        result = lua.Lua.from_lines(['''
+ x += 1    -- increment x
+do
+-- do stuff in here
+ print "stuff happens"
+x -= 1      -- decrement x
+end
+ -- END
+'''], 4)
+        lines = list(result.to_lines(writer_cls=lua.LuaFormatterWriter))
+        txt = ''.join(lines)
+        self.assertEqual('''
+x += 1  -- increment x
+do
+  -- do stuff in here
+  print "stuff happens"
+  x -= 1  -- decrement x
+end
+-- END
+''', txt)
+
+    def testIndentTableConstructor(self):
+        result = lua.Lua.from_lines(['''
+obj = {
+foo=function(arg)
+ a = 1
+  b = 2
+   c = 3
+    end,
+     bar=function(arg, arg, arg)
+      d = 4
+       e = 5
+        end,
+         baz=999
+          }
+'''], 4)
+        lines = list(result.to_lines(writer_cls=lua.LuaFormatterWriter))
+        txt = ''.join(lines)
+        self.assertEqual('''
+obj = {
+  foo=function(arg)
+    a = 1
+    b = 2
+    c = 3
+  end,
+  bar=function(arg, arg, arg)
+    d = 4
+    e = 5
+  end,
+  baz=999
+}
+''', txt)
+
+    def testTooManyNewlines(self):
+        result = lua.Lua.from_lines(['''
+
+
+ a = 1
+
+
+
+
+  b = 2
+
+
+   c = 3
+'''], 4)
+        lines = list(result.to_lines(writer_cls=lua.LuaFormatterWriter))
+        txt = ''.join(lines)
+        self.assertEqual('''
+
+a = 1
+
+b = 2
+
+c = 3
+''', txt)
+
+    def testAcceptsIndentWidthArg(self):
+        result = lua.Lua.from_lines(['''
+do
+a = 1
+while foo do
+b = 2
+if bar then
+c = 3
+elseif baz then
+d = 4
+repeat
+e = 5
+until bing
+else
+f = 6
+end
+end
+g = 7
+end
+h = 8
+'''], 4)
+        lines = list(result.to_lines(writer_cls=lua.LuaFormatterWriter,
+                                     writer_args={'indentwidth':3}))
+        txt = ''.join(lines)
+        self.assertEqual('''
+do
+   a = 1
+   while foo do
+      b = 2
+      if bar then
+         c = 3
+      elseif baz then
+         d = 4
+         repeat
+            e = 5
+         until bing
+      else
+         f = 6
+      end
+   end
+   g = 7
+end
+h = 8
+''', txt)
+    
         
 if __name__ == '__main__':
     unittest.main()

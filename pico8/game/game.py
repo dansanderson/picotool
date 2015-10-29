@@ -273,13 +273,15 @@ class Game():
     
         return new_game
         
-    def to_p8_file(self, outstr, lua_writer_cls=None, filename=None):
+    def to_p8_file(self, outstr, lua_writer_cls=None, lua_writer_args=None,
+                   filename=None):
         """Write the game data as a .p8 file.
 
         Args:
           outstr: The output stream.
-          writer_cls: The Lua writer class to use. If None, defaults to
+          lua_writer_cls: The Lua writer class to use. If None, defaults to
             LuaEchoWriter.
+          lua_writer_args: Args to pass to the Lua writer.
           filename: The output filename, for error messages.
         """
         outstr.write(HEADER_TITLE_STR)
@@ -293,7 +295,8 @@ class Game():
 
         outstr.write(SECTION_DELIM_PAT.format('lua'))
         ended_in_newline = None
-        for l in self.lua.to_lines(writer_cls=lua_writer_cls):
+        for l in self.lua.to_lines(writer_cls=lua_writer_cls,
+                                   writer_args=lua_writer_args):
             outstr.write(l)
             ended_in_newline = l.endswith('\n')
         if not ended_in_newline:
