@@ -6,6 +6,7 @@ __all__ = ['main']
 import argparse
 import csv
 import os
+import re
 import sys
 import tempfile
 import textwrap
@@ -36,6 +37,8 @@ def _get_argparser():
             Minify the Lua code for a cart, reducing the character count.
           luafmt [--overwrite] [--indentwidth=2] <filename> [<filename>...]
             Make the Lua code for a cart easier to read by adjusting indentation.
+          luafind [--listfiles] <pattern> <filename> [<filename>...]
+            Find a string or pattern in the code of one or more carts.
 
           listtokens <filename> [<filename>...]
             List the tokens for a cart to the console (for debugging picotool).
@@ -61,6 +64,9 @@ def _get_argparser():
     parser.add_argument(
         '--csv', action='store_true',
         help='for stats, output a CSV file instead of text')
+    parser.add_argument(
+        '--listfiles', action='store_true',
+        help='for luafind, only list filenames, do not print matching lines')
     parser.add_argument(
         '-q', '--quiet', action='store_true',
         help='suppresses inessential messages')
@@ -346,29 +352,73 @@ def printast(args):
     return 0
 
 
-def main(orig_args):
-    arg_parser = _get_argparser()
-    args = arg_parser.parse_args(args=orig_args)
-    if args.debug:
-        util.set_verbosity(util.VERBOSITY_DEBUG)
-    elif args.quiet:
-        util.set_verbosity(util.VERBOSITY_QUIET)
+def luafind(args):
+    """Looks for Lua code lines that match a pattern in one or more carts.
 
-    if args.command == 'stats':
-        return stats(args)
-    elif args.command == 'listlua':
-        return listlua(args)
-    elif args.command == 'listtokens':
-        return listtokens(args)
-    elif args.command == 'printast':
-        return printast(args)
-    elif args.command == 'writep8':
-        return process_game_files(args.filename, writep8, args=args)
-    elif args.command == 'luamin':
-        return process_game_files(args.filename, luamin, args=args)
-    elif args.command == 'luafmt':
-        return process_game_files(args.filename, luafmt,
-                                  overwrite=args.overwrite, args=args)
+    Args:
+      args: The argparser parsed args object.
+
+    Returns:
+      0 on success, 1 on failure.
+    """
+    # (The first argument is the pattern, but it's stored in args.filename.)
+    filenames = list(args.filename)
+    if len(filenames) < 2:
+        util.error(
+            'Usage: p8tool luafind <pattern> <filename> [<filename>...]\n')
+        return 1
+    pattern = re.compile(filenames.pop(0))
+
+    # TODO: Tell the Lua class not to bother parsing, since we only need the
+    # token stream to get the lines of code.
+    for fname, g in _games_for_filenames(filenames):
+        line_count = 0
+        for l in g.lua.to_lines():
+            line_count += 1
+            if pattern.search(l) is None:
+                continue
+            if args.listfiles:
+                util.write(fname + '\n')
+                break
+            try:
+                util.write('{}:{}:{}'.format(fname, line_count, l))
+            except UnicodeEncodeError as e:
+                new_l = ''.join(c if ord(c) < 128 else '_' for c in l)
+                util.write('{}:{}:{}'.format(fname, line_count, new_l))
+
+    return 0
+
+
+def main(orig_args):
+    try:
+        arg_parser = _get_argparser()
+        args = arg_parser.parse_args(args=orig_args)
+        if args.debug:
+            util.set_verbosity(util.VERBOSITY_DEBUG)
+        elif args.quiet:
+            util.set_verbosity(util.VERBOSITY_QUIET)
+
+        if args.command == 'stats':
+            return stats(args)
+        elif args.command == 'listlua':
+            return listlua(args)
+        elif args.command == 'listtokens':
+            return listtokens(args)
+        elif args.command == 'printast':
+            return printast(args)
+        elif args.command == 'writep8':
+            return process_game_files(args.filename, writep8, args=args)
+        elif args.command == 'luamin':
+            return process_game_files(args.filename, luamin, args=args)
+        elif args.command == 'luafmt':
+            return process_game_files(args.filename, luafmt,
+                                      overwrite=args.overwrite, args=args)
+        elif args.command == 'luafind':
+            return luafind(args)
     
-    arg_parser.print_help()
-    return 1
+        arg_parser.print_help()
+        return 1
+
+    except KeyboardInterrupt:
+        util.error('\nInterrupted with Control-C, stopping.\n')
+        return 1

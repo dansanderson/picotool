@@ -185,6 +185,45 @@ function _draw()
 The current version of `luafmt` is simple and mostly just adjusts indentation. It does not adjust spaces between tokens on a line, align elements to brackets, or wrap long lines.
 
 
+### p8tool luafind
+
+The `luafind` tool searches for a string or pattern in the code of one or more carts. The pattern can be a simple string or a regular expression that matches a single line of code.
+
+Unlike common tools like `grep`, `luafind` can search code in .p8.png carts as well as .p8 carts. This tool is otherwise not particularly smart: it's slow (it runs every file through the parser), and doesn't support fancier `grep`-like features.
+
+```
+% ./picotool-master/p8tool luafind 'boards\[.*\]' *.p8*
+test_gol.p8.png:11:  boards[1][y] = {}
+test_gol.p8.png:12:  boards[2][y] = {}
+test_gol.p8.png:14:    boards[1][y][x] = 0
+test_gol.p8.png:15:    boards[2][y][x] = 0
+test_gol.p8.png:20:boards[1][60][64] = 1
+test_gol.p8.png:21:boards[1][60][65] = 1
+test_gol.p8.png:22:boards[1][61][63] = 1
+test_gol.p8.png:23:boards[1][61][64] = 1
+test_gol.p8.png:24:boards[1][62][64] = 1
+test_gol.p8.png:30:  return boards[bi][y][x]
+test_gol.p8.png:36:      pset(x-1,y-1,boards[board_i][y][x] * alive_color)
+test_gol.p8.png:54:          ((boards[board_i][y][x] == 1) and neighbors == 2)) then
+test_gol.p8.png:55:        boards[other_i][y][x] = 1
+test_gol.p8.png:57:        boards[other_i][y][x] = 0
+```
+
+You can tell `luafind` to just list the names of files containing the pattern without printing the lines using the `--listfiles` argument. Here's an example that looks for carts that contain examples of Lua OO programming:
+
+```
+% ./picotool-master/p8tool luafind --listfiles 'self,' *.p8*
+../bbscrawl/11243.p8.png
+../bbscrawl/12029.p8.png
+../bbscrawl/12997.p8.png
+../bbscrawl/13350.p8.png
+../bbscrawl/13375.p8.png
+../bbscrawl/13739.p8.png
+../bbscrawl/15216.p8.png
+...
+```
+
+
 ### p8tool listtokens
 
 The `listtokens` tool is similar to `listlua`, but it identifies which characters picotool recognizes as a single token.
