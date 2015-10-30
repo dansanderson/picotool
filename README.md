@@ -213,13 +213,13 @@ You can tell `luafind` to just list the names of files containing the pattern wi
 
 ```
 % ./picotool-master/p8tool luafind --listfiles 'self,' *.p8*
-../bbscrawl/11243.p8.png
-../bbscrawl/12029.p8.png
-../bbscrawl/12997.p8.png
-../bbscrawl/13350.p8.png
-../bbscrawl/13375.p8.png
-../bbscrawl/13739.p8.png
-../bbscrawl/15216.p8.png
+11243.p8.png
+12029.p8.png
+12997.p8.png
+13350.p8.png
+13375.p8.png
+13739.p8.png
+15216.p8.png
 ...
 ```
 
