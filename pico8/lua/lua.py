@@ -158,9 +158,9 @@ class Lua():
         for line in writer.to_lines():
             yield line
 
-
-class BaseLuaWriter():
-    """A base class for Lua writers."""
+            
+class BaseASTWalker():
+    """A base class for AST walkers."""
     def __init__(self, tokens, root, args=None):
         """Initializer.
 
@@ -172,7 +172,43 @@ class BaseLuaWriter():
         self._tokens = tokens
         self._root = root
         self._args = args or {}
+
+    def _walk(self, node):
+        """Walk a node by calling its handler.
         
+        Yields:
+          Items returned or yielded by the handler.
+        """
+        assert isinstance(node, parser.Node)
+        result = getattr(self, '_walk_' + node.__class__.__name__)(node)
+        if result is not None:
+            for t in result:
+                yield t
+
+    def walk(self):
+        """Walk an AST from the root.
+
+        Yields:
+          All items returned or yielded by the node handlers.
+        """
+        for t in self._walk(self._root):
+            yield t
+
+            
+def _empty_node_handler(self, node):
+    '''Empty node handler for BaseASTWalker that does nothing.'''
+    pass
+
+
+# For each node type, create an empty node handler in the base class.
+for cname in dir(parser):
+    cls = getattr(parser, cname)
+    if isinstance(cls, type) and issubclass(cls, parser.Node):
+        setattr(BaseASTWalker, '_walk_' + cls.__name__, _empty_node_handler)
+            
+
+class BaseLuaWriter(BaseASTWalker):
+    """A base class for Lua writers."""
     def to_lines(self):
         """Generates lines of Lua source based on the parser output.
 
@@ -291,8 +327,377 @@ class LuaASTEchoWriter(BaseLuaWriter):
                 spaces_and_semis.append(spaces)
                 break
         return ''.join(spaces_and_semis)
-    
-    def _generate_code_for_node(self, node):
+
+    def _walk_Chunk(self, node):
+        for stat in node.stats:
+            yield self._get_semis(node)
+            for t in self._walk(stat):
+                yield t
+        yield self._get_semis(node)
+
+    def _walk_StatAssignment(self, node):
+        for t in self._walk(node.varlist):
+            yield t
+        yield self._get_text(node, node.assignop.code)
+        for t in self._walk(node.explist):
+            yield t
+            
+    def _walk_StatFunctionCall(self, node):
+        for t in self._walk(node.functioncall):
+            yield t
+
+    def _walk_StatDo(self, node):
+        yield self._get_text(node, 'do')
+        self._indent += 1
+        for t in self._walk(node.block):
+            yield t
+        self._indent -= 1
+        yield self._get_text(node, 'end')
+
+    def _walk_StatWhile(self, node):
+        yield self._get_text(node, 'while')
+        for t in self._walk(node.exp):
+            yield t
+        yield self._get_text(node, 'do')
+        self._indent += 1
+        for t in self._walk(node.block):
+            yield t
+        self._indent -= 1
+        yield self._get_text(node, 'end')
+
+    def _walk_StatRepeat(self, node):
+        yield self._get_text(node, 'repeat')
+        self._indent += 1
+        for t in self._walk(node.block):
+            yield t
+        self._indent -= 1
+        yield self._get_text(node, 'until')
+        for t in self._walk(node.exp):
+            yield t
+
+    def _walk_StatIf(self, node):
+        short_if = getattr(node, 'short_if', False)
+            
+        first = True
+        for (exp, block) in node.exp_block_pairs:
+            if exp is not None:
+                if first:
+                    yield self._get_text(node, 'if')
+                    first = False
+                else:
+                    yield self._get_text(node, 'elseif')
+                if short_if:
+                    yield self._get_text(node, '(')
+                    self._indent += 1
+                    for t in self._walk(exp):
+                        yield t
+                    self._indent -= 1
+                    yield self._get_text(node, ')')
+                else:
+                    for t in self._walk(exp):
+                        yield t
+                    yield self._get_text(node, 'then')
+                    self._indent += 1
+                for t in self._walk(block):
+                    yield t
+                if not short_if:
+                    self._indent -= 1
+            else:
+                yield self._get_text(node, 'else')
+                self._indent += 1
+                for t in self._walk(block):
+                    yield t
+                self._indent -= 1
+        if not short_if:
+            yield self._get_text(node, 'end')
+
+    def _walk_StatForStep(self, node):
+        yield self._get_text(node, 'for')
+        yield self._get_name(node, node.name)
+        yield self._get_text(node, '=')
+        for t in self._walk(node.exp_init):
+            yield t
+        yield self._get_text(node, ',')
+        for t in self._walk(node.exp_end):
+            yield t
+        if node.exp_step is not None:
+            yield self._get_text(node, ',')
+            for t in self._walk(node.exp_step):
+                yield t
+        yield self._get_text(node, 'do')
+        self._indent += 1
+        for t in self._walk(node.block):
+            yield t
+        self._indent -= 1
+        yield self._get_text(node, 'end')
+
+    def _walk_StatForIn(self, node):
+        yield self._get_text(node, 'for')
+        for t in self._walk(node.namelist):
+            yield t
+        yield self._get_text(node, 'in')
+        for t in self._walk(node.explist):
+            yield t
+        yield self._get_text(node, 'do')
+        self._indent += 1
+        for t in self._walk(node.block):
+            yield t
+        self._indent -= 1
+        yield self._get_text(node, 'end')
+
+    def _walk_StatFunction(self, node):
+        yield self._get_text(node, 'function')
+        for t in self._walk(node.funcname):
+            yield t
+        for t in self._walk(node.funcbody):
+            yield t
+
+    def _walk_StatLocalFunction(self, node):
+        yield self._get_text(node, 'local')
+        yield self._get_text(node, 'function')
+        yield self._get_name(node, node.funcname)
+        for t in self._walk(node.funcbody):
+            yield t
+
+    def _walk_StatLocalAssignment(self, node):
+        yield self._get_text(node, 'local')
+        for t in self._walk(node.namelist):
+            yield t
+        if node.explist is not None:
+            yield self._get_text(node, '=')
+            for t in self._walk(node.explist):
+                yield t
+
+    def _walk_StatGoto(self, node):
+        yield self._get_text(node, 'goto')
+        yield self._get_name(node, lexer.TokName(node.label))
+
+    def _walk_StatLabel(self, node):
+        yield self._get_code_for_spaces(node)
+        yield '::'
+        yield self._get_name(node, lexer.TokName(node.label))
+        yield '::'
+
+    def _walk_StatBreak(self, node):
+        yield self._get_text(node, 'break')
+
+    def _walk_StatReturn(self, node):
+        yield self._get_text(node, 'return')
+        if node.explist is not None:
+            for t in self._walk(node.explist):
+                yield t
+
+    def _walk_FunctionName(self, node):
+        yield self._get_name(node, node.namepath[0])
+        if len(node.namepath) > 1:
+            for i in range(1, len(node.namepath)):
+                yield self._get_text(node, '.')
+                yield self._get_name(node, node.namepath[i])
+        if node.methodname is not None:
+            yield self._get_text(node, ':')
+            yield self._get_name(node, node.methodname)
+
+    def _walk_FunctionArgs(self, node):
+        yield self._get_text(node, '(')
+        self._indent += 1
+        if node.explist is not None:
+            for t in self._walk(node.explist):
+                yield t
+        self._indent -= 1
+        yield self._get_text(node, ')')
+
+    def _walk_VarList(self, node):
+        for t in self._walk(node.vars[0]):
+            yield t
+        if len(node.vars) > 1:
+            for i in range(1, len(node.vars)):
+                yield self._get_text(node, ',')
+                for t in self._walk(node.vars[i]):
+                    yield t
+
+    def _walk_VarName(self, node):
+        yield self._get_name(node, node.name)
+
+    def _walk_VarIndex(self, node):
+        for t in self._walk(node.exp_prefix):
+            yield t
+        yield self._get_text(node, '[')
+        self._indent += 1
+        for t in self._walk(node.exp_index):
+            yield t
+        self._indent -= 1
+        yield self._get_text(node, ']')
+
+    def _walk_VarAttribute(self, node):
+        for t in self._walk(node.exp_prefix):
+            yield t
+        yield self._get_text(node, '.')
+        yield self._get_name(node, node.attr_name)
+
+    def _walk_NameList(self, node):
+        if node.names is not None:
+            yield self._get_name(node, node.names[0])
+            if len(node.names) > 1:
+                for i in range(1, len(node.names)):
+                    yield self._get_text(node, ',')
+                    yield self._get_name(node, node.names[i])
+
+    def _walk_ExpList(self, node):
+        if node.exps is not None:
+            for t in self._walk(node.exps[0]):
+                yield t
+            if len(node.exps) > 1:
+                for i in range(1, len(node.exps)):
+                    yield self._get_text(node, ',')
+                    for t in self._walk(node.exps[i]):
+                        yield t
+
+    def _walk_ExpValue(self, node):
+        yield self._get_code_for_spaces(node)
+        in_parens = False
+        if self._tokens[self._pos].matches(lexer.TokSymbol('(')):
+            yield '('
+            in_parens = True
+            self._pos += 1
+            self._indent += 1
+        if node.value == None:
+            yield self._get_text(node, 'nil')
+        elif node.value == False:
+            yield self._get_text(node, 'false')
+        elif node.value == True:
+            yield self._get_text(node, 'true')
+        elif isinstance(node.value, lexer.TokName):
+            yield self._get_name(node, node.value)
+        elif (isinstance(node.value, lexer.TokNumber) or
+              isinstance(node.value, lexer.TokString)):
+            yield self._get_code_for_spaces(node)
+            yield self._tokens[self._pos].code
+            self._pos += 1
+        else:
+            for t in self._walk(node.value):
+                yield t
+        if in_parens:
+            self._indent -= 1
+            yield self._get_text(node, ')')
+
+    def _walk_VarargDots(self, node):
+        yield self._get_text(node, '...')
+
+    def _walk_ExpBinOp(self, node):
+        for t in self._walk(node.exp1):
+            yield t
+        yield self._get_text(node, node.binop.code)
+        for t in self._walk(node.exp2):
+            yield t
+
+    def _walk_ExpUnOp(self, node):
+        yield self._get_text(node, node.unop.code)
+        for t in self._walk(node.exp):
+            yield t
+
+    def _walk_FunctionCall(self, node):
+        for t in self._walk(node.exp_prefix):
+            yield t
+        if node.args is None:
+            yield self._get_text(node, '(')
+            yield self._get_text(node, ')')
+        elif isinstance(node.args, lexer.TokString):
+            yield self._get_code_for_spaces(node)
+            self._pos += 1
+            yield node.args.code
+        else:
+            for t in self._walk(node.args):
+                yield t
+
+    def _walk_FunctionCallMethod(self, node):
+        for t in self._walk(node.exp_prefix):
+            yield t
+        yield self._get_text(node, ':')
+        yield self._get_name(node, node.methodname)
+        if node.args is None:
+            yield self._get_text(node, '(')
+            yield self._get_text(node, ')')
+        elif isinstance(node.args, lexer.TokString):
+            yield self._get_code_for_spaces(node)
+            assert node.args.matches(self._tokens[self._pos])
+            self._pos += 1
+            yield node.args.code
+        else:
+            # FunctionArgs or TableConstructor
+            for t in self._walk(node.args):
+                yield t
+
+    def _walk_Function(self, node):
+        yield self._get_text(node, 'function')
+        for t in self._walk(node.funcbody):
+            yield t
+
+    def _walk_FunctionBody(self, node):
+        yield self._get_text(node, '(')
+        self._indent += 1
+        if node.parlist is not None:
+            for t in self._walk(node.parlist):
+                yield t
+            if node.dots is not None:
+                yield self._get_text(node, ',')
+                for t in self._walk(node.dots):
+                    yield t
+        else:
+            if node.dots is not None:
+                for t in self._walk(node.dots):
+                    yield t
+        self._indent -= 1
+        yield self._get_text(node, ')')
+        self._indent += 1
+        for t in self._walk(node.block):
+            yield t
+        self._indent -= 1
+        yield self._get_text(node, 'end')
+
+    def _walk_TableConstructor(self, node):
+        yield self._get_text(node, '{')
+        self._indent += 1
+        if node.fields:
+            for t in self._walk(node.fields[0]):
+                yield t
+            if len(node.fields) > 1:
+                for i in range(1, len(node.fields)):
+                    # The parser doesn't store which field separator was
+                    # used, so we have to find it in the token stream.
+                    yield self._get_code_for_spaces(node)
+                    yield self._get_text(node, self._tokens[self._pos].code)
+                    for t in self._walk(node.fields[i]):
+                        yield t
+        # Process a trailing fieldsep, if any.
+        self._indent -= 1
+        yield self._get_code_for_spaces(node)
+        if (self._tokens[self._pos].matches(lexer.TokSymbol(',')) or
+            self._tokens[self._pos].matches(lexer.TokSymbol(';'))):
+            yield self._get_text(node, self._tokens[self._pos].code)
+        yield self._get_text(node, '}')
+
+    def _walk_FieldExpKey(self, node):
+        yield self._get_text(node, '[')
+        self._indent += 1
+        for t in self._walk(node.key_exp):
+            yield t
+        self._indent -= 1
+        yield self._get_text(node, ']')
+        yield self._get_text(node, '=')
+        for t in self._walk(node.exp):
+            yield t
+
+    def _walk_FieldNamedKey(self, node):
+        yield self._get_name(node, node.key_name)
+        yield self._get_text(node, '=')
+        for t in self._walk(node.exp):
+            yield t
+
+    def _walk_FieldExp(self, node):
+        for t in self._walk(node.exp):
+            yield t
+
+    def _walk(self, node):
         """Calculates the code for a given AST node, including the preceding
         spaces and comments.
 
@@ -303,375 +708,8 @@ class LuaASTEchoWriter(BaseLuaWriter):
           Chunks of code for the node.
         """
         yield self._get_code_for_spaces(node)
-
-        if isinstance(node, parser.Chunk):
-            for stat in node.stats:
-                yield self._get_semis(node)
-                for t in self._generate_code_for_node(stat):
-                    yield t
-            yield self._get_semis(node)
-        
-        elif isinstance(node, parser.StatAssignment):
-            for t in self._generate_code_for_node(node.varlist):
-                yield t
-            yield self._get_text(node, node.assignop.code)
-            for t in self._generate_code_for_node(node.explist):
-                yield t
-        
-        elif isinstance(node, parser.StatFunctionCall):
-            for t in self._generate_code_for_node(node.functioncall):
-                yield t
-        
-        elif isinstance(node, parser.StatDo):
-            yield self._get_text(node, 'do')
-            self._indent += 1
-            for t in self._generate_code_for_node(node.block):
-                yield t
-            self._indent -= 1
-            yield self._get_text(node, 'end')
-            
-        elif isinstance(node, parser.StatWhile):
-            yield self._get_text(node, 'while')
-            for t in self._generate_code_for_node(node.exp):
-                yield t
-            yield self._get_text(node, 'do')
-            self._indent += 1
-            for t in self._generate_code_for_node(node.block):
-                yield t
-            self._indent -= 1
-            yield self._get_text(node, 'end')
-        
-        elif isinstance(node, parser.StatRepeat):
-            yield self._get_text(node, 'repeat')
-            self._indent += 1
-            for t in self._generate_code_for_node(node.block):
-                yield t
-            self._indent -= 1
-            yield self._get_text(node, 'until')
-            for t in self._generate_code_for_node(node.exp):
-                yield t
-        
-        elif isinstance(node, parser.StatIf):
-            short_if = getattr(node, 'short_if', False)
-                
-            first = True
-            for (exp, block) in node.exp_block_pairs:
-                if exp is not None:
-                    if first:
-                        yield self._get_text(node, 'if')
-                        first = False
-                    else:
-                        yield self._get_text(node, 'elseif')
-                    if short_if:
-                        yield self._get_text(node, '(')
-                        self._indent += 1
-                        for t in self._generate_code_for_node(exp):
-                            yield t
-                        self._indent -= 1
-                        yield self._get_text(node, ')')
-                    else:
-                        for t in self._generate_code_for_node(exp):
-                            yield t
-                        yield self._get_text(node, 'then')
-                        self._indent += 1
-                    for t in self._generate_code_for_node(block):
-                        yield t
-                    if not short_if:
-                        self._indent -= 1
-                else:
-                    yield self._get_text(node, 'else')
-                    self._indent += 1
-                    for t in self._generate_code_for_node(block):
-                        yield t
-                    self._indent -= 1
-            if not short_if:
-                yield self._get_text(node, 'end')
-        
-        elif isinstance(node, parser.StatForStep):
-            yield self._get_text(node, 'for')
-            yield self._get_name(node, node.name)
-            yield self._get_text(node, '=')
-            for t in self._generate_code_for_node(node.exp_init):
-                yield t
-            yield self._get_text(node, ',')
-            for t in self._generate_code_for_node(node.exp_end):
-                yield t
-            if node.exp_step is not None:
-                yield self._get_text(node, ',')
-                for t in self._generate_code_for_node(node.exp_step):
-                    yield t
-            yield self._get_text(node, 'do')
-            self._indent += 1
-            for t in self._generate_code_for_node(node.block):
-                yield t
-            self._indent -= 1
-            yield self._get_text(node, 'end')
-        
-        elif isinstance(node, parser.StatForIn):
-            yield self._get_text(node, 'for')
-            for t in self._generate_code_for_node(node.namelist):
-                yield t
-            yield self._get_text(node, 'in')
-            for t in self._generate_code_for_node(node.explist):
-                yield t
-            yield self._get_text(node, 'do')
-            self._indent += 1
-            for t in self._generate_code_for_node(node.block):
-                yield t
-            self._indent -= 1
-            yield self._get_text(node, 'end')
-        
-        elif isinstance(node, parser.StatFunction):
-            yield self._get_text(node, 'function')
-            for t in self._generate_code_for_node(node.funcname):
-                yield t
-            for t in self._generate_code_for_node(node.funcbody):
-                yield t
-        
-        elif isinstance(node, parser.StatLocalFunction):
-            yield self._get_text(node, 'local')
-            yield self._get_text(node, 'function')
-            yield self._get_name(node, node.funcname)
-            for t in self._generate_code_for_node(node.funcbody):
-                yield t
-        
-        elif isinstance(node, parser.StatLocalAssignment):
-            yield self._get_text(node, 'local')
-            for t in self._generate_code_for_node(node.namelist):
-                yield t
-            if node.explist is not None:
-                yield self._get_text(node, '=')
-                for t in self._generate_code_for_node(node.explist):
-                    yield t
-        
-        elif isinstance(node, parser.StatGoto):
-            yield self._get_text(node, 'goto')
-            yield self._get_name(node, lexer.TokName(node.label))
-        
-        elif isinstance(node, parser.StatLabel):
-            yield self._get_code_for_spaces(node)
-            yield '::'
-            yield self._get_name(node, lexer.TokName(node.label))
-            yield '::'
-        
-        elif isinstance(node, parser.StatBreak):
-            yield self._get_text(node, 'break')
-        
-        elif isinstance(node, parser.StatReturn):
-            yield self._get_text(node, 'return')
-            if node.explist is not None:
-                for t in self._generate_code_for_node(node.explist):
-                    yield t
-        
-        elif isinstance(node, parser.FunctionName):
-            yield self._get_name(node, node.namepath[0])
-            if len(node.namepath) > 1:
-                for i in range(1, len(node.namepath)):
-                    yield self._get_text(node, '.')
-                    yield self._get_name(node, node.namepath[i])
-            if node.methodname is not None:
-                yield self._get_text(node, ':')
-                yield self._get_name(node, node.methodname)
-        
-        elif isinstance(node, parser.FunctionArgs):
-            yield self._get_text(node, '(')
-            self._indent += 1
-            if node.explist is not None:
-                for t in self._generate_code_for_node(node.explist):
-                    yield t
-            self._indent -= 1
-            yield self._get_text(node, ')')
-        
-        elif isinstance(node, parser.VarList):
-            for t in self._generate_code_for_node(node.vars[0]):
-                yield t
-            if len(node.vars) > 1:
-                for i in range(1, len(node.vars)):
-                    yield self._get_text(node, ',')
-                    for t in self._generate_code_for_node(node.vars[i]):
-                        yield t
-        
-        elif isinstance(node, parser.VarName):
-            yield self._get_name(node, node.name)
-        
-        elif isinstance(node, parser.VarIndex):
-            for t in self._generate_code_for_node(node.exp_prefix):
-                yield t
-            yield self._get_text(node, '[')
-            self._indent += 1
-            for t in self._generate_code_for_node(node.exp_index):
-                yield t
-            self._indent -= 1
-            yield self._get_text(node, ']')
-        
-        elif isinstance(node, parser.VarAttribute):
-            for t in self._generate_code_for_node(node.exp_prefix):
-                yield t
-            yield self._get_text(node, '.')
-            yield self._get_name(node, node.attr_name)
-        
-        elif isinstance(node, parser.NameList):
-            if node.names is not None:
-                yield self._get_name(node, node.names[0])
-                if len(node.names) > 1:
-                    for i in range(1, len(node.names)):
-                        yield self._get_text(node, ',')
-                        yield self._get_name(node, node.names[i])
-        
-        elif isinstance(node, parser.ExpList):
-            if node.exps is not None:
-                for t in self._generate_code_for_node(node.exps[0]):
-                    yield t
-                if len(node.exps) > 1:
-                    for i in range(1, len(node.exps)):
-                        yield self._get_text(node, ',')
-                        for t in self._generate_code_for_node(node.exps[i]):
-                            yield t
-        
-        elif isinstance(node, parser.ExpValue):
-            yield self._get_code_for_spaces(node)
-            in_parens = False
-            if self._tokens[self._pos].matches(lexer.TokSymbol('(')):
-                yield '('
-                in_parens = True
-                self._pos += 1
-                self._indent += 1
-            if node.value == None:
-                yield self._get_text(node, 'nil')
-            elif node.value == False:
-                yield self._get_text(node, 'false')
-            elif node.value == True:
-                yield self._get_text(node, 'true')
-            elif isinstance(node.value, lexer.TokName):
-                yield self._get_name(node, node.value)
-            elif (isinstance(node.value, lexer.TokNumber) or
-                  isinstance(node.value, lexer.TokString)):
-                yield self._get_code_for_spaces(node)
-                yield self._tokens[self._pos].code
-                self._pos += 1
-            else:
-                for t in self._generate_code_for_node(node.value):
-                    yield t
-            if in_parens:
-                self._indent -= 1
-                yield self._get_text(node, ')')
-        
-        elif isinstance(node, parser.VarargDots):
-            yield self._get_text(node, '...')
-        
-        elif isinstance(node, parser.ExpBinOp):
-            for t in self._generate_code_for_node(node.exp1):
-                yield t
-            yield self._get_text(node, node.binop.code)
-            for t in self._generate_code_for_node(node.exp2):
-                yield t
-        
-        elif isinstance(node, parser.ExpUnOp):
-            yield self._get_text(node, node.unop.code)
-            for t in self._generate_code_for_node(node.exp):
-                yield t
-        
-        elif isinstance(node, parser.FunctionCall):
-            for t in self._generate_code_for_node(node.exp_prefix):
-                yield t
-            if node.args is None:
-                yield self._get_text(node, '(')
-                yield self._get_text(node, ')')
-            elif isinstance(node.args, lexer.TokString):
-                yield self._get_code_for_spaces(node)
-                self._pos += 1
-                yield node.args.code
-            else:
-                for t in self._generate_code_for_node(node.args):
-                    yield t
-        
-        elif isinstance(node, parser.FunctionCallMethod):
-            for t in self._generate_code_for_node(node.exp_prefix):
-                yield t
-            yield self._get_text(node, ':')
-            yield self._get_name(node, node.methodname)
-            if node.args is None:
-                yield self._get_text(node, '(')
-                yield self._get_text(node, ')')
-            elif isinstance(node.args, lexer.TokString):
-                yield self._get_code_for_spaces(node)
-                assert node.args.matches(self._tokens[self._pos])
-                self._pos += 1
-                yield node.args.code
-            else:
-                # FunctionArgs or TableConstructor
-                for t in self._generate_code_for_node(node.args):
-                    yield t
-        
-        elif isinstance(node, parser.Function):
-            yield self._get_text(node, 'function')
-            for t in self._generate_code_for_node(node.funcbody):
-                yield t
-        
-        elif isinstance(node, parser.FunctionBody):
-            yield self._get_text(node, '(')
-            self._indent += 1
-            if node.parlist is not None:
-                for t in self._generate_code_for_node(node.parlist):
-                    yield t
-                if node.dots is not None:
-                    yield self._get_text(node, ',')
-                    for t in self._generate_code_for_node(node.dots):
-                        yield t
-            else:
-                if node.dots is not None:
-                    for t in self._generate_code_for_node(node.dots):
-                        yield t
-            self._indent -= 1
-            yield self._get_text(node, ')')
-            self._indent += 1
-            for t in self._generate_code_for_node(node.block):
-                yield t
-            self._indent -= 1
-            yield self._get_text(node, 'end')
-        
-        elif isinstance(node, parser.TableConstructor):
-            yield self._get_text(node, '{')
-            self._indent += 1
-            if node.fields:
-                for t in self._generate_code_for_node(node.fields[0]):
-                    yield t
-                if len(node.fields) > 1:
-                    for i in range(1, len(node.fields)):
-                        # The parser doesn't store which field separator was
-                        # used, so we have to find it in the token stream.
-                        yield self._get_code_for_spaces(node)
-                        yield self._get_text(node, self._tokens[self._pos].code)
-                        for t in self._generate_code_for_node(node.fields[i]):
-                            yield t
-            # Process a trailing fieldsep, if any.
-            self._indent -= 1
-            yield self._get_code_for_spaces(node)
-            if (self._tokens[self._pos].matches(lexer.TokSymbol(',')) or
-                self._tokens[self._pos].matches(lexer.TokSymbol(';'))):
-                yield self._get_text(node, self._tokens[self._pos].code)
-            yield self._get_text(node, '}')
-        
-        elif isinstance(node, parser.FieldExpKey):
-            yield self._get_text(node, '[')
-            self._indent += 1
-            for t in self._generate_code_for_node(node.key_exp):
-                yield t
-            self._indent -= 1
-            yield self._get_text(node, ']')
-            yield self._get_text(node, '=')
-            for t in self._generate_code_for_node(node.exp):
-                yield t
-        
-        elif isinstance(node, parser.FieldNamedKey):
-            yield self._get_name(node, node.key_name)
-            yield self._get_text(node, '=')
-            for t in self._generate_code_for_node(node.exp):
-                yield t
-        
-        elif isinstance(node, parser.FieldExp):
-            for t in self._generate_code_for_node(node.exp):
-                yield t
+        for t in super()._walk(node):
+            yield t
           
     def to_lines(self):
         """Generates lines of Lua source based on the parser output.
@@ -682,7 +720,7 @@ class LuaASTEchoWriter(BaseLuaWriter):
         self._pos = 0
 
         linebuf = []
-        for chunk in self._generate_code_for_node(self._root):
+        for chunk in self.walk():
             parts = chunk.split('\n')
             while len(parts) > 1:
                 linebuf.append(parts.pop(0))
