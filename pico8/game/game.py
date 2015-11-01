@@ -160,12 +160,16 @@ class Game():
             elif section == 'gfx':
                 new_game.gfx = Gfx.from_lines(
                     section_lines[section], version=version)
+                my_map = getattr(new_game, 'map')
+                if my_map is not None:
+                    my_map._gfx = new_game.gfx
             elif section == 'gff':
                 new_game.gff = Gff.from_lines(
                     section_lines[section], version=version)
             elif section == 'map':
+                my_gfx = getattr(new_game, 'gfx')
                 new_game.map = Map.from_lines(
-                    section_lines[section], version=version, gfx=new_game.gfx)
+                    section_lines[section], version=version, gfx=my_gfx)
             elif section == 'sfx':
                 new_game.sfx = Sfx.from_lines(
                     section_lines[section], version=version)

@@ -43,6 +43,26 @@ class Map(util.BaseSection):
           A Map instance.
         """
         return cls(data=bytearray(b'\x00' * 4096), version=version, gfx=gfx)
+
+    @classmethod
+    def from_lines(cls, *args, **kwargs):
+        gfx = None
+        if 'gfx' in kwargs:
+            gfx = kwargs['gfx']
+            del kwargs['gfx']
+        result = super().from_lines(*args, **kwargs)
+        result._gfx = gfx
+        return result
+
+    @classmethod
+    def from_bytes(cls, *args, **kwargs):
+        gfx = None
+        if 'gfx' in kwargs:
+            gfx = kwargs['gfx']
+            del kwargs['gfx']
+        result = super().from_bytes(*args, **kwargs)
+        result._gfx = gfx
+        return result
     
     def get_cell(self, x, y):
         """Gets the tile ID for a map cell.

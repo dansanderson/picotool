@@ -19,7 +19,7 @@ VALID_SFX_LINES = ([
     '0110000030555307652e5752b755295622e7722b752277622707227561297522b072295472774224042275421b4421b5451b5421b4421d542295471d442295422444624546245472444727546275462944729547\n',
     '0110000000200002000020000200002000020000200002000020000200002000020000200002000020000200110171d117110171d227131211f227130371f2370f0411b1470f2471b35716051221571626722367\n',
     '001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002e775000002e1752e075000002e1752e77500000\n',
-] + ['001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\n'] * 54)
+] + ['001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\n'] * 55)
 
 
 class TestSfx(unittest.TestCase):
@@ -33,7 +33,66 @@ class TestSfx(unittest.TestCase):
         s = sfx.Sfx.from_lines(VALID_SFX_LINES, 4)
         self.assertEqual(list(s.to_lines()), VALID_SFX_LINES)
 
+    def testSetNote(self):
+        s = sfx.Sfx.empty(version=4)
+        s.set_note(0, 0, pitch=1, waveform=2, volume=3, effect=4)
+        self.assertEqual(b'\x81\x46', s._data[0:2])
+        s.set_note(0, 1, pitch=1, waveform=2, volume=3, effect=4)
+        self.assertEqual(b'\x81\x46', s._data[2:4])
+        s.set_note(1, 0, pitch=1, waveform=2, volume=3, effect=4)
+        self.assertEqual(b'\x81\x46', s._data[68:70])
 
+    def testGetNote(self):
+        s = sfx.Sfx.empty(version=4)
+        s.set_note(0, 0, pitch=1, waveform=2, volume=3, effect=4)
+        self.assertEqual((1, 2, 3, 4), s.get_note(0, 0))
+        s.set_note(0, 1, pitch=1, waveform=2, volume=3, effect=4)
+        self.assertEqual((1, 2, 3, 4), s.get_note(0, 1))
+        s.set_note(1, 0, pitch=1, waveform=2, volume=3, effect=4)
+        self.assertEqual((1, 2, 3, 4), s.get_note(1, 0))
+
+    def testSetProperties(self):
+        s = sfx.Sfx.empty(version=4)
+        s.set_properties(0,
+                         editor_mode=1, note_duration=2,
+                         loop_start=3, loop_end=4)
+        self.assertEqual(b'\x01\x02\x03\x04', s._data[64:68])
+        s.set_properties(0, editor_mode=0)
+        self.assertEqual(b'\x00\x02\x03\x04', s._data[64:68])
+        s.set_properties(0, note_duration=255)
+        self.assertEqual(b'\x00\xff\x03\x04', s._data[64:68])
+        s.set_properties(0, loop_start=10)
+        self.assertEqual(b'\x00\xff\x0a\x04', s._data[64:68])
+        s.set_properties(0, loop_end=11)
+        self.assertEqual(b'\x00\xff\x0a\x0b', s._data[64:68])
+
+        s.set_properties(63,
+                         editor_mode=1, note_duration=2,
+                         loop_start=3, loop_end=4)
+        self.assertEqual(b'\x01\x02\x03\x04', s._data[63 * 68 + 64:63 * 68 + 68])
+        s.set_properties(63, editor_mode=0)
+        self.assertEqual(b'\x00\x02\x03\x04', s._data[63 * 68 + 64:63 * 68 + 68])
+        s.set_properties(63, note_duration=255)
+        self.assertEqual(b'\x00\xff\x03\x04', s._data[63 * 68 + 64:63 * 68 + 68])
+        s.set_properties(63, loop_start=10)
+        self.assertEqual(b'\x00\xff\x0a\x04', s._data[63 * 68 + 64:63 * 68 + 68])
+        s.set_properties(63, loop_end=11)
+        self.assertEqual(b'\x00\xff\x0a\x0b', s._data[63 * 68 + 64:63 * 68 + 68])
+
+    def testGetProperties(self):
+        s = sfx.Sfx.empty(version=4)
+        self.assertEqual((0, 0, 0, 0), s.get_properties(0))
+        s.set_properties(0,
+                         editor_mode=1, note_duration=2,
+                         loop_start=3, loop_end=4)
+        self.assertEqual((1, 2, 3, 4), s.get_properties(0))
+        self.assertEqual((0, 0, 0, 0), s.get_properties(63))
+        s.set_properties(63,
+                         editor_mode=1, note_duration=2,
+                         loop_start=3, loop_end=4)
+        self.assertEqual((1, 2, 3, 4), s.get_properties(63))
+
+    
 class TestHelloWorld(unittest.TestCase):
     '''Tests to address a weird case where one sfx pattern in helloworld.p8.png
     was coming out slightly wrong.
