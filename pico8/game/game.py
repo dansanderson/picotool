@@ -84,9 +84,8 @@ class Game():
         g.gfx = Gfx.empty(version=5)
         g.gff = Gff.empty(version=5)
         g.map = Map.empty(version=5, gfx=g.gfx)
-        # TODO: match Pico-8's defaults for sfx speeds
-        g.sfx = Sfx(data=b'\x00' * 4352, version=5)
-        g.music = Music(data=b'\0x41\0x42\0x43\0x44' * 64, version=5)
+        g.sfx = Sfx.empty(version=5)
+        g.music = Music.empty(version=5)
         g.version = 5
 
         return g

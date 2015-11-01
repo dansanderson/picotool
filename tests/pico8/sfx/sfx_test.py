@@ -81,12 +81,18 @@ class TestSfx(unittest.TestCase):
 
     def testGetProperties(self):
         s = sfx.Sfx.empty(version=4)
-        self.assertEqual((0, 0, 0, 0), s.get_properties(0))
+        
+        # (A Pico-8 default cart has a note duration of 1 for the first
+        # pattern.)
+        self.assertEqual((0, 1, 0, 0), s.get_properties(0))
         s.set_properties(0,
                          editor_mode=1, note_duration=2,
                          loop_start=3, loop_end=4)
         self.assertEqual((1, 2, 3, 4), s.get_properties(0))
-        self.assertEqual((0, 0, 0, 0), s.get_properties(63))
+        
+        # (A Pico-8 default cart has a note duration of 16 for all other
+        # patterns.)
+        self.assertEqual((0, 16, 0, 0), s.get_properties(63))
         s.set_properties(63,
                          editor_mode=1, note_duration=2,
                          loop_start=3, loop_end=4)

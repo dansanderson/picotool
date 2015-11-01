@@ -74,7 +74,14 @@ class Sfx(util.BaseSection):
         Returns:
           A Sfx instance.
         """
-        return cls(data=bytearray(b'\x00' * 4352), version=version)
+        result = cls(data=bytearray(b'\x00' * 4352), version=version)
+        
+        # Emulate Pico-8 defaults:
+        result.set_properties(0, note_duration=1)
+        for i in range(1,64):
+            result.set_properties(i, note_duration=16)
+            
+        return result
     
     @classmethod
     def from_lines(cls, lines, version):
