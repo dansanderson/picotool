@@ -127,7 +127,6 @@ class Sfx(util.BaseSection):
                 pitch, waveform, volume, effect = self.get_note(id, note)
                 hexstrs.append(bytes([pitch, waveform << 4 | volume]).hex())
                 hexstrs.append(bytes([effect]).hex()[1])
-            print('DEBUG: line={}'.format(''.join(hexstrs)))
             yield ''.join(hexstrs) + '\n'
 
     def get_note(self, id, note):

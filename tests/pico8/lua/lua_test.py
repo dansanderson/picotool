@@ -219,7 +219,6 @@ class TestLuaFormatterWriter(unittest.TestCase):
 
     def testCommentAtEndOfLine(self):
         result = lua.Lua.from_lines(['a = b     -- comment\nc = d\n'], 4)
-        print('DEBUG: tokens={}'.format(result.tokens))
         lines = list(result.to_lines(writer_cls=lua.LuaFormatterWriter))
         txt = ''.join(lines)
         self.assertEqual('a = b  -- comment\nc = d\n', txt)

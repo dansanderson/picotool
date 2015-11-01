@@ -103,7 +103,6 @@ class TestGfx(unittest.TestCase):
         self.assertEqual(bytearray(b'\x10\x32\x54\x76'),
                          g._data[64 * 11 + 15 * 4:64 * 11 + 15 * 4 + 4])
         new_spr = g.get_sprite(15, 2, 2)
-        print('DEBUG: new_spr={}'.format(new_spr))
         self.assertEqual(
             [bytearray(b'\x00\x01\x02\x03\x04\x05\x06\x07' +
                        b'\x00' * 8)] * 12 +
