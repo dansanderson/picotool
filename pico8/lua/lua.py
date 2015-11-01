@@ -173,16 +173,48 @@ class BaseASTWalker():
         self._root = root
         self._args = args or {}
 
+    def _walk_token(self, token):
+        """Walk a field whose value is a token.
+
+        The default implementation does nothing.
+
+        Yields:
+          An appropriate value, or None.
+        """
+        if False:
+            yield
+
+    def _walk_value(self, value):
+        """Walk a field whose value is a simple value (such as a bool).
+
+        The default implementation does nothing.
+
+        Yields:
+          An appropriate value, or None.
+        """
+        if False:
+            yield
+
     def _walk(self, node):
         """Walk a node by calling its handler.
         
         Yields:
           Items returned or yielded by the handler.
         """
-        assert isinstance(node, parser.Node)
-        result = getattr(self, '_walk_' + node.__class__.__name__)(node)
-        if result is not None:
-            for t in result:
+        if isinstance(node, parser.Node):
+            result = getattr(self, '_walk_' + node.__class__.__name__)(node)
+            if result is not None:
+                for t in result:
+                    yield t
+        elif isinstance(node, lexer.Token):
+            for t in self._walk_token(node):
+                yield t
+        elif hasattr(node, '__len__') and type(node) != str:
+            for item in node:
+                for t in self._walk(item):
+                    yield t
+        else:
+            for t in self._walk_value(node):
                 yield t
 
     def walk(self):
@@ -195,16 +227,18 @@ class BaseASTWalker():
             yield t
 
             
-def _empty_node_handler(self, node):
-    '''Empty node handler for BaseASTWalker that does nothing.'''
-    pass
+def _default_node_handler(self, node):
+    '''Default node handler for BaseASTWalker that walks fields.'''
+    for field in node._fields:
+        for t in self._walk(getattr(node, field)):
+            yield t
 
 
 # For each node type, create an empty node handler in the base class.
 for cname in dir(parser):
     cls = getattr(parser, cname)
     if isinstance(cls, type) and issubclass(cls, parser.Node):
-        setattr(BaseASTWalker, '_walk_' + cls.__name__, _empty_node_handler)
+        setattr(BaseASTWalker, '_walk_' + cls.__name__, _default_node_handler)
             
 
 class BaseLuaWriter(BaseASTWalker):
@@ -260,7 +294,8 @@ class LuaASTEchoWriter(BaseLuaWriter):
         comment tokens verbatim.
 
         Args:
-          node: The Node with possible space and comment tokens in its range.
+          node: The Node with possible space and comment tokens in its range, or
+            None to just get spaces from the current token position.
 
         Returns:
           A string representing the tokens.
@@ -790,7 +825,8 @@ class LuaMinifyWriter(LuaASTEchoWriter):
         prefix the node.
 
         Args:
-          node: The Node with possible space and comment tokens in its range.
+          node: The Node with possible space and comment tokens in its range, or
+            None to just get spaces from the current token position.
 
         Returns:
           A string representing the minified spaces.

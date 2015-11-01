@@ -78,6 +78,20 @@ class TestMap(unittest.TestCase):
             b'\x02\x03\x04\x05\x06\x07\x08\x09'),
                          tile_rect[0])
         self.assertEqual(bytearray(b'\x00') * 8, tile_rect[1])
+
+    def testSetRectTiles(self):
+        m = map.Map.empty()
+        m._gfx = gfx.Gfx.empty()
+        m.set_rect_tiles([[1] * 4] * 3, 2, 3)
+        result = m.get_rect_tiles(0, 0, width=7, height=7)
+        self.assertEqual(
+            [bytearray(b'\x00\x00\x00\x00\x00\x00\x00'),
+             bytearray(b'\x00\x00\x00\x00\x00\x00\x00'),
+             bytearray(b'\x00\x00\x00\x00\x00\x00\x00'),
+             bytearray(b'\x00\x00\x01\x01\x01\x01\x00'),
+             bytearray(b'\x00\x00\x01\x01\x01\x01\x00'),
+             bytearray(b'\x00\x00\x01\x01\x01\x01\x00'),
+             bytearray(b'\x00\x00\x00\x00\x00\x00\x00')], result)
         
     def testGetRectPixels(self):
         m = map.Map.empty()
@@ -95,7 +109,7 @@ class TestMap(unittest.TestCase):
                              pixels[i])
         for i in range(8,16):
             self.assertEqual(bytearray(b'\x00' * 24), pixels[i])
-        
+
             
 if __name__ == '__main__':
     unittest.main()

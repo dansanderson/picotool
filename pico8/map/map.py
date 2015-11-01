@@ -136,7 +136,28 @@ class Map(util.BaseSection):
             result.append(row)
         return result
 
+    def set_rect_tiles(self, rect, x, y):
+        """Writes a rectangle of tiles to the map.
+
+        If writing the given rectangle at the given coordinates causes
+        the rectangle to extend off the edge of the map, the remainer
+        is discarded.
+
+        Args:
+          rect: A rectangle of tile IDs, as an iterable of iterables of IDs.
+          x: The map tile x coordinate (column) of the upper left corner to
+            start writing.
+          y: The map tile y coordinate (row) of the upper left corner to
+            start writing.
+        """
+        for tile_y, row in enumerate(rect):
+            for tile_x, val in enumerate(row):
+                if ((tile_y + y) > 127) or ((tile_x + x) > 127):
+                    continue
+                self.set_cell(tile_x + x, tile_y + y, val)
+                
     def get_rect_pixels(self, x, y, width=1, height=1):
+
         """Gets a rectangel of map tiles as pixels.
 
         This is similar to get_rect_tiles() except the tiles are
