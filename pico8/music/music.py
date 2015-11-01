@@ -30,6 +30,18 @@ from .. import util
 
 class Music(util.BaseSection):
     @classmethod
+    def empty(cls, version):
+        """Creates an empty instance.
+
+        Args:
+          version: The Pico-8 file version.
+
+        Returns:
+          A Music instance.
+        """
+        return cls(data=bytearray(b'\x41\x42\x43\x44' * 64), version=version)
+    
+    @classmethod
     def from_lines(cls, lines, version):
         """Parse the music .p8 section into memory bytes.
 
@@ -78,3 +90,82 @@ class Music(util.BaseSection):
             chan4 = self._data[start_i+3] & 127
             yield (bytes([p8flags]).hex() + ' ' +
                    bytes([chan1, chan2, chan3, chan4]).hex() + '\n')
+
+    def get_channel(self, id, channel):
+        """Gets the sfx ID on a channel for a given pattern.
+
+        Args:
+          id: The music ID. (0-63)
+          channel: The channel. (0-3)
+
+        Returns:
+          The sfx ID on the channel, or None if the channel is silent.
+        """
+        assert 0 <= id <= 63
+        assert 0 <= channel <= 3
+        pattern = self._data[id * 4 + channel] & 0x7f
+        if pattern > 63:
+            return None
+        return pattern
+    
+    def set_channel(self, id, channel, pattern):
+        """Sets the sfx ID on a channel of a pattern.
+
+        Args:
+          id: The music ID. (0-63)
+          channel: The channel. (0-3)
+          pattern: The sfx ID, or None to set the channel to silent.
+        """
+        assert 0 <= id <= 63
+        assert 0 <= channel <= 3
+        assert (pattern is None) or (0 <= pattern <= 63)
+        if pattern is None:
+            pattern = 0x40 + channel + 1
+        self._data[id * 4 + channel] = ((self._data[id * 4 + channel] & 0x80) |
+                                        pattern)
+        
+    def get_properties(self, id):
+        """Gets the properties of the music pattern.
+
+        begin is True if the music pattern is the beginning of a looping region.
+
+        end is True if the music pattern is the end of a looping region.
+
+        stop is True if the music stops after this pattern is played.
+
+        Args:
+          id: The music ID. (0-63)
+
+        Returns:
+          A tuple: (being, end, stop). These are Booleans (True or False).
+        """
+        assert 0 <= id <= 63
+        begin = (self._data[id * 4] & 0x80) > 0
+        end = (self._data[id * 4 + 1] & 0x80) > 0
+        stop = (self._data[id * 4 + 2] & 0x80) > 0
+        return (begin, end, stop)
+    
+    def set_properties(self, id, begin=None, end=None, stop=None):
+        """Sets the properties of the music pattern.
+
+        Specify values of True or False to change a property, or None to leave
+        the property unchanged.
+
+        Args:
+          id: The music ID. (0-63)
+          begin: True to set the flag, False to unset the flag, or None to
+            leave it unchanged.
+          end: True to set the flag, False to unset the flag, or None to
+            leave it unchanged.
+          stop: True to set the flag, False to unset the flag, or None to
+            leave it unchanged.
+        """
+        if begin is not None:
+            self._data[id * 4] = ((self._data[id * 4] & 0x7f) |
+                                  (0x80 if begin else 0x00))
+        if end is not None:
+            self._data[id * 4 + 1] = ((self._data[id * 4 + 1] & 0x7f) |
+                                      (0x80 if end else 0x00))
+        if stop is not None:
+            self._data[id * 4 + 2] = ((self._data[id * 4 + 2] & 0x7f) |
+                                      (0x80 if stop else 0x00))
