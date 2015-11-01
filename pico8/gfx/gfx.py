@@ -43,7 +43,7 @@ class Gfx(util.BaseSection):
 
     @classmethod
     def empty(cls, version=4):
-        """Create an empty instance.
+        """Creates an empty instance.
 
         Returns:
           A Gfx instance.

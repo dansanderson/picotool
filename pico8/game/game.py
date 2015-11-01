@@ -81,9 +81,9 @@ class Game():
         
         g.lua = Lua(version=5)
         g.lua.update_from_lines([])
-        g.gfx = Gfx(data=b'\x00' * 8192, version=5)
-        g.gff = Gff(data=b'\x00' * 256, version=5)
-        g.map = Map(data=b'\x00' * 4096, version=5)
+        g.gfx = Gfx.empty(version=5)
+        g.gff = Gff.empty(version=5)
+        g.map = Map.empty(version=5, gfx=g.gfx)
         # TODO: match Pico-8's defaults for sfx speeds
         g.sfx = Sfx(data=b'\x00' * 4352, version=5)
         g.music = Music(data=b'\0x41\0x42\0x43\0x44' * 64, version=5)
@@ -165,7 +165,7 @@ class Game():
                     section_lines[section], version=version)
             elif section == 'map':
                 new_game.map = Map.from_lines(
-                    section_lines[section], version=version)
+                    section_lines[section], version=version, gfx=new_game.gfx)
             elif section == 'sfx':
                 new_game.sfx = Sfx.from_lines(
                     section_lines[section], version=version)
@@ -265,7 +265,7 @@ class Game():
         new_game.gff = Gff.from_bytes(
             gfx_props, version=version)
         new_game.map = Map.from_bytes(
-            p8map, version=version)
+            p8map, version=version, gfx=new_game.gfx)
         new_game.sfx = Sfx.from_bytes(
             sfx, version=version)
         new_game.music = Music.from_bytes(
