@@ -300,6 +300,9 @@ class LuaASTEchoWriter(BaseLuaWriter):
         Returns:
           A string representing the tokens.
         """
+        if self._args.get('ignore_tokens'):
+            return '\n'
+        
         strs = []
         while (((node is None and self._pos < len(self._tokens)) or
                 (node is not None and self._pos < node.end_pos)) and
@@ -322,6 +325,9 @@ class LuaASTEchoWriter(BaseLuaWriter):
         Returns:
           The text for the name.
         """
+        if self._args.get('ignore_tokens'):
+            return ' ' + tok.code
+        
         spaces = self._get_code_for_spaces(node)
         assert tok.matches(lexer.TokName)
         self._pos += 1
@@ -337,6 +343,9 @@ class LuaASTEchoWriter(BaseLuaWriter):
         Returns:
           The text for the keyword or symbol.
         """
+        if self._args.get('ignore_tokens'):
+            return ' ' + keyword
+        
         spaces = self._get_code_for_spaces(node)
         assert (self._tokens[self._pos].matches(lexer.TokKeyword(keyword)) or
                 self._tokens[self._pos].matches(lexer.TokSymbol(keyword)))
@@ -352,6 +361,9 @@ class LuaASTEchoWriter(BaseLuaWriter):
         Returns:
           The text for the semicolons and preceding spaces.
         """
+        if self._args.get('ignore_tokens'):
+            return ' '
+        
         spaces_and_semis = []
         while True:
             spaces = self._get_code_for_spaces(node)
@@ -411,7 +423,10 @@ class LuaASTEchoWriter(BaseLuaWriter):
             yield t
 
     def _walk_StatIf(self, node):
-        short_if = getattr(node, 'short_if', False)
+        # The ignore_tokens hack screws up spacing, so convert short ifs to
+        # long ifs.
+        short_if = (getattr(node, 'short_if', False) and
+                    not self._args.get('ignore_tokens'))
             
         first = True
         for (exp, block) in node.exp_block_pairs:
@@ -589,12 +604,21 @@ class LuaASTEchoWriter(BaseLuaWriter):
 
     def _walk_ExpValue(self, node):
         yield self._get_code_for_spaces(node)
+
         in_parens = False
-        if self._tokens[self._pos].matches(lexer.TokSymbol('(')):
-            yield '('
-            in_parens = True
-            self._pos += 1
-            self._indent += 1
+        if self._args.get('ignore_tokens'):
+            # Use node.value type to determine whether exp needs parens.
+            if isinstance(node.value, parser.Node):
+                yield '('
+                in_parens = True
+                self._indent += 1
+        else:
+            if self._tokens[self._pos].matches(lexer.TokSymbol('(')):
+                yield '('
+                in_parens = True
+                self._pos += 1
+                self._indent += 1
+            
         if node.value == None:
             yield self._get_text(node, 'nil')
         elif node.value == False:
@@ -606,11 +630,13 @@ class LuaASTEchoWriter(BaseLuaWriter):
         elif (isinstance(node.value, lexer.TokNumber) or
               isinstance(node.value, lexer.TokString)):
             yield self._get_code_for_spaces(node)
-            yield self._tokens[self._pos].code
-            self._pos += 1
+            yield node.value.code
+            if not self._args.get('ignore_tokens'):
+                self._pos += 1
         else:
             for t in self._walk(node.value):
                 yield t
+                
         if in_parens:
             self._indent -= 1
             yield self._get_text(node, ')')
@@ -638,7 +664,8 @@ class LuaASTEchoWriter(BaseLuaWriter):
             yield self._get_text(node, ')')
         elif isinstance(node.args, lexer.TokString):
             yield self._get_code_for_spaces(node)
-            self._pos += 1
+            if not self._args.get('ignore_tokens'):
+                self._pos += 1
             yield node.args.code
         else:
             for t in self._walk(node.args):
@@ -654,8 +681,9 @@ class LuaASTEchoWriter(BaseLuaWriter):
             yield self._get_text(node, ')')
         elif isinstance(node.args, lexer.TokString):
             yield self._get_code_for_spaces(node)
-            assert node.args.matches(self._tokens[self._pos])
-            self._pos += 1
+            if not self._args.get('ignore_tokens'):
+                assert node.args.matches(self._tokens[self._pos])
+                self._pos += 1
             yield node.args.code
         else:
             # FunctionArgs or TableConstructor
@@ -700,15 +728,19 @@ class LuaASTEchoWriter(BaseLuaWriter):
                     # The parser doesn't store which field separator was
                     # used, so we have to find it in the token stream.
                     yield self._get_code_for_spaces(node)
-                    yield self._get_text(node, self._tokens[self._pos].code)
+                    if self._args.get('ignore_tokens'):
+                        yield ', '
+                    else:
+                        yield self._get_text(node, self._tokens[self._pos].code)
                     for t in self._walk(node.fields[i]):
                         yield t
         # Process a trailing fieldsep, if any.
         self._indent -= 1
         yield self._get_code_for_spaces(node)
-        if (self._tokens[self._pos].matches(lexer.TokSymbol(',')) or
-            self._tokens[self._pos].matches(lexer.TokSymbol(';'))):
-            yield self._get_text(node, self._tokens[self._pos].code)
+        if not self._args.get('ignore_tokens'):
+            if (self._tokens[self._pos].matches(lexer.TokSymbol(',')) or
+                self._tokens[self._pos].matches(lexer.TokSymbol(';'))):
+                yield self._get_text(node, self._tokens[self._pos].code)
         yield self._get_text(node, '}')
 
     def _walk_FieldExpKey(self, node):
@@ -755,7 +787,16 @@ class LuaASTEchoWriter(BaseLuaWriter):
         self._pos = 0
 
         linebuf = []
+        last_was_newline = False
         for chunk in self.walk():
+            if self._args.get('ignore_tokens'):
+                # Clean up extraneous spacing.
+                if chunk == '\n':
+                    if last_was_newline:
+                        chunk = ''
+                    last_was_newline = True
+                else:
+                    last_was_newline = False    
             parts = chunk.split('\n')
             while len(parts) > 1:
                 linebuf.append(parts.pop(0))
