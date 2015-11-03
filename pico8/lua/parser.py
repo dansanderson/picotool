@@ -306,17 +306,17 @@ class Parser():
     def _stat(self):
         """Parse a stat.
 
-        stat ::=  varlist `=´ explist | 
+        stat ::=  varlist '=' explist | 
 		 functioncall | 
 		 do block end | 
 		 while exp do block end | 
 		 repeat block until exp | 
 		 if exp then block {elseif exp then block} [else block] end | 
-		 for Name `=´ exp `,´ exp [`,´ exp] do block end | 
+		 for Name '=' exp ',' exp [',' exp] do block end | 
 		 for namelist in explist do block end | 
 		 function funcname funcbody | 
 		 local function Name funcbody | 
-		 local namelist [`=´ explist] |
+		 local namelist ['=' explist] |
                  ::label::
 
         Returns:
@@ -514,7 +514,7 @@ class Parser():
     def _funcname(self):
         """Parse a funcname.
 
-        funcname ::= Name {`.´ Name} [`:´ Name]
+        funcname ::= Name {'.' Name} [':' Name]
 
         Returns:
           FunctionName(namepath, methodname)
@@ -537,7 +537,7 @@ class Parser():
     def _varlist(self):
         """Parse a varlist.
 
-        varlist ::= var {`,´ var}
+        varlist ::= var {',' var}
 
         Returns:
           VarList(vars)
@@ -555,7 +555,7 @@ class Parser():
     def _var(self):
         """Parse a var.
 
-        var ::=  Name | prefixexp `[´ exp `]´ | prefixexp `.´ Name
+        var ::=  Name | prefixexp '[' exp ']' | prefixexp '.' Name
 
         Returns:
           VarName(name)
@@ -572,7 +572,7 @@ class Parser():
     def _namelist(self):
         """Parse a namelist.
 
-        namelist ::= Name {`,´ Name}
+        namelist ::= Name {',' Name}
 
         Returns:
           NameList(names)
@@ -598,7 +598,7 @@ class Parser():
     def _explist(self):
         """Parse an explist.
 
-        explist ::= {exp `,´} exp
+        explist ::= {exp ','} exp
 
         Returns:
           ExpList(exps)
@@ -676,7 +676,7 @@ class Parser():
     def _exp_term(self):
         """Parse a non-recursive expression term.
 
-        exp_term ::=  nil | false | true | Number | String | `...´ | function | 
+        exp_term ::=  nil | false | true | Number | String | '...' | function | 
                       prefixexp | tableconstructor | unop exp
 
         Returns:
@@ -722,11 +722,11 @@ class Parser():
     def _prefixexp(self):
         """Parse a prefixexp.
 
-        prefixexp ::= var | functioncall | `(´ exp `)´
+        prefixexp ::= var | functioncall | '(' exp ')'
 
-        functioncall ::=  prefixexp args | prefixexp `:´ Name args
+        functioncall ::=  prefixexp args | prefixexp ':' Name args
 
-        args ::=  `(´ [explist] `)´ | tableconstructor | String
+        args ::=  '(' [explist] ')' | tableconstructor | String
 
         This expands to:
 
@@ -864,9 +864,9 @@ class Parser():
     def _funcbody(self):
         """Parse a funcbody.
 
-        funcbody ::= `(´ [parlist] `)´ block end
+        funcbody ::= '(' [parlist] ')' block end
 
-	parlist ::= namelist [`,´ `...´] | `...´
+	parlist ::= namelist [',' '...'] | '...'
 
         Returns:
           FunctionBody(parlist, dots, block)
@@ -896,11 +896,11 @@ class Parser():
     def _tableconstructor(self):
         """Parse a tableconstructor.
 
-        tableconstructor ::= `{´ [fieldlist] `}´
+        tableconstructor ::= '{' [fieldlist] '}'
 
 	fieldlist ::= field {fieldsep field} [fieldsep]
 
-	fieldsep ::= `,´ | `;´
+	fieldsep ::= ',' | ';'
 
         Returns:
           TableConstructor(fields)
@@ -926,7 +926,7 @@ class Parser():
     def _field(self):
         """Parse a field.
 
-        field ::= `[´ exp `]´ `=´ exp | Name `=´ exp | exp
+        field ::= '[' exp ']' '=' exp | Name '=' exp | exp
 
         Returns:
           FieldExpKey(key_exp, exp)
