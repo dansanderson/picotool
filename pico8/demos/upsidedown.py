@@ -46,6 +46,10 @@ def _get_argparser():
     parser.add_argument('--smallmap', action='store_true',
                         help='assume the cart\'s shared gfx/map region is used '
                         'as gfx; the default is to assume it is used as map')
+    parser.add_argument('--flipbuttons', action='store_true',
+                        help='switch buttons left and right, up and down')
+    parser.add_argument('--flipsounds', action='store_true',
+                        help='reverse sound effect patterns')
     parser.add_argument('infile', type=str,
                         help='the cart to turn upside down; can be .p8 '
                         'or .p8.png')
@@ -59,9 +63,12 @@ def _get_argparser():
 class UpsideDownASTTransform(lua.BaseASTWalker):
     """Transforms Lua code to invert coordinates of drawing functions."""
     def __init__(self, *args, **kwargs):
-        if 'smallmap' in kwargs:
-            self._smallmap = kwargs['smallmap']
-            del kwargs['smallmap']
+        self._smallmap = None
+        self._flipbuttons = None
+        for argname in ['smallmap', 'flipbuttons']:
+            if argname in kwargs:
+                setattr(self, '_' + argname, kwargs[argname])
+                del kwargs[argname]
         super().__init__(*args, **kwargs)
         
     def _make_binop(self, val_or_exp1, exp2, binop='-'):
@@ -90,7 +97,19 @@ class UpsideDownASTTransform(lua.BaseASTWalker):
             return
         func_name = node.exp_prefix.name.code
 
-        if func_name == 'pget':
+        if self._flipbuttons and (func_name == 'btn' or func_name == 'btnp'):
+            # It's not too tricky to swap odds and evens in a Lua expression, but it'd be a pain to write out the AST
+            # for it. So instead, we only support calls to btn/btnp where the first argument is a numeric constant,
+            # so we can swap them statically.
+            if isinstance(node.args.explist.exps[0].value, lexer.TokNumber):
+                numval = int(node.args.explist.exps[0].value.code)
+                if numval % 2 == 0:
+                    numval += 1
+                else:
+                    numval -= 1
+                node.args.explist.exps[0].value = lexer.TokNumber(str(numval))
+
+        elif func_name == 'pget':
             # pget x y
             node.args.explist.exps[0] = self._make_binop(127, node.args.explist.exps[0])
             node.args.explist.exps[1] = self._make_binop(127, node.args.explist.exps[1])
@@ -222,7 +241,7 @@ class UpsideDownASTTransform(lua.BaseASTWalker):
         yield
 
 
-def upsidedown_game(g, smallmap=False):
+def upsidedown_game(g, smallmap=False, flipbuttons=False, flipsounds=False):
     """Turn a game upside down.
 
     This modifies the game in-place.
@@ -231,6 +250,9 @@ def upsidedown_game(g, smallmap=False):
       g: The Game to turn upside down.
       smallmap: True if the gfx/map shared region is used as gfx, False
         otherwise.
+      flipbuttons: If True, reverses functions regarding reading buttons
+        to swap left and right, up and down.
+      flipsounds: If True, reverses sound effect / music pattern data.
     """
     last_sprite = 256 if smallmap else 128
     for id in range(last_sprite):
@@ -243,8 +265,21 @@ def upsidedown_game(g, smallmap=False):
     flipped_map = reversed(list(reversed(row) for row in tile_rect))
     g.map.set_rect_tiles(flipped_map, 0, 0)
 
+    if flipsounds:
+        for id in range(63):
+            notes = [g.sfx.get_note(id, n) for n in range(32)]
+            notes.reverse()
+            for n in range(32):
+                g.sfx.set_note(id, n, *notes[n])
+            (editor_mode, note_duration, loop_start, loop_end) = g.sfx.get_properties(id)
+            if loop_start:
+                g.sfx.set_properties(id, loop_start=63-loop_end)
+            if loop_end:
+                g.sfx.set_properties(id, loop_end=63-loop_start)
+
     transform = UpsideDownASTTransform(g.lua.tokens, g.lua.root,
-                                       smallmap=smallmap)
+                                       smallmap=smallmap,
+                                       flipbuttons=flipbuttons)
     try:
         it = transform.walk()
         while True:
@@ -275,7 +310,7 @@ def main(orig_args):
 
     g = game.Game.from_filename(args.infile)
 
-    upsidedown_game(g, args.smallmap)
+    upsidedown_game(g, args.smallmap, args.flipbuttons, args.flipsounds)
     
     with tempfile.TemporaryFile(mode='w+', encoding='utf-8') as outfh:
         g.to_p8_file(outfh, filename=out_fname,
