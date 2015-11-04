@@ -311,11 +311,12 @@ def main(orig_args):
     g = game.Game.from_filename(args.infile)
 
     upsidedown_game(g, args.smallmap, args.flipbuttons, args.flipsounds)
-    
+
+    g.lua.reparse(writer_cls=lua.LuaASTEchoWriter, writer_args={'ignore_tokens': True})
+
     with tempfile.TemporaryFile(mode='w+', encoding='utf-8') as outfh:
         g.to_p8_file(outfh, filename=out_fname,
-                     lua_writer_cls=lua.LuaASTEchoWriter,
-                     lua_writer_args={'ignore_tokens': True})
+                     lua_writer_cls=lua.LuaMinifyTokenWriter)
         outfh.seek(0)
         with open(out_fname, 'w', encoding='utf-8') as finalfh:
             finalfh.write(outfh.read())

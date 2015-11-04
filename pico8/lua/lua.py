@@ -158,6 +158,26 @@ class Lua():
         for line in writer.to_lines():
             yield line
 
+    def reparse(self, writer_cls=None, writer_args=None):
+        """Run the output of a Lua writer back through the parser, then re-store the tokens and parser.
+
+        This is useful for updating the token stream after transforming the AST. When doing this, be sure to use a
+        writer that doesn't use the token stream. (I usually reparse with LuaASTEchoWriter and ignore_tokens=True,
+        then write it out through LuaMinifyTokenWriter to clean it up. When LuaFormatterWriter is better, that'd
+        also be an option.)
+
+        Args:
+          writer_cls: The Lua writer class to use. If None, defaults to
+            LuaEchoWriter.
+          writer_args: Args to pass to the Lua writer.
+        """
+        new_lua = Lua.from_lines(
+            self.to_lines(writer_cls=writer_cls,
+                          writer_args=writer_args),
+            version=self.version)
+        self._lexer = new_lua._lexer
+        self._parser = new_lua._parser
+
             
 class BaseASTWalker():
     """A base class for AST walkers."""

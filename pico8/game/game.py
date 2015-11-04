@@ -296,15 +296,6 @@ class Game():
         # section).
         outstr.write(HEADER_VERSION_PAT.format(5))
 
-        outstr.write(SECTION_DELIM_PAT.format('lua'))
-        ended_in_newline = None
-        for l in self.lua.to_lines(writer_cls=lua_writer_cls,
-                                   writer_args=lua_writer_args):
-            outstr.write(l)
-            ended_in_newline = l.endswith('\n')
-        if not ended_in_newline:
-            outstr.write('\n')
-
         # Sanity-check the Lua written by the writer.
         transformed_lua = Lua.from_lines(
             self.lua.to_lines(writer_cls=lua_writer_cls,
@@ -324,6 +315,15 @@ class Game():
                        'limit of {}'.format(
                            transformed_lua.get_char_count(),
                            PICO8_LUA_CHAR_LIMIT))
+
+        outstr.write(SECTION_DELIM_PAT.format('lua'))
+        ended_in_newline = None
+        for l in self.lua.to_lines(writer_cls=lua_writer_cls,
+                                   writer_args=lua_writer_args):
+            outstr.write(l)
+            ended_in_newline = l.endswith('\n')
+        if not ended_in_newline:
+            outstr.write('\n')
 
         outstr.write(SECTION_DELIM_PAT.format('gfx'))
         for l in self.gfx.to_lines():
