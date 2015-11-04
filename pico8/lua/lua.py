@@ -813,24 +813,45 @@ class LuaASTEchoWriter(BaseLuaWriter):
             yield parts[-1]
         
 
+class MinifyNameFactory():
+    """Maps code names to generated short names."""
+    NAME_CHARS = 'abcdefghijklmnopqrstuvwxyz'
+    PRESERVED_NAMES = lexer.LUA_KEYWORDS | PICO8_BUILTINS
+
+    def __init__(self):
+        self._name_map = {}
+        self._next_name_id = 0
+
+    @classmethod
+    def _name_for_id(cls, id):
+        first = ''
+        if id >= len(MinifyNameFactory.NAME_CHARS):
+            first = cls._name_for_id(int(id / len(MinifyNameFactory.NAME_CHARS)))
+        return first + (MinifyNameFactory.NAME_CHARS[id % len(MinifyNameFactory.NAME_CHARS)])
+
+    def get_short_name(self, name):
+        if name in MinifyNameFactory.PRESERVED_NAMES:
+            return name
+        if name not in self._name_map:
+            new_name = None
+            while True:
+                new_name = self._name_for_id(self._next_name_id)
+                self._next_name_id += 1
+                if not new_name in MinifyNameFactory.PRESERVED_NAMES:
+                    break
+            self._name_map[name] = new_name
+            util.debug('- minifying name "{}" to "{}"\n'.format(
+                name, new_name))
+        return self._name_map[name]
+
+
 class LuaMinifyWriter(LuaASTEchoWriter):
     """Writes the Lua code to use a minimal number of characters.
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._name_map = {}
-        self._next_name_id = 0
+        self._name_factory = MinifyNameFactory()
 
-    NAME_CHARS = 'abcdefghijklmnopqrstuvwxyz'
-    PRESERVED_NAMES = lexer.LUA_KEYWORDS | PICO8_BUILTINS
-
-    @classmethod
-    def _name_for_id(cls, id):
-        first = ''
-        if id >= len(LuaMinifyWriter.NAME_CHARS):
-            first = cls._name_for_id(int(id / len(LuaMinifyWriter.NAME_CHARS)))
-        return first + (LuaMinifyWriter.NAME_CHARS[id % len(LuaMinifyWriter.NAME_CHARS)])
-        
     def _get_name(self, node, tok):
         """Gets the minified name for a TokName.
 
@@ -844,22 +865,7 @@ class LuaMinifyWriter(LuaASTEchoWriter):
         spaces = self._get_code_for_spaces(node)
         assert tok.matches(lexer.TokName)
         self._pos += 1
-
-        if tok.code in LuaMinifyWriter.PRESERVED_NAMES:
-            return spaces + tok.code
-
-        if tok.code not in self._name_map:
-            new_name = None
-            while True:
-                new_name = self._name_for_id(self._next_name_id)
-                self._next_name_id += 1
-                if not new_name in LuaMinifyWriter.PRESERVED_NAMES:
-                    break
-            self._name_map[tok.code] = new_name
-            util.debug('- minifying name "{}" to "{}"\n'.format(
-                tok.code, new_name))
-            
-        return spaces + self._name_map[tok.code]
+        return spaces + self._name_factory.get_short_name(tok.code)
     
     def _get_code_for_spaces(self, node):
         """Calculates the minified text for the space and comment tokens that
@@ -1003,3 +1009,52 @@ class LuaFormatterWriter(LuaASTEchoWriter):
         # - block starts on a new line; 'end' always on its own line
 
         return spaces
+
+
+class LuaMinifyTokenWriter(BaseLuaWriter):
+    """Another minify writer.
+
+    Unlike LuaMinifyWriter, this implementation just runs across the token stream and ignores the parser.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._name_factory = MinifyNameFactory()
+        self._last_was_name_keyword_number = False
+        self._saw_if = False
+
+    def to_lines(self):
+        """
+        Yields:
+          Chunks of Lua code.
+        """
+        for token in self._tokens:
+            if (token.matches(lexer.TokComment) or
+                token.matches(lexer.TokSpace)):
+                continue
+            elif token.matches(lexer.TokNewline):
+                # Hack for short-if: after seeing "if" (even if not short-if), keep the next newline.
+                if self._saw_if:
+                    self._saw_if = False
+                    self._last_was_name_keyword_number = False
+                    yield '\n'
+                continue
+            elif token.matches(lexer.TokName):
+                if self._last_was_name_keyword_number:
+                    yield ' '
+                self._last_was_name_keyword_number = True
+                yield self._name_factory.get_short_name(token.code)
+            elif token.matches(lexer.TokKeyword):
+                if token.code == 'if':
+                    self._saw_if = True
+                if self._last_was_name_keyword_number:
+                    yield ' '
+                self._last_was_name_keyword_number = True
+                yield token.code
+            elif token.matches(lexer.TokNumber):
+                if self._last_was_name_keyword_number:
+                    yield ' '
+                self._last_was_name_keyword_number = True
+                yield token.code
+            else:
+                self._last_was_name_keyword_number = False
+                yield token.code

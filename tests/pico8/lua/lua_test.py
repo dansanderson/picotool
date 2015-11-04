@@ -203,6 +203,15 @@ end
 ''', txt)
         self.assertIn('f=1  n=2  o=3', txt)
 
+    def testMinifyTokenWriterMinifiesSpacesEveryNode(self):
+        result = lua.Lua.from_lines(VALID_LUA_EVERY_NODE, 4)
+        lines = list(result.to_lines(writer_cls=lua.LuaMinifyTokenWriter))
+        txt = ''.join(lines)
+        self.assertNotIn('-- the code with the nodes', txt)
+        self.assertIn('while f<10 do f+=1 if f%2==0 then\na(f)elseif f>5 then a(f,5)else a(f,1)g*=2 end end', txt)
+        self.assertIn('for g in i()do a(g)end, txt)
+        self.assertIn('f=1;n=2;o=3', txt)
+
 
 class TestLuaFormatterWriter(unittest.TestCase):
     def testNormalizesSpaceCharacters(self):

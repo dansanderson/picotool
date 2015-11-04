@@ -293,7 +293,7 @@ def luamin(g, outfh, out_fname, args=None):
       args: The argparse parsed args object, or None.
     """
     g.to_p8_file(outfh, filename=out_fname,
-                 lua_writer_cls=lua.LuaMinifyWriter)
+                 lua_writer_cls=lua.LuaMinifyTokenWriter)
             
 
 def luafmt(g, outfh, out_fname, args=None):
