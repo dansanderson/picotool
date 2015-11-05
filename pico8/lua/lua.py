@@ -178,7 +178,7 @@ class Lua():
         self._lexer = new_lua._lexer
         self._parser = new_lua._parser
 
-            
+
 class BaseASTWalker():
     """A base class for AST walkers."""
     def __init__(self, tokens, root, args=None):
@@ -246,7 +246,7 @@ class BaseASTWalker():
         for t in self._walk(self._root):
             yield t
 
-            
+
 def _default_node_handler(self, node):
     '''Default node handler for BaseASTWalker that walks fields.'''
     for field in node._fields:
@@ -259,7 +259,7 @@ for cname in dir(parser):
     cls = getattr(parser, cname)
     if isinstance(cls, type) and issubclass(cls, parser.Node):
         setattr(BaseASTWalker, '_walk_' + cls.__name__, _default_node_handler)
-            
+
 
 class BaseLuaWriter(BaseASTWalker):
     """A base class for Lua writers."""
@@ -271,7 +271,7 @@ class BaseLuaWriter(BaseASTWalker):
         """
         raise NotImplementedError
 
-    
+
 class LuaEchoWriter(BaseLuaWriter):
     """Writes the Lua code to be identical to the input based on the token
     stream.
@@ -305,7 +305,7 @@ class LuaASTEchoWriter(BaseLuaWriter):
 
         self._pos = None
         self._indent = 0
-        
+
     def _get_code_for_spaces(self, node):
         """Calculates the text for the space and comment tokens that prefix the
         node.
@@ -322,7 +322,7 @@ class LuaASTEchoWriter(BaseLuaWriter):
         """
         if self._args.get('ignore_tokens'):
             return '\n'
-        
+
         strs = []
         while (((node is None and self._pos < len(self._tokens)) or
                 (node is not None and self._pos < node.end_pos)) and
@@ -347,7 +347,7 @@ class LuaASTEchoWriter(BaseLuaWriter):
         """
         if self._args.get('ignore_tokens'):
             return ' ' + tok.code
-        
+
         spaces = self._get_code_for_spaces(node)
         assert tok.matches(lexer.TokName)
         self._pos += 1
@@ -365,13 +365,13 @@ class LuaASTEchoWriter(BaseLuaWriter):
         """
         if self._args.get('ignore_tokens'):
             return ' ' + keyword
-        
+
         spaces = self._get_code_for_spaces(node)
         assert (self._tokens[self._pos].matches(lexer.TokKeyword(keyword)) or
                 self._tokens[self._pos].matches(lexer.TokSymbol(keyword)))
         self._pos += 1
         return spaces + keyword
-    
+
     def _get_semis(self, node):
         """Gets semicolons from between statements.
 
@@ -383,7 +383,7 @@ class LuaASTEchoWriter(BaseLuaWriter):
         """
         if self._args.get('ignore_tokens'):
             return ' '
-        
+
         spaces_and_semis = []
         while True:
             spaces = self._get_code_for_spaces(node)
@@ -408,7 +408,7 @@ class LuaASTEchoWriter(BaseLuaWriter):
         yield self._get_text(node, node.assignop.code)
         for t in self._walk(node.explist):
             yield t
-            
+
     def _walk_StatFunctionCall(self, node):
         for t in self._walk(node.functioncall):
             yield t
@@ -447,7 +447,7 @@ class LuaASTEchoWriter(BaseLuaWriter):
         # long ifs.
         short_if = (getattr(node, 'short_if', False) and
                     not self._args.get('ignore_tokens'))
-            
+
         first = True
         for (exp, block) in node.exp_block_pairs:
             if exp is not None:
@@ -638,7 +638,7 @@ class LuaASTEchoWriter(BaseLuaWriter):
                 in_parens = True
                 self._pos += 1
                 self._indent += 1
-            
+
         if node.value == None:
             yield self._get_text(node, 'nil')
         elif node.value == False:
@@ -656,7 +656,7 @@ class LuaASTEchoWriter(BaseLuaWriter):
         else:
             for t in self._walk(node.value):
                 yield t
-                
+
         if in_parens:
             self._indent -= 1
             yield self._get_text(node, ')')
@@ -797,7 +797,7 @@ class LuaASTEchoWriter(BaseLuaWriter):
         yield self._get_code_for_spaces(node)
         for t in super()._walk(node):
             yield t
-          
+
     def to_lines(self):
         """Generates lines of Lua source based on the parser output.
 
@@ -816,7 +816,7 @@ class LuaASTEchoWriter(BaseLuaWriter):
                         chunk = ''
                     last_was_newline = True
                 else:
-                    last_was_newline = False    
+                    last_was_newline = False
             parts = chunk.split('\n')
             while len(parts) > 1:
                 linebuf.append(parts.pop(0))
@@ -831,7 +831,7 @@ class LuaASTEchoWriter(BaseLuaWriter):
             yield parts[i] + '\n'
         if parts[-1]:
             yield parts[-1]
-        
+
 
 class MinifyNameFactory():
     """Maps code names to generated short names."""
@@ -886,7 +886,7 @@ class LuaMinifyWriter(LuaASTEchoWriter):
         assert tok.matches(lexer.TokName)
         self._pos += 1
         return spaces + self._name_factory.get_short_name(tok.code)
-    
+
     def _get_code_for_spaces(self, node):
         """Calculates the minified text for the space and comment tokens that
         prefix the node.
@@ -912,7 +912,7 @@ class LuaMinifyWriter(LuaASTEchoWriter):
         if ((start_pos == 0) or (self._pos == len(self._tokens))):
             # Eliminate all spaces at beginning and end of code.
             return ''
-        
+
         spaces = ''.join(strs)
         spaces = re.sub(r'\t', ' ', spaces)      # one tab -> one space
         spaces = re.sub(r'\n +', '\n', spaces)   # leading spaces -> none
@@ -922,7 +922,7 @@ class LuaMinifyWriter(LuaASTEchoWriter):
 
         # TODO: Eliminate space between symbols and names/keywords on the same
         # line. (Use self._tokens[start_pos-1] and self._tokens[self._pos].)
-        
+
         return spaces
 
     def _get_semis(self, node):
@@ -954,14 +954,14 @@ class LuaFormatterWriter(LuaASTEchoWriter):
     """Writes the Lua code to use good spacing style.
     """
     DEFAULT_INDENT_WIDTH = 2
-    
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self._indent_mult = self._args.get(
             'indentwidth',
             LuaFormatterWriter.DEFAULT_INDENT_WIDTH)
-        
+
     def _get_code_for_spaces(self, node):
         """Calculates the formatted text for the space and comment tokens that
         prefix the node.
@@ -988,7 +988,7 @@ class LuaFormatterWriter(LuaASTEchoWriter):
         spaces = re.sub(r'\r\n', '\n', spaces)
         spaces = re.sub(r'\n\r', '\n', spaces)
         spaces = re.sub(r'\r', '\n', spaces)
-        
+
         # Delete trailing whitespace.
         spaces = re.sub(r' +\n', '\n', spaces)
 
@@ -1017,7 +1017,7 @@ class LuaFormatterWriter(LuaASTEchoWriter):
         # Remove excess trailing whitespace at end of file.
         if self._pos == len(self._tokens):
             spaces = re.sub(r'[ \n]+$', '\n', spaces)
-        
+
         # TODO: same-line spacing patterns:
         # - one space before and after binop
         # - one space before unop, no space after (except "not")
@@ -1078,3 +1078,103 @@ class LuaMinifyTokenWriter(BaseLuaWriter):
             else:
                 self._last_was_name_keyword_number = False
                 yield token.code
+
+
+class LuaFormatterTokenWriter(LuaASTEchoWriter):
+    """Another formatter writer.
+
+    Unlike LuaFormatterWriter, this implementation just uses the token stream and ignores the parser.
+    """
+    DEFAULT_INDENT_WIDTH = 2
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self._indent_mult = self._args.get(
+            'indentwidth',
+            LuaFormatterWriter.DEFAULT_INDENT_WIDTH)
+
+    def to_lines(self):
+        """
+        Yields:
+            Chunks of code.
+        """
+        indent_level = 0
+        space_buffer = []
+        in_function = False
+        previous_nonspace = None
+
+        # TODO: short-if support
+
+        for token in self._tokens:
+            # Capture spaces and newlines.
+            if token.matches(lexer.TokNewline):
+                space_buffer.append(token)
+                continue
+            if token.matches(lexer.TokSpace):
+                space_buffer.append(token)
+                continue
+
+            # Decrease the indentation level.
+            if (any(token.matches(lexer.TokSymbol(s))
+                    for s in (')', '}', ']')) or
+                any(token.matches(lexer.TokKeyword(k))
+                    for k in ('end', 'until', 'elseif', 'else'))):
+                indent_level -= 1
+
+            # Rules for spaces and newlines:
+            # * If the original source has two or more consecutive newlines,
+            #    use two newlines.
+            # * If a comment is on its own line, indent with source.
+            # * If a comment is on a line with something else, offset by two spaces.
+            # * Use no space before or after certain symbols.
+            # * Use one space between tokens otherwise.
+            #
+            # This strategy puts some trust (perhaps too much) in the original source to use newlines and spaces
+            # according to the author's wishes for the formatted output. We're not using the parser, so we can't
+            # make our own decisions based on statements, argument lists, etc. We also don't wrap lines, but this
+            # strategy doesn't usually add space.
+            #
+            # Known issues:
+            # * unary minus gets a space, shouldn't
+            space_str = ''.join(t.code for t in space_buffer)
+            space_buffer.clear()
+            newline_count = space_str.count('\n')
+            if newline_count:
+                if newline_count > 1:
+                    yield '\n'
+                yield '\n' + ' ' * indent_level * self._indent_mult
+            elif token.matches(lexer.TokComment):
+                yield '  '
+            elif (any(token.matches(lexer.TokSymbol(s))
+                      for s in (',', ';', ')', ']', '}', '..')) or
+                  (previous_nonspace is not None and
+                   any(previous_nonspace.matches(lexer.TokSymbol(s))
+                       for s in ('(', '[', '{', '..'))) or
+                  (previous_nonspace is not None and
+                   previous_nonspace.matches(lexer.TokKeyword('function')) and
+                   token.matches(lexer.TokSymbol('('))) or
+                  previous_nonspace is None):
+                # No space before or after certain symbols.
+                pass
+            else:
+                yield ' '
+
+            # Write the nonspace token.
+            previous_nonspace = token
+            yield token.code
+
+            # Increase the indentation level.
+            if in_function and token.matches(lexer.TokSymbol(')')):
+                in_function = False
+                indent_level += 1  # matched by "end"
+            if token.matches(lexer.TokKeyword('function')):
+                in_function = True
+
+            if (any(token.matches(lexer.TokSymbol(s))
+                    for s in ('(', '{', '[')) or
+                any(token.matches(lexer.TokKeyword(k))
+                    for k in ('do', 'repeat', 'then', 'else'))):
+                indent_level += 1
+
+        yield '\n'
