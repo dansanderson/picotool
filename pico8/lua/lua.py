@@ -1137,6 +1137,7 @@ class LuaFormatterTokenWriter(LuaASTEchoWriter):
             #
             # Known issues:
             # * unary minus gets a space, shouldn't
+            # * no short-if support!
             space_str = ''.join(t.code for t in space_buffer)
             space_buffer.clear()
             newline_count = space_str.count('\n')
