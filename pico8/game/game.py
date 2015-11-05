@@ -1,15 +1,12 @@
 """A container for a Pico-8 game, and routines to load and save game files."""
 
-
 __all__ = [
     'Game',
     'InvalidP8HeaderError',
     'InvalidP8SectionError'
 ]
 
-
 import re
-
 from .. import util
 from ..lua.lua import Lua
 from ..lua.lua import PICO8_LUA_CHAR_LIMIT
@@ -20,7 +17,6 @@ from ..map.map import Map
 from ..sfx.sfx import Sfx
 from ..music.music import Music
 
-
 HEADER_TITLE_STR = 'pico-8 cartridge // http://www.pico-8.com\n'
 HEADER_VERSION_RE = re.compile('version (\d+)\n')
 HEADER_VERSION_PAT = 'version {}\n'
@@ -30,14 +26,17 @@ SECTION_DELIM_PAT = '__{}__\n'
 
 class InvalidP8HeaderError(util.InvalidP8DataError):
     """Exception for invalid .p8 file header."""
+
     def __str__(self):
         return 'Invalid .p8: missing or corrupt header'
 
-    
+
 class InvalidP8SectionError(util.InvalidP8DataError):
     """Exception for invalid .p8 file section delimiter."""
+
     def __init__(self, bad_delim):
         self.bad_delim = bad_delim
+
     def __str__(self):
         return 'Invalid .p8: bad section delimiter {}'.format(
             repr(self.bad_delim))
@@ -45,6 +44,7 @@ class InvalidP8SectionError(util.InvalidP8DataError):
 
 class Game():
     """A Pico-8 game."""
+
     def __init__(self, filename=None, compressed_size=None):
         """Initializer.
 
@@ -57,7 +57,7 @@ class Game():
         """
         self.filename = filename
         self.compressed_size = compressed_size
-        
+
         self.lua = None
         self.gfx = None
         self.gff = None
@@ -78,7 +78,7 @@ class Game():
           A Game instance with valid but empty data regions.
         """
         g = cls(filename=filename)
-        
+
         g.lua = Lua(version=5)
         g.lua.update_from_lines([])
         g.gfx = Gfx.empty(version=5)
@@ -89,7 +89,7 @@ class Game():
         g.version = 5
 
         return g
-        
+
     @classmethod
     def from_filename(cls, filename):
         """Loads a game from a named file.
@@ -136,7 +136,7 @@ class Game():
         if version_m is None:
             raise InvalidP8HeaderError()
         version = int(version_m.group(1))
-        
+
         section = None
         section_lines = {}
         while True:
@@ -149,7 +149,7 @@ class Game():
                 section_lines[section] = []
             elif section:
                 section_lines[section].append(line)
-    
+
         new_game = cls.make_empty_game(filename=filename)
         new_game.version = version
         for section in section_lines:
@@ -177,7 +177,7 @@ class Game():
                     section_lines[section], version=version)
             else:
                 raise InvalidP8SectionError(section)
-    
+
         return new_game
 
     @classmethod
@@ -230,7 +230,7 @@ class Game():
             code_length = code.index(0)
 
             code = ''.join(chr(c) for c in code[:code_length]) + '\n'
-                
+
         elif version == 1 or version == 5:
             # code is compressed
             code_length = (code[4] << 8) | code[5]
@@ -252,7 +252,7 @@ class Game():
                     in_i += 1
                     offset = (code[in_i - 1] - 0x3c) * 16 + (code[in_i] & 0xf)
                     length = (code[in_i] >> 4) + 2
-                    out[out_i:out_i+length] = out[out_i-offset:out_i-offset+length]
+                    out[out_i:out_i + length] = out[out_i - offset:out_i - offset + length]
                     out_i += length
                 in_i += 1
 
@@ -273,9 +273,9 @@ class Game():
             sfx, version=version)
         new_game.music = Music.from_bytes(
             song, version=version)
-    
+
         return new_game
-        
+
     def to_p8_file(self, outstr, lua_writer_cls=None, lua_writer_args=None,
                    filename=None):
         """Write the game data as a .p8 file.
@@ -288,7 +288,7 @@ class Game():
           filename: The output filename, for error messages.
         """
         outstr.write(HEADER_TITLE_STR)
-        
+
         # Even though we can get the original cart version, we
         # hard-code version 5 for output because we only know how to
         # write v5 .p8 files. There are minor changes from previous
@@ -306,15 +306,15 @@ class Game():
                 util.error('{}: '.format(filename))
             util.error('warning: character count {} exceeds the Pico-8 '
                        'limit of {}'.format(
-                           transformed_lua.get_char_count(),
-                           PICO8_LUA_CHAR_LIMIT))
+                transformed_lua.get_char_count(),
+                PICO8_LUA_CHAR_LIMIT))
         if transformed_lua.get_token_count() > PICO8_LUA_TOKEN_LIMIT:
             if filename is not None:
                 util.error('{}: '.format(filename))
             util.error('warning: token count {} exceeds the Pico-8 '
                        'limit of {}'.format(
-                           transformed_lua.get_char_count(),
-                           PICO8_LUA_CHAR_LIMIT))
+                transformed_lua.get_char_count(),
+                PICO8_LUA_CHAR_LIMIT))
 
         outstr.write(SECTION_DELIM_PAT.format('lua'))
         ended_in_newline = None
@@ -328,19 +328,19 @@ class Game():
         outstr.write(SECTION_DELIM_PAT.format('gfx'))
         for l in self.gfx.to_lines():
             outstr.write(l)
-            
+
         outstr.write(SECTION_DELIM_PAT.format('gff'))
         for l in self.gff.to_lines():
             outstr.write(l)
-            
+
         outstr.write(SECTION_DELIM_PAT.format('map'))
         for l in self.map.to_lines():
             outstr.write(l)
-            
+
         outstr.write(SECTION_DELIM_PAT.format('sfx'))
         for l in self.sfx.to_lines():
             outstr.write(l)
-            
+
         outstr.write(SECTION_DELIM_PAT.format('music'))
         for l in self.music.to_lines():
             outstr.write(l)

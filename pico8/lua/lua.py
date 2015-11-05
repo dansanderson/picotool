@@ -164,7 +164,7 @@ class Lua():
         This is useful for updating the token stream after transforming the AST. When doing this, be sure to use a
         writer that doesn't use the token stream. (I usually reparse with LuaASTEchoWriter and ignore_tokens=True,
         then write it out through LuaMinifyTokenWriter to clean it up. When LuaFormatterWriter is better, that'd
-        also be an option.)
+        also be an option. Of course, this clobbers comments.)
 
         Args:
           writer_cls: The Lua writer class to use. If None, defaults to
