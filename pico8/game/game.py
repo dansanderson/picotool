@@ -346,3 +346,36 @@ class Game():
             outstr.write(l)
 
         outstr.write('\n')
+
+    def write_cart_data(self, data, start_addr=0):
+        """Write binary data to an arbitrary cart address.
+
+        Args:
+            data: The data to write, as a byte string or bytearray.
+            start_addr: The address to start writing.
+        """
+        if start_addr + len(data) > 0x4300:
+            raise ValueError('Data too large: {} bytes starting at {} exceeds '
+                             '0x4300'.format(len(data), start_addr))
+        memmap = ((0x0,0x2000,self.gfx._data),
+          (0x2000,0x3000,self.map._data),
+          (0x3000,0x3100,self.gff._data),
+          (0x3100,0x3200,self.music._data),
+          (0x3200,0x4300,self.sfx._data))
+        for start_a, end_a, section_data in memmap:
+            if (start_addr > end_a or
+                  start_addr + len(data) < start_a):
+                continue
+            data_start_a = (start_addr - start_a
+                            if start_addr > start_a
+                            else 0)
+            data_end_a = (start_addr + len(data) - start_a
+                          if start_addr + len(data) < end_a
+                          else end_a)
+            text_start_a = (0 if start_addr > start_a
+                            else start_a - start_addr)
+            text_end_a = (len(data)
+                          if start_addr + len(data) < end_a
+                          else -(start_addr + len(data) - end_a))
+            section_data[data_start_a:data_end_a] = \
+                data[text_start_a:text_end_a]
