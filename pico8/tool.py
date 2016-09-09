@@ -19,67 +19,6 @@ from .lua import lua
 from .lua import parser
 
 
-def _get_argparser():
-    """Builds and returns the argument parser."""
-    parser = argparse.ArgumentParser(
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        usage='%(prog)s [--help] <command> [<args>] <filename> '
-        '[<filename> ...]',
-        description=textwrap.dedent('''
-        Commands:
-          stats [--csv] <filename> [<filename>...]
-            Display stats about one or more carts.
-          listlua <filename> [<filename>...]
-            List the Lua code for a cart to the console.
-          writep8 <filename> [<filename>...]
-            Convert a .p8.png cart to a .p8 cart.
-          luamin <filename> [<filename>...]
-            Minify the Lua code for a cart, reducing the character count.
-          luafmt [--overwrite] [--indentwidth=2] <filename> [<filename>...]
-            Make the Lua code for a cart easier to read by adjusting indentation.
-          luafind [--listfiles] <pattern> <filename> [<filename>...]
-            Find a string or pattern in the code of one or more carts.
-
-          listtokens <filename> [<filename>...]
-            List the tokens for a cart to the console (for debugging picotool).
-          printast <filename> [<filename>...]
-            Print the picotool parser tree to the console (for debugging picotool).
-
-          By default, commands that write to files (writep8, luamin,
-          luafmt) will create or replace a file named similar to the
-          cart filename but ending in "_fmt.p8". The luafmt command
-          accepts an optional --overwrite argument that causes it to
-          overwrite the original .p8 file instead.
-        '''))
-    parser.add_argument(
-        'command', type=str,
-        help='the command to execute')
-    parser.add_argument(
-        '--indentwidth', type=int, action='store', default=2,
-        help='for luafmt, the indent width as a number of spaces')
-    parser.add_argument(
-        '--overwrite', action='store_true',
-        help='for luafmt, given a filename, overwrites the original file '
-        'instead of creating a separate *_fmt.p8 file')
-    parser.add_argument(
-        '--csv', action='store_true',
-        help='for stats, output a CSV file instead of text')
-    parser.add_argument(
-        '--listfiles', action='store_true',
-        help='for luafind, only list filenames, do not print matching lines')
-    parser.add_argument(
-        '-q', '--quiet', action='store_true',
-        help='suppresses inessential messages')
-    parser.add_argument(
-        '--debug', action='store_true',
-        help='write extra messages for debugging the tool')
-    parser.add_argument(
-        'filename', type=str, nargs='+',
-        help='the names of files to process')
-
-    return parser
-
-
 def _games_for_filenames(filenames):
     """Yields games for the given filenames.
 
@@ -389,6 +328,118 @@ def luafind(args):
     return 0
 
 
+def do_writep8(args):
+    """Executor for the writep8 command."""
+    return process_game_files(args.filename, writep8, args=args)
+
+
+def do_luamin(args):
+    """Executor for the luamin command."""
+    return process_game_files(args.filename, luamin, args=args)
+
+
+def do_luafmt(args):
+    """Executor for the luafmt command."""
+    return process_game_files(args.filename, luafmt,
+                              overwrite=args.overwrite, args=args)
+
+
+def _get_argparser():
+    """Builds and returns the argument parser."""
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '-q', '--quiet', action='store_true',
+        help='suppresses inessential messages')
+    parser.add_argument(
+        '--debug', action='store_true',
+        help='write extra messages for debugging the tool')
+
+    subparsers = parser.add_subparsers(
+        title='Commands')
+
+    sp_stats = subparsers.add_parser(
+        'stats',
+        help='displays stats about one or more carts')
+    sp_stats.add_argument(
+        '--csv', action='store_true',
+        help='output a CSV file instead of text')
+    sp_stats.add_argument(
+        'filename', type=str, nargs='+',
+        help='the names of files to process')
+    sp_stats.set_defaults(func=stats)
+
+    sp_listlua = subparsers.add_parser(
+        'listlua',
+        help='lists the Lua code for a cart to the console')
+    sp_listlua.add_argument(
+        'filename', type=str, nargs='+',
+        help='the names of files to process')
+    sp_listlua.set_defaults(func=listlua)
+
+    sp_writep8 = subparsers.add_parser(
+        'writep8',
+        help='converts a .p8.png cart to a .p8 cart')
+    sp_writep8.add_argument(
+        'filename', type=str, nargs='+',
+        help='the names of files to process')
+    sp_writep8.set_defaults(func=do_writep8)
+
+    sp_luamin = subparsers.add_parser(
+        'luamin',
+        help='minifies the Lua code for a cart, reducing the character count')
+    sp_luamin.add_argument(
+        'filename', type=str, nargs='+',
+        help='the names of files to process')
+    sp_luamin.set_defaults(func=do_luamin)
+
+    sp_luafmt = subparsers.add_parser(
+        'luafmt',
+        help='make the Lua code for a cart easier to read by adjusting '
+             'indentation')
+    sp_luafmt.add_argument(
+        '--indentwidth', type=int, action='store', default=2,
+        help='for luafmt, the indent width as a number of spaces')
+    sp_luafmt.add_argument(
+        '--overwrite', action='store_true',
+        help='for luafmt, given a filename, overwrites the original file '
+        'instead of creating a separate *_fmt.p8 file')
+    sp_luafmt.add_argument(
+        'filename', type=str, nargs='+',
+        help='the names of files to process')
+    sp_luafmt.set_defaults(func=do_luafmt)
+
+    sp_luafind = subparsers.add_parser(
+        'luafind',
+        help='finds a string or pattern in the code of one or more carts')
+    sp_luafind.add_argument(
+        '--listfiles', action='store_true',
+        help='for luafind, only list filenames, do not print matching lines')
+    sp_luafind.add_argument(
+        'filename', type=str, nargs='+',
+        help='the names of files to process')
+    sp_luafind.set_defaults(func=luafind)
+
+    sp_listtokens = subparsers.add_parser(
+        'listtokens',
+        help='lists the tokens for a cart to the console (for debugging '
+             'picotool)')
+    sp_listtokens.add_argument(
+        'filename', type=str, nargs='+',
+        help='the names of files to process')
+    sp_listtokens.set_defaults(func=listtokens)
+
+    sp_printast = subparsers.add_parser(
+        'printast',
+        help='prints the picotool parser tree to the console (for debugging '
+             'picotool)')
+    sp_printast.add_argument(
+        'filename', type=str, nargs='+',
+        help='the names of files to process')
+    sp_printast.set_defaults(func=printast)
+
+    return parser
+
+
 def main(orig_args):
     try:
         arg_parser = _get_argparser()
@@ -398,24 +449,9 @@ def main(orig_args):
         elif args.quiet:
             util.set_verbosity(util.VERBOSITY_QUIET)
 
-        if args.command == 'stats':
-            return stats(args)
-        elif args.command == 'listlua':
-            return listlua(args)
-        elif args.command == 'listtokens':
-            return listtokens(args)
-        elif args.command == 'printast':
-            return printast(args)
-        elif args.command == 'writep8':
-            return process_game_files(args.filename, writep8, args=args)
-        elif args.command == 'luamin':
-            return process_game_files(args.filename, luamin, args=args)
-        elif args.command == 'luafmt':
-            return process_game_files(args.filename, luafmt,
-                                      overwrite=args.overwrite, args=args)
-        elif args.command == 'luafind':
-            return luafind(args)
-    
+        if hasattr(args, 'func'):
+            return args.func(args)
+
         arg_parser.print_help()
         return 1
 
