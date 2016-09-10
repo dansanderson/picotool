@@ -1,6 +1,7 @@
 """A container for a Pico-8 game, and routines to load and save game files."""
 
 __all__ = [
+    'DEFAULT_VERSION',
     'Game',
     'InvalidP8HeaderError',
     'InvalidP8SectionError'
@@ -22,6 +23,8 @@ HEADER_VERSION_RE = re.compile('version (\d+)\n')
 HEADER_VERSION_PAT = 'version {}\n'
 SECTION_DELIM_RE = re.compile('__(\w+)__\n')
 SECTION_DELIM_PAT = '__{}__\n'
+
+DEFAULT_VERSION = 8
 
 
 class InvalidP8HeaderError(util.InvalidP8DataError):
@@ -68,25 +71,26 @@ class Game():
         self.version = None
 
     @classmethod
-    def make_empty_game(cls, filename=None):
+    def make_empty_game(cls, filename=None, version=DEFAULT_VERSION):
         """Create an empty game.
 
         Args:
           filename: An optional filename to use with error messages.
+          version: The version ID of the empty game.
 
         Returns:
           A Game instance with valid but empty data regions.
         """
         g = cls(filename=filename)
 
-        g.lua = Lua(version=5)
+        g.lua = Lua(version=version)
         g.lua.update_from_lines([])
-        g.gfx = Gfx.empty(version=5)
-        g.gff = Gff.empty(version=5)
-        g.map = Map.empty(version=5, gfx=g.gfx)
-        g.sfx = Sfx.empty(version=5)
-        g.music = Music.empty(version=5)
-        g.version = 5
+        g.gfx = Gfx.empty(version=version)
+        g.gff = Gff.empty(version=version)
+        g.map = Map.empty(version=version, gfx=g.gfx)
+        g.sfx = Sfx.empty(version=version)
+        g.music = Music.empty(version=version)
+        g.version = version
 
         return g
 
