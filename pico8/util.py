@@ -128,3 +128,6 @@ class BaseSection():
           version: The Pico-8 data version from the game file header.
         """
         return cls(data=data, version=version)
+
+    def to_bytes(self):
+        return self._data

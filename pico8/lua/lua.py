@@ -57,16 +57,15 @@ class Lua():
     def get_token_count(self):
         c = 0
         for t in self._lexer._tokens:
-            if t.matches(lexer.TokSymbol('...')):
-                # Pico-8 counts triple-dot as three tokens.
-                c += 3
-            elif t.matches(lexer.TokSymbol('..')):
-                # Pico-8 counts double-dot as two tokens.
-                c += 2
-            elif t.matches(lexer.TokSymbol(':')):
-                # Pico-8 counts ':' as part of the method name token. Since
-                # method names are the only case where picotool generates a ':'
-                # TokSymbol, we simply don't count them.
+            # TODO: As of 0.1.8, "1 .. 5" is three tokens, "1..5" is one token
+            if (t.matches(lexer.TokSymbol(':')) or
+                    t.matches(lexer.TokSymbol('.')) or
+                    t.matches(lexer.TokSymbol(')')) or
+                    t.matches(lexer.TokSymbol(']')) or
+                    t.matches(lexer.TokSymbol('}')) or
+                    t.matches(lexer.TokKeyword('local')) or
+                    t.matches(lexer.TokKeyword('end'))):
+                # Pico-8 generously does not count these as tokens.
                 pass
             elif t.matches(lexer.TokNumber) and t._data.find('e') != -1:
                 # Pico-8 counts 'e' part of number as a separate token.
@@ -75,10 +74,6 @@ class Lua():
                   not isinstance(t, lexer.TokNewline) and
                   not isinstance(t, lexer.TokComment)):
                 c += 1
-        if c == 0:
-            # Pico-8 claims an empty (or comment-only) file has one token. This
-            # isn't counted when there are other tokens, so it's a special case.
-            c = 1
         return c
 
     def get_line_count(self):

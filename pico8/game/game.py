@@ -7,6 +7,7 @@ __all__ = [
     'InvalidP8SectionError'
 ]
 
+import os
 import re
 from .. import util
 from ..lua.lua import Lua
@@ -25,6 +26,7 @@ SECTION_DELIM_RE = re.compile('__(\w+)__\n')
 SECTION_DELIM_PAT = '__{}__\n'
 
 DEFAULT_VERSION = 8
+EMPTY_LABEL_FNAME = os.path.join(os.path.dirname(__file__), 'empty_018.p8.png')
 
 
 class InvalidP8HeaderError(util.InvalidP8DataError):
@@ -235,7 +237,7 @@ class Game():
 
             code = ''.join(chr(c) for c in code[:code_length]) + '\n'
 
-        elif version == 1 or version == 5:
+        else:
             # code is compressed
             code_length = (code[4] << 8) | code[5]
             assert bytes(code[6:8]) == b'\x00\x00'
@@ -262,6 +264,11 @@ class Game():
 
             code = ''.join(chr(c) for c in out) + '\n'
             compressed_size = in_i
+
+        code = code.replace('\r', ' ')
+        #print('DEBUG: raw lua:')
+        #print('\n'.join('{}: {}'.format(i, repr(l))
+        #      for i, l in enumerate(code.split('\n'))))
 
         new_game = cls(filename=filename, compressed_size=compressed_size)
         new_game.version = version
@@ -350,6 +357,42 @@ class Game():
             outstr.write(l)
 
         outstr.write('\n')
+
+    def to_p8png_file(self, outstr, label_fname=None, lua_writer_cls=None,
+                      lua_writer_args=None, filename=None):
+        """Write the game data as a .p8.png file.
+
+        Args:
+          outstr: The output stream.
+          label_fname: The .p8.png file (or appropriately spec'd .png file)
+            to use for the label. If None, uses a Pico-8-generated empty label.
+          lua_writer_cls: The Lua writer class to use. If None, defaults to
+            LuaEchoWriter.
+          lua_writer_args: Args to pass to the Lua writer.
+          filename: The output filename, for error messages.
+        """
+        # To install: python3 -m pip install pypng
+        import png
+
+        label_fname = label_fname or EMPTY_LABEL_FNAME
+        with open(label_fname) as label_fh:
+            r = png.Reader(file=label_fh)
+            (width, height, data, attrs) = r.read()
+
+        cart_lua = self.lua.to_lines(writer_cls=lua_writer_cls,
+                                     writer_args=lua_writer_args)
+        # TODO: Compress Lua -> code
+        # TODO: Write sections to data stegonographically.
+        # self.gfx.to_bytes() => 0x0:0x2000
+        # self.map.to_bytes() => 0x2000:0x3000
+        # self.gff.to_bytes() => 0x3000:0x3100
+        # self.music.to_bytes() => 0x3100:0x3200
+        # self.sfx.to_bytes() => 0x3200:0x4300
+        # code => 0x4300:0x8000
+        # self.version => 0x8000
+
+        # TODO: Write PNG file to outstr
+
 
     def write_cart_data(self, data, start_addr=0):
         """Write binary data to an arbitrary cart address.

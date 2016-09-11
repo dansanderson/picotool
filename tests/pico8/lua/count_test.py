@@ -18,10 +18,10 @@ TESTS = (
 end
 
 t()
-''', 'tokens': 12, 'chars': 36},
+''', 'tokens': 8, 'chars': 36},
     
-    {'code':'', 'tokens': 1, 'chars': 0},
-    {'code':'-- comment\n', 'tokens': 1, 'chars': 11},
+    {'code':'', 'tokens': 0, 'chars': 0},
+    {'code':'-- comment\n', 'tokens': 0, 'chars': 11},
     {'code':'a=1\n', 'tokens': 3, 'chars': 4},
     {'code':'a = 1\n', 'tokens': 3, 'chars': 6},
     {'code':'abc = 123\n', 'tokens': 3, 'chars': 10},
@@ -38,13 +38,13 @@ return 999
   def = 456
   return 999
 end
-''', 'tokens': 10, 'chars': 44},
+''', 'tokens': 9, 'chars': 44},
     {'code':'''while true do
   abc = 123
   def = 456
   return 999
 end
-''', 'tokens': 12, 'chars': 55},
+''', 'tokens': 11, 'chars': 55},
     {'code':'''repeat
   abc = 123
   def = 456
@@ -54,7 +54,7 @@ until true
     {'code':'''if true then
   abc = 123
 end
-''', 'tokens': 7, 'chars': 29},
+''', 'tokens': 6, 'chars': 29},
     {'code':'''if true then
   abc = 123
 elseif false then
@@ -62,35 +62,35 @@ elseif false then
 else
   ghi = 789
 end
-''', 'tokens': 17, 'chars': 76},
+''', 'tokens': 16, 'chars': 76},
     {'code':'''for x=1,10,2 do
   abc = 123
 end
-''', 'tokens': 13, 'chars': 32},
+''', 'tokens': 12, 'chars': 32},
     {'code':'''for a,b,c in 1,2,3 do
   abc = 123
 end
-''', 'tokens': 17, 'chars': 38},
+''', 'tokens': 16, 'chars': 38},
     {'code':'''function f()
   return 999
 end
-''', 'tokens': 7, 'chars': 30},
+''', 'tokens': 5, 'chars': 30},
     {'code':'''local function f()
   return 999
 end
-''', 'tokens': 8, 'chars': 36},
-    {'code':'local a,b,c\n', 'tokens': 6, 'chars': 12},
-    {'code':'local a,b,c = 1,2,3\n', 'tokens': 12, 'chars': 20},
+''', 'tokens': 5, 'chars': 36},
+    {'code':'local a,b,c\n', 'tokens': 5, 'chars': 12},
+    {'code':'local a,b,c = 1,2,3\n', 'tokens': 11, 'chars': 20},
     {'code':'''function f.a.b()
   return 999
 end
-''', 'tokens': 11, 'chars': 34},
+''', 'tokens': 7, 'chars': 34},
     {'code':'''function f.a.b:c()
   return 999
 end
-''', 'tokens': 12, 'chars': 36},
-    {'code':'a[1] = 2\n', 'tokens': 6, 'chars': 9},
-    {'code':'a.b = 2\n', 'tokens': 5, 'chars': 8},
+''', 'tokens': 8, 'chars': 36},
+    {'code':'a[1] = 2\n', 'tokens': 5, 'chars': 9},
+    {'code':'a.b = 2\n', 'tokens': 4, 'chars': 8},
     {'code':'''a=nil
 b=false
 c=true
@@ -102,20 +102,20 @@ c=true
     {'code':'a = -123.45e2\n', 'tokens': 5, 'chars': 14},
     {'code':'a = \'string\'\n', 'tokens': 3, 'chars': 13},
     {'code':'a = "string"\n', 'tokens': 3, 'chars': 13},
-    {'code':'function f(...)\nend\n', 'tokens': 8, 'chars': 20},
+    {'code':'function f(...)\nend\n', 'tokens': 4, 'chars': 20},
     {'code':'a += 3\n', 'tokens': 3, 'chars': 7},
     {'code':'c = a != 3\n', 'tokens': 5, 'chars': 11},
     {'code':'c = #a\n', 'tokens': 4, 'chars': 7},
-    {'code':'c:m()\n', 'tokens': 4, 'chars': 6},
-    {'code':'a = {}\n', 'tokens': 4, 'chars': 7},
-    {'code':'a = {[a]=3;b=4,999}\n', 'tokens': 15, 'chars': 20},
-    {'code':'print(a..b)\n', 'tokens': 7, 'chars': 12},
+    {'code':'c:m()\n', 'tokens': 3, 'chars': 6},
+    {'code':'a = {}\n', 'tokens': 3, 'chars': 7},
+    {'code':'a = {[a]=3;b=4,999}\n', 'tokens': 13, 'chars': 20},
+    {'code':'print(a..b)\n', 'tokens': 5, 'chars': 12},
     {'code':'''goto label
 print('one')
 ::label::
 print('two')
-''', 'tokens': 11, 'chars': 47},
-    {'code':'function t()\n\treturn\nend\n', 'tokens': 6, 'chars': 25},
+''', 'tokens': 9, 'chars': 47},
+    {'code':'function t()\n\treturn\nend\n', 'tokens': 4, 'chars': 25},
 
 #     # Cart 12373
 #     {'code':'''function _init()

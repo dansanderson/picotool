@@ -106,7 +106,7 @@ class TestLua(unittest.TestCase):
 
     def testGetTokenCount(self):
         result = lua.Lua.from_lines(VALID_LUA_SHORT_LINES, 4)
-        self.assertEqual(7, result.get_token_count())
+        self.assertEqual(5, result.get_token_count())
 
     def testGetTokenCountCarriageReturns(self):
         result = lua.Lua.from_lines([
@@ -114,7 +114,7 @@ class TestLua(unittest.TestCase):
             '  return 999\r\n',
             'end\r\n'
         ], 4)
-        self.assertEqual(7, result.get_token_count())
+        self.assertEqual(5, result.get_token_count())
         
     def testGetTitle(self):
         result = lua.Lua.from_lines(VALID_LUA_SHORT_LINES, 4)

@@ -79,6 +79,8 @@ def stats(args):
     for fname, g in _games_for_filenames(args.filename):
         if g is None:
             util.error('{}: could not load cart\n'.format(fname))
+            if len(args.filename) == 1:
+                return 1
             continue
 
         if args.csv:
@@ -124,6 +126,11 @@ def listlua(args):
       0 on success, 1 on failure.
     """
     for fname, g in _games_for_filenames(args.filename):
+        if g is None:
+            util.error('{}: could not load cart\n'.format(fname))
+            if len(args.filename) == 1:
+                return 1
+            continue
         if len(args.filename) > 1:
             util.write('=== {} ===\n'.format(g.filename))
         for l in g.lua.to_lines():
@@ -147,6 +154,11 @@ def listtokens(args):
       0 on success, 1 on failure.
     """
     for fname, g in _games_for_filenames(args.filename):
+        if g is None:
+            util.error('{}: could not load cart\n'.format(fname))
+            if len(args.filename) == 1:
+                return 1
+            continue
         if len(args.filename) > 1:
             util.write('=== {} ===\n'.format(g.filename))
         pos = 0
@@ -285,6 +297,11 @@ def printast(args):
       0 on success, 1 on failure.
     """
     for fname, g in _games_for_filenames(args.filename):
+        if g is None:
+            util.error('{}: could not load cart\n'.format(fname))
+            if len(args.filename) == 1:
+                return 1
+            continue
         if len(args.filename) > 1:
             util.write('=== {} ===\n'.format(g.filename))
         _printast_node(g.lua.root)
