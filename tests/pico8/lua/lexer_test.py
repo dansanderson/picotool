@@ -242,7 +242,30 @@ class TestLexer(unittest.TestCase):
         self.assertEqual(2, len(lxr._tokens))
         self.assertEqual(lexer.TokComment('-- comment text and stuff'),
                          lxr._tokens[0])
-        
+
+    def testMultilineComment(self):
+        lxr = lexer.Lexer(version=8)
+        lxr._process_line('--[[comment text\nand "stuff\n]]\n')
+        self.assertEqual(2, len(lxr._tokens))
+        self.assertEqual(lexer.TokComment('--[[comment text\nand "stuff\n]]'),
+                         lxr._tokens[0])
+
+    def testMultilineCommentNoLinebreaks(self):
+        lxr = lexer.Lexer(version=8)
+        lxr._process_line('--[[comment text and "stuff]]\n')
+        self.assertEqual(2, len(lxr._tokens))
+        self.assertEqual(lexer.TokComment('--[[comment text and "stuff]]'),
+                         lxr._tokens[0])
+
+    def testMultilineCommentMultipleCalls(self):
+        lxr = lexer.Lexer(version=8)
+        lxr._process_line('--[[comment text\n')
+        lxr._process_line('and "stuff\n')
+        lxr._process_line(']]\n')
+        self.assertEqual(2, len(lxr._tokens))
+        self.assertEqual(lexer.TokComment('--[[comment text\nand "stuff\n]]'),
+                         lxr._tokens[0])
+
     def testTokenAndComment(self):
         lxr = lexer.Lexer(version=4)
         lxr._process_line('and-- comment text and stuff\n')

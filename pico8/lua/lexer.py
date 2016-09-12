@@ -251,6 +251,13 @@ class Lexer():
         # * the starting delimiter, either " or '
         self._in_string_delim = None
 
+        # If inside a multiline comment (else None):
+        # * the lines of comment, as an array of str (possibly empty)
+        self._in_multiline_comment = None
+        # * the pos of the start of the multiline comment
+        self._in_multiline_comment_lineno = None
+        self._in_multiline_comment_charno = None
+
     def _process_token(self, s):
         """Process a token's worth of chars from a string, if possible.
 
@@ -267,7 +274,7 @@ class Lexer():
 
         # TODO: Pico-8 doesn't allow multiline strings, so this probably
         # shouldn't either.
-        
+
         if self._in_string is not None:
             # Continue string literal.
             while i < len(s):
@@ -309,6 +316,28 @@ class Lexer():
             self._in_string_charno = self._cur_charno
             self._in_string = []
             i = 1
+
+        elif self._in_multiline_comment is not None:
+            try:
+                i = s.index(']]') + 2
+                self._in_multiline_comment.append(s[:i])
+                self._tokens.append(
+                    TokComment(''.join(self._in_multiline_comment),
+                               self._in_multiline_comment_lineno,
+                               self._in_multiline_comment_charno))
+                self._in_multiline_comment = None
+                self._in_multiline_comment_lineno = None
+                self._in_multiline_comment_charno = None
+
+            except ValueError:
+                self._in_multiline_comment.append(s)
+                i = len(s)
+
+        elif s.startswith('--[['):
+            self._in_multiline_comment = ['--[[']
+            self._in_multiline_comment_lineno = self._cur_lineno
+            self._in_multiline_comment_charno = self._cur_charno
+            i = 4
 
         else:
             # Match one-line patterns.
