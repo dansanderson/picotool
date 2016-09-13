@@ -9,6 +9,7 @@ __all__ = [
 
 import os
 import re
+import tempfile
 from .. import util
 from ..lua.lua import Lua
 from ..lua.lua import PICO8_LUA_CHAR_LIMIT
@@ -27,6 +28,7 @@ SECTION_DELIM_PAT = '__{}__\n'
 
 DEFAULT_VERSION = 8
 EMPTY_LABEL_FNAME = os.path.join(os.path.dirname(__file__), 'empty_018.p8.png')
+COMPRESSED_LUA_CHAR_TABLE = list(b'#\n 0123456789abcdefghijklmnopqrstuvwxyz!#%(){}[]<>+=/*:;.,~_')
 
 
 class InvalidP8HeaderError(util.InvalidP8DataError):
@@ -45,6 +47,11 @@ class InvalidP8SectionError(util.InvalidP8DataError):
     def __str__(self):
         return 'Invalid .p8: bad section delimiter {}'.format(
             repr(self.bad_delim))
+
+
+class InvalidP8PNGError(util.InvalidP8DataError):
+    """Exception for PNG parsing errors."""
+    pass
 
 
 class Game():
@@ -199,9 +206,13 @@ class Game():
         """
         # To install: python3 -m pip install pypng
         import png
-        r = png.Reader(file=instr)
+        try:
+            r = png.Reader(file=instr)
+            (width, height, data, attrs) = r.read()
+            data = list(data)
+        except png.Error:
+            raise InvalidP8PNGError()
 
-        (width, height, data, attrs) = r.read()
         picodata = [0] * width * height
 
         row_i = 0
@@ -230,10 +241,11 @@ class Game():
         if version == 0 or bytes(code[:4]) != b':c:\x00':
             # code is ASCII
 
-            # (I assume this fails if uncompressed code completely
-            # fills the code area, in which case code_length =
-            # 0x8000-0x4300.)
-            code_length = code.index(0)
+            try:
+                code_length = code.index(0)
+            except ValueError:
+                # Edge case: uncompressed code completely fills the code area.
+                code_length = 0x8000-0x4300
 
             code = ''.join(chr(c) for c in code[:code_length]) + '\n'
 
@@ -242,7 +254,6 @@ class Game():
             code_length = (code[4] << 8) | code[5]
             assert bytes(code[6:8]) == b'\x00\x00'
 
-            chars = list(b'#\n 0123456789abcdefghijklmnopqrstuvwxyz!#%(){}[]<>+=/*:;.,~_')
             out = [0] * code_length
             in_i = 8
             out_i = 0
@@ -252,7 +263,7 @@ class Game():
                     out[out_i] = code[in_i]
                     out_i += 1
                 elif code[in_i] <= 0x3b:
-                    out[out_i] = chars[code[in_i]]
+                    out[out_i] = COMPRESSED_LUA_CHAR_TABLE[code[in_i]]
                     out_i += 1
                 else:
                     in_i += 1
@@ -266,9 +277,6 @@ class Game():
             compressed_size = in_i
 
         code = code.replace('\r', ' ')
-        #print('DEBUG: raw lua:')
-        #print('\n'.join('{}: {}'.format(i, repr(l))
-        #      for i, l in enumerate(code.split('\n'))))
 
         new_game = cls(filename=filename, compressed_size=compressed_size)
         new_game.version = version
@@ -375,24 +383,88 @@ class Game():
         import png
 
         label_fname = label_fname or EMPTY_LABEL_FNAME
-        with open(label_fname) as label_fh:
-            r = png.Reader(file=label_fh)
-            (width, height, data, attrs) = r.read()
+        try:
+            with open(label_fname, 'rb') as label_fh:
+                r = png.Reader(file=label_fh)
+                (width, height, img_data, attrs) = r.read()
+                img_data = list(img_data)
+        except png.Error:
+            raise InvalidP8PNGError()
 
         cart_lua = self.lua.to_lines(writer_cls=lua_writer_cls,
                                      writer_args=lua_writer_args)
-        # TODO: Compress Lua -> code
-        # TODO: Write sections to data stegonographically.
-        # self.gfx.to_bytes() => 0x0:0x2000
-        # self.map.to_bytes() => 0x2000:0x3000
-        # self.gff.to_bytes() => 0x3000:0x3100
-        # self.music.to_bytes() => 0x3100:0x3200
-        # self.sfx.to_bytes() => 0x3200:0x4300
-        # code => 0x4300:0x8000
-        # self.version => 0x8000
+        # TODO: Compress Lua -> code_bytes (0x4300-0x8000)
+        # (Not all sources get compressed, what's the limit?)
+        code_bytes = bytearray(0x8000-0x4300)
+        code_bytes[:len(b'-- test\n')] = b'-- test\n'
 
-        # TODO: Write PNG file to outstr
+        picodata = b''.join((self.gfx.to_bytes(),
+                         self.map.to_bytes(),
+                         self.gff.to_bytes(),
+                         self.music.to_bytes(),
+                         self.sfx.to_bytes(),
+                         code_bytes,
+                         bytes((self.version,))))
 
+        # TODO: This isn't right yet. Bit order?
+        new_rows = []
+        for row_i, row in enumerate(img_data):
+            new_row = bytearray(width * attrs['planes'])
+            for col_i in range(width):
+                if (row_i * width + col_i) < len(picodata):
+                    new_row[col_i * attrs['planes'] + 2] = (
+                        (row[col_i * attrs['planes'] + 2] & ~3) +
+                        (picodata[row_i * width + col_i] & (3 << (0 * 2)) >>
+                        (0 * 2)))
+                    new_row[col_i * attrs['planes'] + 1] = (
+                        (row[col_i * attrs['planes'] + 1] & ~3) +
+                        (picodata[row_i * width + col_i] & (3 << (1 * 2)) >>
+                        (1 * 2)))
+                    new_row[col_i * attrs['planes'] + 0] = (
+                        (row[col_i * attrs['planes'] + 0] & ~3) +
+                        (picodata[row_i * width + col_i] & (3 << (2 * 2)) >>
+                        (2 * 2)))
+                    new_row[col_i * attrs['planes'] + 3] = (
+                        (row[col_i * attrs['planes'] + 3] & ~3) +
+                        (picodata[row_i * width + col_i] & (3 << (3 * 2)) >>
+                        (3 * 2)))
+                else:
+                    for n in range(4):
+                        new_row[col_i * attrs['planes'] + n] = (
+                            row[col_i * attrs['planes'] + n])
+            new_rows.append(new_row)
+
+        wr = png.Writer(width, height, **attrs)
+        wr.write(outstr, new_rows)
+
+    def to_file(self, filename=None, *args, **kwargs):
+        """Write the game data to a file, based on a filename.
+
+        If filename ends with .png, the output is a .p8.png file. If the
+        output file exists, its label is reused, otherwise an empty label is
+        used. The label can be overridden by the caller with the
+        'label_fname' argument.
+
+        If filename does not end with .png, then the output is a .p8 file.
+
+        Args:
+            filename: The filename.
+        """
+        if filename.endswith('.png'):
+            file_args = {'mode':'wb+'}
+        else:
+            file_args = {'mode':'w+', 'encoding':'utf-8'}
+        with tempfile.TemporaryFile(**file_args) as outfh:
+            if filename.endswith('.png'):
+                if kwargs.get('label_fname', None) is None:
+                    if os.path.exists(filename):
+                        kwargs['label_fname'] = filename
+                self.to_p8png_file(outfh, filename=filename, *args, **kwargs)
+            else:
+                self.to_p8_file(outfh, *args, **kwargs)
+            outfh.seek(0)
+            with open(filename, **file_args) as finalfh:
+                finalfh.write(outfh.read())
 
     def write_cart_data(self, data, start_addr=0):
         """Write binary data to an arbitrary cart address.

@@ -170,6 +170,29 @@ class TestGameToP8(unittest.TestCase):
         self.assertTrue(util._error_stream.getvalue().startswith(
             'warning: token count'))
 
-        
+
+class TestGameToP8PNG(unittest.TestCase):
+    def setUp(self):
+        self.testdata_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+            'testdata')
+        self.orig_error_stream = util._error_stream
+        util._error_stream = io.StringIO()
+
+    def tearDown(self):
+        util._error_stream = self.orig_error_stream
+
+    # def testToPngFromPng(self):
+    #     with open(os.path.join(self.testdata_path, 'test_cart.p8.png'), 'rb') as fh:
+    #         orig_game = game.Game.from_p8png_file(fh)
+    #     with open(os.path.join(self.testdata_path, 'test_cart.p8.png'), 'rb') as fh:
+    #         expected_game_p8 = fh.read()
+    #     outstr = io.BytesIO()
+    #     orig_game.to_p8png_file(
+    #         outstr,
+    #         label_fname=os.path.join(self.testdata_path, 'test_cart.p8.png'))
+    #     self.assertEqual(expected_game_p8, outstr.getvalue())
+
+
 if __name__ == '__main__':
     unittest.main()

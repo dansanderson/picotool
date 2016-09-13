@@ -11,10 +11,8 @@ def do_build(args):
     Args:
         args: The argparse.Namespace arguments object.
     """
-    # Verify output filename has appropriate extension.
-    # TODO: add support for outputting .p8.png
-    if not args.filename.endswith('.p8'):
-        util.error('Output cartridge filename must end with ".p8".')
+    if (not args.filename.endswith('.p8') and
+            not args.filename.endswith('.p8.png')):
         return 1
 
     empty_source = game.Game.make_empty_game(filename=args.filename)
@@ -64,8 +62,7 @@ def do_build(args):
             setattr(result, section, getattr(empty_source, section))
 
     # Save result as args.filename.
-    with open(args.filename, 'w') as outfh:
-        # TODO: add support for outputting .p8.png
-        result.to_p8_file(outfh, filename=args.filename)
+    # TODO: allow overriding the label source for .p8.png
+    result.to_file(filename=args.filename)
 
     return 0

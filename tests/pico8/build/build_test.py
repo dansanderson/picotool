@@ -27,10 +27,6 @@ class TestDoBuild(unittest.TestCase):
         args = argparse.Namespace(filename='foo.xxx')
         self.assertEqual(1, build.do_build(args))
 
-    def testErrorP8PNGOutputNotSupported(self):
-        args = argparse.Namespace(filename='foo.p8.png')
-        self.assertEqual(1, build.do_build(args))
-
     def testErrorInputFileDoesNotExist(self):
         args = argparse.Namespace(lua='doesnotexist.p8', filename='foo.p8')
         self.assertEqual(1, build.do_build(args))

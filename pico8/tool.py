@@ -8,7 +8,6 @@ import csv
 import os
 import re
 import sys
-import tempfile
 import traceback
 
 from . import util
@@ -46,6 +45,10 @@ def _games_for_filenames(filenames):
             util.debug(traceback.format_exc())
             yield (fname, None)
         except parser.ParserError as e:
+            util.error('{}: {}\n'.format(fname, e))
+            util.debug(traceback.format_exc())
+            yield (fname, None)
+        except util.InvalidP8DataError as e:
             util.error('{}: {}\n'.format(fname, e))
             util.debug(traceback.format_exc())
             yield (fname, None)
@@ -200,24 +203,19 @@ def process_game_files(filenames, procfunc, overwrite=False, args=None):
             out_fname = fname
         else:
             if fname.endswith('.p8.png'):
-                out_fname = fname[:-len('.p8.png')] + '_fmt.p8'
+                out_fname = fname[:-len('.p8.png')] + '_fmt.p8.png'
             else:
                 out_fname = fname[:-len('.p8')] + '_fmt.p8'
 
         util.write('{} -> {}\n'.format(fname, out_fname))
-        with tempfile.TemporaryFile(mode='w+', encoding='utf-8') as outfh:
-            procfunc(g, outfh, out_fname, args=args)
-            
-            outfh.seek(0)
-            with open(out_fname, 'w', encoding='utf-8') as finalfh:
-                finalfh.write(outfh.read())
+        procfunc(g, out_fname, args=args)
 
     if has_errors:
         return 1
     return 0
 
 
-def writep8(g, outfh, out_fname, args=None):
+def writep8(g, out_fname, args=None):
     """Writes the game to a .p8 file.
 
     If the original was a .p8.png file, this converts it to a .p8 file.
@@ -227,38 +225,35 @@ def writep8(g, outfh, out_fname, args=None):
 
     Args:
       g: The Game.
-      outfh: The output filehandle.
-      out_fname: The output filename, for error messages.
+      out_fname: The output filename.
       args: The argparse parsed args object, or None.
     """
-    g.to_p8_file(outfh, filename=out_fname)
+    g.to_file(filename=out_fname)
 
 
-def luamin(g, outfh, out_fname, args=None):
+def luamin(g, out_fname, args=None):
     """Reduces the Lua code for a cart to use a minimal number of characters.
 
     Args:
       g: The Game.
-      outfh: The output filehandle.
       out_fname: The output filename, for error messages.
       args: The argparse parsed args object, or None.
     """
-    g.to_p8_file(outfh, filename=out_fname,
-                 lua_writer_cls=lua.LuaMinifyTokenWriter)
+    g.to_file(filename=out_fname,
+              lua_writer_cls=lua.LuaMinifyTokenWriter)
             
 
-def luafmt(g, outfh, out_fname, args=None):
+def luafmt(g, out_fname, args=None):
     """Rewrite the Lua code for a cart to use regular formatting.
 
     Args:
       g: The Game.
-      outfh: The output filehandle.
       out_fname: The output filename, for error messages.
       args: The argparse parsed args object, or None.
     """
-    g.to_p8_file(outfh, filename=out_fname,
-                 lua_writer_cls=lua.LuaFormatterWriter,
-                 lua_writer_args={'indentwidth': args.indentwidth})
+    g.to_file(filename=out_fname,
+              lua_writer_cls=lua.LuaFormatterWriter,
+              lua_writer_args={'indentwidth': args.indentwidth})
 
 
 _PRINTAST_INDENT_SIZE = 2
