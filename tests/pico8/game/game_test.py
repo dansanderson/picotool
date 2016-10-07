@@ -182,6 +182,7 @@ class TestGameToP8PNG(unittest.TestCase):
     def tearDown(self):
         util._error_stream = self.orig_error_stream
 
+    # TODO:
     # def testToPngFromPng(self):
     #     with open(os.path.join(self.testdata_path, 'test_cart.p8.png'), 'rb') as fh:
     #         orig_game = game.Game.from_p8png_file(fh)

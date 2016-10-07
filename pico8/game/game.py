@@ -194,6 +194,174 @@ class Game():
         return new_game
 
     @classmethod
+    def get_picodata_from_pngdata(cls, width, height, pngdata, attrs):
+        """Extracts Pico-8 bytes from a .p8.png's PNG data.
+
+        The arguments are expected in the format returned by png.Reader's
+        read() method.
+
+        Args:
+          width: The PNG width.
+          height: The PNG height.
+          pngdata: The PNG data region, an iterable of 'height' rows, where
+            each row is an indexable 'width' * 'attrs['planes']' long.
+          attrs: The PNG attrs.
+
+        Returns:
+          The Pico-8 data, a list of width * height (0x8000) byte-size numbers.
+        """
+        picodata = [0] * width * height
+
+        row_i = 0
+        for row in pngdata:
+            for col_i in range(width):
+                picodata[row_i * width + col_i] |= (
+                    (row[col_i * attrs['planes'] + 2] & 3) << (0 * 2))
+                picodata[row_i * width + col_i] |= (
+                    (row[col_i * attrs['planes'] + 1] & 3) << (1 * 2))
+                picodata[row_i * width + col_i] |= (
+                    (row[col_i * attrs['planes'] + 0] & 3) << (2 * 2))
+                picodata[row_i * width + col_i] |= (
+                    (row[col_i * attrs['planes'] + 3] & 3) << (3 * 2))
+            row_i += 1
+
+        return picodata
+
+    @classmethod
+    def get_pngdata_from_picodata(cls, picodata, pngdata, attrs):
+        """Encodes Pico-8 bytes into a given PNG's image data.
+
+        Args:
+          picodata: The Pico-8 data, a bytearray of 0x8000 bytes.
+          pngdata: The PNG image data of the original cart image,
+            as an iterable of rows as returned by pypng.
+          attrs: The attrs of the original PNG image, as returned by pypng.
+
+        Returns:
+          New PNG image data, as an iterable of rows, suitable for writing
+          by pypng.
+        """
+        # TODO: This isn't right yet. Bit order?
+        new_rows = []
+        planes = attrs['planes']
+        for row_i, row in enumerate(pngdata):
+            new_row = bytearray(width * planes)
+            for col_i in range(width):
+                if (row_i * width + col_i) < len(picodata):
+                    new_row[col_i * planes + 2] = (
+                        (row[col_i * planes + 2] & ~3) +
+                        (picodata[row_i * width + col_i] & (3 << (0 * 2)) >>
+                        (0 * 2)))
+                    new_row[col_i * planes + 1] = (
+                        (row[col_i * planes + 1] & ~3) +
+                        (picodata[row_i * width + col_i] & (3 << (1 * 2)) >>
+                        (1 * 2)))
+                    new_row[col_i * planes + 0] = (
+                        (row[col_i * planes + 0] & ~3) +
+                        (picodata[row_i * width + col_i] & (3 << (2 * 2)) >>
+                        (2 * 2)))
+                    new_row[col_i * planes + 3] = (
+                        (row[col_i * planes + 3] & ~3) +
+                        (picodata[row_i * width + col_i] & (3 << (3 * 2)) >>
+                        (3 * 2)))
+                else:
+                    for n in range(4):
+                        new_row[col_i * planes + n] = (
+                            row[col_i * planes + n])
+            new_rows.append(new_row)
+
+        return new_rows
+
+    @classmethod
+    def decompress_code(cls, codedata):
+        """Decompresses compressed code data.
+
+        Args:
+          codedata: The bytes of the code region (0x4300:0x8000).
+
+        Returns:
+          The tuple (code_length, code, compressed_size).
+        """
+        code_length = (codedata[4] << 8) | codedata[5]
+        assert bytes(codedata[6:8]) == b'\x00\x00'
+
+        out = [0] * code_length
+        in_i = 8
+        out_i = 0
+        while out_i < code_length and in_i < len(codedata):
+            if codedata[in_i] == 0x00:
+                in_i += 1
+                out[out_i] = codedata[in_i]
+                out_i += 1
+            elif codedata[in_i] <= 0x3b:
+                out[out_i] = COMPRESSED_LUA_CHAR_TABLE[codedata[in_i]]
+                out_i += 1
+            else:
+                in_i += 1
+                offset = ((codedata[in_i - 1] - 0x3c) * 16 +
+                          (codedata[in_i] & 0xf))
+                length = (codedata[in_i] >> 4) + 2
+                out[out_i:out_i + length] = \
+                    out[out_i - offset:out_i - offset + length]
+                out_i += length
+            in_i += 1
+
+        code = ''.join(chr(c) for c in out) + '\n'
+        compressed_size = in_i
+
+        return code_length, code, compressed_size
+
+    @classmethod
+    def get_code_from_bytes(cls, codedata, version):
+        """Gets the code text from the byte data.
+
+        Args:
+          codedata: The bytes of the code region (0x4300:0x8000).
+          version: The version of the cart data.
+
+        Returns:
+          The tuple (code_length, code, compressed_size). compressed_size is
+          None if the code data was not compressed.
+        """
+
+        if version == 0 or bytes(codedata[:4]) != b':c:\x00':
+            # code is ASCII
+
+            try:
+                code_length = codedata.index(0)
+            except ValueError:
+                # Edge case: uncompressed code completely fills the code area.
+                code_length = 0x8000 - 0x4300
+
+            code = ''.join(chr(c) for c in codedata[:code_length]) + '\n'
+            compressed_size = None
+
+        else:
+            # code is compressed
+            code_length, code, compressed_size = cls.decompress_code(codedata)
+
+        code = code.replace('\r', ' ')
+
+        return code_length, code, compressed_size
+
+    @classmethod
+    def get_bytes_from_code(cls, code):
+        """Gets the byte data for code text.
+
+        Args:
+          code: The code text.
+
+        Returns:
+          The bytes for the code, possibly compressed.
+        """
+        # TODO: implement compression as needed
+        code_bytes = bytes(code)
+        byte_array = bytearray(0x8000-0x4300)
+        byte_array[:len(code_bytes)] = code_bytes
+
+        return byte_array
+
+    @classmethod
     def from_p8png_file(cls, instr, filename=None):
         """Loads a game from a .p8.png file.
     
@@ -213,70 +381,18 @@ class Game():
         except png.Error:
             raise InvalidP8PNGError()
 
-        picodata = [0] * width * height
-
-        row_i = 0
-        for row in data:
-            for col_i in range(width):
-                picodata[row_i * width + col_i] |= (
-                    (row[col_i * attrs['planes'] + 2] & 3) << (0 * 2))
-                picodata[row_i * width + col_i] |= (
-                    (row[col_i * attrs['planes'] + 1] & 3) << (1 * 2))
-                picodata[row_i * width + col_i] |= (
-                    (row[col_i * attrs['planes'] + 0] & 3) << (2 * 2))
-                picodata[row_i * width + col_i] |= (
-                    (row[col_i * attrs['planes'] + 3] & 3) << (3 * 2))
-            row_i += 1
+        picodata = cls.get_picodata_from_pngdata(width, height, data, attrs)
 
         gfx = picodata[0x0:0x2000]
         p8map = picodata[0x2000:0x3000]
         gfx_props = picodata[0x3000:0x3100]
         song = picodata[0x3100:0x3200]
         sfx = picodata[0x3200:0x4300]
-        code = picodata[0x4300:0x8000]
+        codedata = picodata[0x4300:0x8000]
         version = picodata[0x8000]
 
-        compressed_size = None
-
-        if version == 0 or bytes(code[:4]) != b':c:\x00':
-            # code is ASCII
-
-            try:
-                code_length = code.index(0)
-            except ValueError:
-                # Edge case: uncompressed code completely fills the code area.
-                code_length = 0x8000-0x4300
-
-            code = ''.join(chr(c) for c in code[:code_length]) + '\n'
-
-        else:
-            # code is compressed
-            code_length = (code[4] << 8) | code[5]
-            assert bytes(code[6:8]) == b'\x00\x00'
-
-            out = [0] * code_length
-            in_i = 8
-            out_i = 0
-            while out_i < code_length and in_i < len(code):
-                if code[in_i] == 0x00:
-                    in_i += 1
-                    out[out_i] = code[in_i]
-                    out_i += 1
-                elif code[in_i] <= 0x3b:
-                    out[out_i] = COMPRESSED_LUA_CHAR_TABLE[code[in_i]]
-                    out_i += 1
-                else:
-                    in_i += 1
-                    offset = (code[in_i - 1] - 0x3c) * 16 + (code[in_i] & 0xf)
-                    length = (code[in_i] >> 4) + 2
-                    out[out_i:out_i + length] = out[out_i - offset:out_i - offset + length]
-                    out_i += length
-                in_i += 1
-
-            code = ''.join(chr(c) for c in out) + '\n'
-            compressed_size = in_i
-
-        code = code.replace('\r', ' ')
+        (code_length, code, compressed_size) = cls.get_code_from_bytes(
+            codedata, version)
 
         new_game = cls(filename=filename, compressed_size=compressed_size)
         new_game.version = version
@@ -393,10 +509,7 @@ class Game():
 
         cart_lua = self.lua.to_lines(writer_cls=lua_writer_cls,
                                      writer_args=lua_writer_args)
-        # TODO: Compress Lua -> code_bytes (0x4300-0x8000)
-        # (Not all sources get compressed, what's the limit?)
-        code_bytes = bytearray(0x8000-0x4300)
-        code_bytes[:len(b'-- test\n')] = b'-- test\n'
+        code_bytes = self.get_bytes_from_code(cart_lua)
 
         picodata = b''.join((self.gfx.to_bytes(),
                          self.map.to_bytes(),
@@ -406,33 +519,7 @@ class Game():
                          code_bytes,
                          bytes((self.version,))))
 
-        # TODO: This isn't right yet. Bit order?
-        new_rows = []
-        for row_i, row in enumerate(img_data):
-            new_row = bytearray(width * attrs['planes'])
-            for col_i in range(width):
-                if (row_i * width + col_i) < len(picodata):
-                    new_row[col_i * attrs['planes'] + 2] = (
-                        (row[col_i * attrs['planes'] + 2] & ~3) +
-                        (picodata[row_i * width + col_i] & (3 << (0 * 2)) >>
-                        (0 * 2)))
-                    new_row[col_i * attrs['planes'] + 1] = (
-                        (row[col_i * attrs['planes'] + 1] & ~3) +
-                        (picodata[row_i * width + col_i] & (3 << (1 * 2)) >>
-                        (1 * 2)))
-                    new_row[col_i * attrs['planes'] + 0] = (
-                        (row[col_i * attrs['planes'] + 0] & ~3) +
-                        (picodata[row_i * width + col_i] & (3 << (2 * 2)) >>
-                        (2 * 2)))
-                    new_row[col_i * attrs['planes'] + 3] = (
-                        (row[col_i * attrs['planes'] + 3] & ~3) +
-                        (picodata[row_i * width + col_i] & (3 << (3 * 2)) >>
-                        (3 * 2)))
-                else:
-                    for n in range(4):
-                        new_row[col_i * attrs['planes'] + n] = (
-                            row[col_i * attrs['planes'] + n])
-            new_rows.append(new_row)
+        new_rows = self.get_pngdata_from_picodata(picodata, img_data, attrs)
 
         wr = png.Writer(width, height, **attrs)
         wr.write(outstr, new_rows)
