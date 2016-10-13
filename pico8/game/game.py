@@ -245,6 +245,7 @@ class Game():
         new_rows = []
         planes = attrs['planes']
         for row_i, row in enumerate(pngdata):
+            width = int(len(row) / planes)
             new_row = bytearray(width * planes)
             for col_i in range(width):
                 if (row_i * width + col_i) < len(picodata):
