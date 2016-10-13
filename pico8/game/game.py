@@ -241,7 +241,6 @@ class Game():
           New PNG image data, as an iterable of rows, suitable for writing
           by pypng.
         """
-        # TODO: This isn't right yet. Bit order?
         new_rows = []
         planes = attrs['planes']
         for row_i, row in enumerate(pngdata):
@@ -249,22 +248,19 @@ class Game():
             new_row = bytearray(width * planes)
             for col_i in range(width):
                 if (row_i * width + col_i) < len(picodata):
+                    picobyte = picodata[row_i * width + col_i]
                     new_row[col_i * planes + 2] = (
-                        (row[col_i * planes + 2] & ~3) +
-                        (picodata[row_i * width + col_i] & (3 << (0 * 2)) >>
-                        (0 * 2)))
+                        (row[col_i * planes + 2] & ~3) |
+                        (picobyte & 3))
                     new_row[col_i * planes + 1] = (
-                        (row[col_i * planes + 1] & ~3) +
-                        (picodata[row_i * width + col_i] & (3 << (1 * 2)) >>
-                        (1 * 2)))
+                        (row[col_i * planes + 1] & ~3) |
+                        ((picobyte >> 2) & 3))
                     new_row[col_i * planes + 0] = (
-                        (row[col_i * planes + 0] & ~3) +
-                        (picodata[row_i * width + col_i] & (3 << (2 * 2)) >>
-                        (2 * 2)))
+                        (row[col_i * planes + 0] & ~3) |
+                        ((picobyte >> 4) & 3))
                     new_row[col_i * planes + 3] = (
-                        (row[col_i * planes + 3] & ~3) +
-                        (picodata[row_i * width + col_i] & (3 << (3 * 2)) >>
-                        (3 * 2)))
+                        (row[col_i * planes + 3] & ~3) |
+                        ((picobyte >> 6) & 3))
                 else:
                     for n in range(4):
                         new_row[col_i * planes + n] = (
