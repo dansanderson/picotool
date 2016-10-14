@@ -225,13 +225,16 @@ class TestP8PNGGame(unittest.TestCase):
             self.assertEqual(bytearray(TEST_PNG['data'][row_i]), pngdata[row_i])
 
     def testCompressCodeHelloExample(self):
-        test_str = 'a="hello"\nb="hello also"\nb="hello also"\nb="hello also"\nb="hello also"\nb="hello also"\nb="hello also"\n\n'
+        test_str = ('a="hello"\nb="hello also"\nb="hello also"\n'
+                    'b="hello also"\nb="hello also"\nb="hello also"\n'
+                    'b="hello also"\n\n')
         comp_result = game.Game.compress_code(test_str)
         code_length_bytes = bytes([len(test_str) >> 8, len(test_str) & 255])
         code_bytes = b''.join([b':c:\0', code_length_bytes, b'\0\0',
                                comp_result])
         decomp_result = game.Game.decompress_code(code_bytes)
         self.assertEqual(decomp_result[1], test_str + '\n')
+        # TODO: actual Pico-8 result:
         #self.assertEqual(bytearray([13, 51, 0, 34, 20, 17, 24, 24, 27, 0, 34, 1, 14, 60, 90, 2, 13, 24, 31, 60, 223, 61, 254, 62, 253, 63, 252, 64, 171]),
         #    result)
 

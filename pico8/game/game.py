@@ -311,22 +311,14 @@ class Game():
             else:
                 # emit lzd entry
                 start_i, end_i = lzd[code[i:i + seglen]]
-                print('DEBUG: using lookup for str {} : start_i={} end_i={}'
-                      .format(code[i:i + seglen], start_i, end_i))
                 offset = i - start_i
                 length = end_i - start_i
                 result.append((offset >> 4) + 0x3c)
                 result.append(((length - 2) << 4) | (offset & 0xf))
-                print('DEBUG: ... offset={} length={} first={} second={}'
-                      .format(offset, length,
-                              (offset >> 4) + 0x3c,
-                              ((length - 2) << 4) | (offset & 0xf)))
 
             # extend lzd
             if i + seglen + 1 <= len(code):
                 lzd[code[i:i + seglen + 1]] = (i, i + seglen + 1)
-                print('DEBUG: extending lzd: {} = start_i={}, end_i={}'
-                      .format(code[i:i+seglen+1], i, i+seglen+1))
 
             i += seglen
 
@@ -342,7 +334,6 @@ class Game():
         Returns:
           The tuple (code_length, code, compressed_size).
         """
-        print('DEBUG: decompress_code: {}'.format(repr(codedata[:80])))
         code_length = (codedata[4] << 8) | codedata[5]
         assert bytes(codedata[6:8]) == b'\x00\x00'
 
@@ -373,7 +364,6 @@ class Game():
         code = ''.join(chr(c) for c in out) + '\n'
         compressed_size = in_i
 
-        print('DEBUG: code={}'.format(repr(code)))
         return code_length, code, compressed_size
 
     @classmethod
