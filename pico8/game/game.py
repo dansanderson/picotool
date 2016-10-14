@@ -270,6 +270,69 @@ class Game():
         return new_rows
 
     @classmethod
+    def compress_code(cls, code):
+        """Compress code.
+
+        This returns the compressed code even if the output is larger than the
+        input. The caller should compare the sizes and do the appropriate thing.
+
+        Args:
+          code: The code text (str), non-empty.
+
+        Returns:
+          The compressed code data (bytearray).
+        """
+        result = bytearray()
+
+        # maps string segments to (start_i, end_i) indexes in the original
+        # string, or None if is a single-char entry
+        lzd = {}
+        for c in range(256):
+            lzd[chr(c)] = None
+
+        i = 0
+        while i < len(code):
+            seglen = 1
+            while i + seglen <= len(code) and code[i:i + seglen] in lzd:
+                seglen += 1
+            seglen -= 1
+
+            if seglen == 1:
+                # emit one char
+                try:
+                    char_i = COMPRESSED_LUA_CHAR_TABLE.index(ord(code[i]))
+                except ValueError:
+                    char_i = 0
+                if char_i >= 1:
+                    result.append(char_i)
+                else:
+                    result.append(0)
+                    result.append(ord(code[i]))
+            else:
+                # emit lzd entry
+                start_i, end_i = lzd[code[i:i + seglen]]
+                print('DEBUG: using lookup for str {} : start_i={} end_i={}'
+                      .format(code[i:i + seglen], start_i, end_i))
+                offset = i - start_i
+                length = end_i - start_i
+                result.append((offset >> 4) + 0x3c)
+                result.append(((length - 2) << 4) | (offset & 0xf))
+                print('DEBUG: ... offset={} length={} first={} second={}'
+                      .format(offset, length,
+                              (offset >> 4) + 0x3c,
+                              ((length - 2) << 4) | (offset & 0xf)))
+
+            # extend lzd
+            if i + seglen + 1 <= len(code):
+                lzd[code[i:i + seglen + 1]] = (i, i + seglen + 1)
+                print('DEBUG: extending lzd: {} = start_i={}, end_i={}'
+                      .format(code[i:i+seglen+1], i, i+seglen+1))
+
+            i += seglen
+
+        return result
+
+    @classmethod
     def decompress_code(cls, codedata):
         """Decompresses compressed code data.
 
@@ -279,6 +342,7 @@ class Game():
         Returns:
           The tuple (code_length, code, compressed_size).
         """
+        print('DEBUG: decompress_code: {}'.format(repr(codedata[:80])))
         code_length = (codedata[4] << 8) | codedata[5]
         assert bytes(codedata[6:8]) == b'\x00\x00'
 
@@ -303,9 +367,13 @@ class Game():
                 out_i += length
             in_i += 1
 
+        # I have forgotten why I add a newline to this, but something breaks
+        # if I don't.
+        # TODO: fix this?
         code = ''.join(chr(c) for c in out) + '\n'
         compressed_size = in_i
 
+        print('DEBUG: code={}'.format(repr(code)))
         return code_length, code, compressed_size
 
     @classmethod
@@ -351,8 +419,16 @@ class Game():
         Returns:
           The bytes for the code, possibly compressed.
         """
-        # TODO: implement compression as needed
-        code_bytes = bytes(code)
+        compressed_bytes = cls.compress_code(code)
+        if len(compressed_bytes) < len(code):
+            # Use compressed.
+            code_length_bytes = bytes([len(code) >> 8, len(code) & 255])
+            code_bytes = b''.join([b':c:\0', code_length_bytes, b'\0\0',
+                                   compressed_bytes])
+        else:
+            # Use uncompressed.
+            code_bytes = bytes(code)
+
         byte_array = bytearray(0x8000-0x4300)
         byte_array[:len(code_bytes)] = code_bytes
 
