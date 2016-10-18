@@ -454,45 +454,45 @@ def _get_argparser():
         help='builds a cart out of multiple files')
     sp_build.add_argument(
         '--lua', type=str,
-        help='filename for the cart (.p8, .p8.png) or Lua source file (.lua) '
+        help='filename for the cart (.p8 .p8.png) or Lua source file (.lua) '
              'to use for the lua region')
     sp_build.add_argument(
         '--empty-lua', action='store_true',
         help='use an empty lua region (overrides default)')
     sp_build.add_argument(
         '--gfx', type=str,
-        help='filename for the cart (.p8, .p8.png) whose gfx region to use')
+        help='filename for the cart whose gfx region to use')
     sp_build.add_argument(
         '--empty-gfx', action='store_true',
         help='use an empty gfx region (overrides default)')
     sp_build.add_argument(
         '--gff', type=str,
-        help='filename for the cart (.p8, .p8.png) whose gff (flags) region to '
+        help='filename for the cart whose gff (flags) region to '
              'use')
     sp_build.add_argument(
         '--empty-gff', action='store_true',
         help='use an empty gff (flags) region (overrides default)')
     sp_build.add_argument(
         '--map', type=str,
-        help='filename for the cart (.p8, .p8.png) whose map region to use')
+        help='filename for the cart whose map region to use')
     sp_build.add_argument(
         '--empty-map', action='store_true',
         help='use an empty map region (overrides default)')
     sp_build.add_argument(
         '--sfx', type=str,
-        help='filename for the cart (.p8, .p8.png) whose sfx region to use')
+        help='filename for the cart whose sfx region to use')
     sp_build.add_argument(
         '--empty-sfx', action='store_true',
         help='use an empty sfx region (overrides default)')
     sp_build.add_argument(
         '--music', type=str,
-        help='filename for the cart (.p8, .p8.png) whose music region to use')
+        help='filename for the cart whose music region to use')
     sp_build.add_argument(
         '--empty-music', action='store_true',
         help='use an empty music region (overrides default)')
     sp_build.add_argument(
         'filename', type=str,
-        help='filename of the output cart (.p8 only); if the file exists, '
+        help='filename of the output cart; if the file exists, '
              'the cart is used as the default input for each region not'
              'overridden')
     sp_build.set_defaults(func=build.do_build)

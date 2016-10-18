@@ -30,6 +30,12 @@ DEFAULT_VERSION = 8
 EMPTY_LABEL_FNAME = os.path.join(os.path.dirname(__file__), 'empty_018.p8.png')
 COMPRESSED_LUA_CHAR_TABLE = list(b'#\n 0123456789abcdefghijklmnopqrstuvwxyz!#%(){}[]<>+=/*:;.,~_')
 
+# Pico-8 adds this automatically to compressed code and removes it
+# automatically from decompressed code to maintain compatibility with Pico-8
+# 0.1.7.
+PICO8_FUTURE_CODE2 = ('if(_update60)_update=function()'
+                      '_update60()_update_buttons()_update60()end')
+
 
 class InvalidP8HeaderError(util.InvalidP8DataError):
     """Exception for invalid .p8 file header."""
@@ -284,6 +290,18 @@ class Game():
         """
         result = bytearray()
 
+        # Constants from Pico-8, courtesy zep
+        PICO8_BLOCK_LEN_MIN = 3
+        PICO8_BLOCK_LEN_MAX = 17
+        PICO8_CODE_ALLOC_SIZE = 0x10000 + 1
+
+        # Implement Pico-8 0.1.7 forwards compatibility feature.
+        # This injected code is removed by Pico-8 if it exists.
+        if (len(code) + len(PICO8_FUTURE_CODE2) + 1) < PICO8_CODE_ALLOC_SIZE:
+            if code[-1] != ' ' and code[-1] != '\n':
+                code += '\n'
+            code += PICO8_FUTURE_CODE2
+
         # maps string segments to (start_i, end_i) indexes in the original
         # string, or None if is a single-char entry
         lzd = {}
@@ -297,8 +315,9 @@ class Game():
                 seglen += 1
             seglen -= 1
 
-            if seglen == 1:
+            if seglen < PICO8_BLOCK_LEN_MIN:
                 # emit one char
+                seglen = 1
                 try:
                     char_i = COMPRESSED_LUA_CHAR_TABLE.index(ord(code[i]))
                 except ValueError:
@@ -317,7 +336,8 @@ class Game():
                 result.append(((length - 2) << 4) | (offset & 0xf))
 
             # extend lzd
-            if i + seglen + 1 <= len(code):
+            if ((i + seglen + 1 <= len(code)) and
+                (i + seglen + 1 <= PICO8_BLOCK_LEN_MAX)):
                 lzd[code[i:i + seglen + 1]] = (i, i + seglen + 1)
 
             i += seglen
@@ -358,10 +378,12 @@ class Game():
                 out_i += length
             in_i += 1
 
-        # I have forgotten why I add a newline to this, but something breaks
-        # if I don't.
-        # TODO: fix this?
-        code = ''.join(chr(c) for c in out) + '\n'
+        code = ''.join(chr(c) for c in out)
+        if code.endswith(PICO8_FUTURE_CODE2):
+            code = code[:-len(PICO8_FUTURE_CODE2)]
+            if code[-1] == '\n':
+                code = code[:-1]
+
         compressed_size = in_i
 
         return code_length, code, compressed_size
@@ -417,7 +439,7 @@ class Game():
                                    compressed_bytes])
         else:
             # Use uncompressed.
-            code_bytes = bytes(code)
+            code_bytes = bytes(code, 'utf-8')
 
         byte_array = bytearray(0x8000-0x4300)
         byte_array[:len(code_bytes)] = code_bytes
@@ -572,7 +594,7 @@ class Game():
 
         cart_lua = self.lua.to_lines(writer_cls=lua_writer_cls,
                                      writer_args=lua_writer_args)
-        code_bytes = self.get_bytes_from_code(cart_lua)
+        code_bytes = self.get_bytes_from_code(''.join(cart_lua))
 
         picodata = b''.join((self.gfx.to_bytes(),
                          self.map.to_bytes(),

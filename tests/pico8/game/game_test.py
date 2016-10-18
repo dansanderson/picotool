@@ -58,7 +58,6 @@ for i=1,10 do
 	   print("buzz")
 	 end
 end
-
 '''
 
 FILE_TEST_GOL_CODE_COMPRESSED_HEAD = [
@@ -194,8 +193,7 @@ class TestP8PNGGame(unittest.TestCase):
         codedata[:len(CODE_COMPRESSED_BYTES)] = CODE_COMPRESSED_BYTES
         code_length, code, compressed_size = \
             game.Game.get_code_from_bytes(codedata, 1)
-        # (len - 1 because of added trailing newline)
-        self.assertEqual(len(CODE_COMPRESSED_AS_STRING) - 1, code_length)
+        self.assertEqual(len(CODE_COMPRESSED_AS_STRING), code_length)
         self.assertEqual(CODE_COMPRESSED_AS_STRING, code)
         self.assertEqual(len(CODE_COMPRESSED_BYTES), compressed_size)
 
@@ -233,7 +231,7 @@ class TestP8PNGGame(unittest.TestCase):
         code_bytes = b''.join([b':c:\0', code_length_bytes, b'\0\0',
                                comp_result])
         decomp_result = game.Game.decompress_code(code_bytes)
-        self.assertEqual(decomp_result[1], test_str + '\n')
+        self.assertEqual(decomp_result[1], test_str)
         # TODO: actual Pico-8 result:
         #self.assertEqual(bytearray([13, 51, 0, 34, 20, 17, 24, 24, 27, 0, 34, 1, 14, 60, 90, 2, 13, 24, 31, 60, 223, 61, 254, 62, 253, 63, 252, 64, 171]),
         #    result)
