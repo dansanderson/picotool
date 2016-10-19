@@ -2,11 +2,19 @@
 
 [Pico-8](http://www.lexaloffle.com/pico-8.php) is a *fantasy game console* by [Lexaloffle Games](http://www.lexaloffle.com/). The Pico-8 runtime environment runs *cartridges* (or *carts*): game files containing code, graphics, sound, and music data. The console includes a built-in editor for writing games. Game cartridge files can be played in a browser, and can be posted to the Lexaloffle bulletin board or exported to any website.
 
-There are two major cartridge data formats supported by Pico-8: a text-based format (`.p8`), and a PNG-based binary format (`.p8.png`). The PNG file can be viewed as an image that serves as a cover image for the cartridge. The actual game data is encoded in the image data.
+`picotool` is a suite of tools and libraries for building and manipulating Pico-8 game cartridge files. The suite is implemented in, and requires, [Python 3](https://www.python.org/). The tools can examine and transform cartridges in various ways, and you can implement your own tools to access and modify cartridge data with the Python libraries.
 
-The `picotool` suite of tools and libraries can read `.p8` and `.p8.png` files, and can write `.p8` files. The suite is implemented entirely in [Python 3](https://www.python.org/). The tools can examine and transform cartridges in various ways, and you can implement your own tools to access and modify cartridge data with the Python libraries.
+Useful tools include:
 
-**Note:** `picotool` is in its early days! See "Known issues" below.
+* `p8tool build`: assembles cartridges from multiple sources, as part of a game development workflow
+* `p8tool stats`: reports statistics on one or many cartridge files
+* `p8tool listlua`: prints the Lua code of a cartridge
+* `p8tool luafind`: searches the Lua code of a collection of cartridges
+* `p8tool luafmt`: formats the Lua code of a cartridge to make it easier to read
+
+There are additional tools that are mostly useful for demonstrating and troubleshooting the library: `writep8`, `listtokens`, `printast`, `luamin`. A separate demo, `p8upsidedown`, uses picotool to transform the code and data of a game to turn it upsidedown.
+
+`picotool` supports reading and writing both of Pico-8's cartridge file formats: the text-based format `.p8`, and the PNG-based binary format `.p8.png`.
 
 
 ## Installing picotool
@@ -30,6 +38,46 @@ For example, to print statistics about a cart named `helloworld.p8.png`:
 ```
 ./picotool-master/p8tool stats helloworld.p8.png
 ```
+
+
+### p8tool build
+
+The `build` tool creates or updates a cartridge file using other files as sources. It is intended as a part of a game development workflow, producing the final output cartridge.
+
+The tool takes the filename of the output cartridge, with additional arguments describing the build. If the output cartridge does not exist, the build starts with an empty cartridge. Otherwise, it uses the existing cartridge as the default, and overwrites sections of it based on the arguments.
+
+For example, you can create a cartridge in Pico-8, use Pico-8's built-in graphics and sound editors, then use `p8tool build` to replace the Lua code with the contents of a `.lua` file:
+
+```
+% ./picotool-master/p8tool build mygame.p8.png --lua mygame.lua
+```
+
+As another example, to create a new cartridge using the spritesheet (`gfx`) from one cartridge file, music (`sfx`, `music`) from another, and Lua code from a `.lua` file:
+
+```
+% ./picotool-master/p8tool build mygame.p8.png --gfx mygamegfx.p8 --sfx radsnds.p8.png --music radsnds.p8.png --lua mygame.lua
+```
+
+You can also erase a section of an existing cart with an argument such as `--empty-map`. 
+ 
+The available arguments are as follows:
+
+* `--lua LUA`: use Lua code from the given cart or `.lua` file
+* `--gfx GFX`: use spritesheet from the given cart
+* `--gff GFF`: use sprite flags from the given cart
+* `--map MAP`: use map from the given cart
+* `--sfx SFX`: use sound effects from the given cart
+* `--music MUSIC`: use music patterns from the given cart
+* `--empty-lua`: use an empty Lua code section
+* `--empty-gfx`: use an empty spritesheet
+* `--empty-gff`: use empty sprite flags
+* `--empty-map`: use an empty map
+* `--empty-sfx`: use empty sound effects
+* `--empty-music`: use empty music patterns
+
+If the output cart filename ends with `.p8.png`, the result a cartridge with a label image. If the file already exists, the cartridge label is reused. If the file does not exist, an empty cartridge label is used. To use a non-empty label, you must open the cart in Pico-8, take a screenshot (press F6 while running), set the title and byline in the first two lines of code (as Lua comments), then save the `.p8.png` file from Pico-8. Future runs of `p8tool build` will reuse the label.
+
+**Note:** This tool is under construction. I'm hoping to add more compelling features, such as advanced code management for Lua. Feel free to file feature requests in Github!
 
 
 ### p8tool stats
@@ -70,61 +118,6 @@ end
 function _draw()
  cls()
 
-...
-```
-
-
-### p8tool writep8
-
-The `writep8` tool writes a game's data to a `.p8` file. This is mostly useful for converting a `.p8.png` file to a `.p8` file. If the input is a `.p8` already, then this just makes a copy of the file. (This can be used to validate that the picotool library can output its input.)
-
-The command takes one or more cart filenames as arguments. For each cart with a name like `xxx.p8.png`, it writes a new cart with a name like `xxx_fmt.p8`.
-
-```
-% ./picotool-master/p8tool writep8 helloworld.p8.png 
-% cat helloworld_fmt.p8
-pico-8 cartridge // http://www.pico-8.com
-version 5
-__lua__
--- hello world
--- by zep
-
-t = 0
-
-music(0)
-
-function _update()
- t += 1
-end
-
-function _draw()
- cls()
-
-...
-```
-
-
-### p8tool luamin
-
-The `luamin` tool rewrites the Lua region of a cart to use as few characters as possible. It does this by discarding comments and extraneous space characters, and renaming variables and functions. This does not change the token count.
-
-The command takes one or more cart filenames as arguments. For each cart with a name like `xxx.p8.png`, it writes a new cart with a name like `xxx_fmt.p8`.
-
-I don't recommend using this tool when publishing your games. Statistically, you will run out of tokens before you run out of characters, and minifying is unlikely to affect the compressed character count. Carts are more useful to the Pico-8 community if the code in a published cart is readable and well-commented. I only wrote `luamin` because it's an obvious kind of code transformation to try with the library.
-
-```
-% ./picotool-master/p8tool luamin helloworld.p8.png 
-% cat helloworld_fmt.p8
-pico-8 cartridge // http://www.pico-8.com
-version 5
-__lua__
-a = 0
-music(0)
-function _update()
-a += 1
-end
-function _draw()
-cls()
 ...
 ```
 
@@ -220,6 +213,61 @@ You can tell `luafind` to just list the names of files containing the pattern wi
 13375.p8.png
 13739.p8.png
 15216.p8.png
+...
+```
+
+
+### p8tool writep8
+
+The `writep8` tool writes a game's data to a `.p8` file. This is mostly useful for converting a `.p8.png` file to a `.p8` file. If the input is a `.p8` already, then this just makes a copy of the file. (This can be used to validate that the picotool library can output its input.)
+
+The command takes one or more cart filenames as arguments. For each cart with a name like `xxx.p8.png`, it writes a new cart with a name like `xxx_fmt.p8`.
+
+```
+% ./picotool-master/p8tool writep8 helloworld.p8.png 
+% cat helloworld_fmt.p8
+pico-8 cartridge // http://www.pico-8.com
+version 5
+__lua__
+-- hello world
+-- by zep
+
+t = 0
+
+music(0)
+
+function _update()
+ t += 1
+end
+
+function _draw()
+ cls()
+
+...
+```
+
+
+### p8tool luamin
+
+The `luamin` tool rewrites the Lua region of a cart to use as few characters as possible. It does this by discarding comments and extraneous space characters, and renaming variables and functions. This does not change the token count.
+
+The command takes one or more cart filenames as arguments. For each cart with a name like `xxx.p8.png`, it writes a new cart with a name like `xxx_fmt.p8`.
+
+I don't recommend using this tool when publishing your games. Statistically, you will run out of tokens before you run out of characters, and minifying is unlikely to affect the compressed character count. Carts are more useful to the Pico-8 community if the code in a published cart is readable and well-commented. I only wrote `luamin` because it's an obvious kind of code transformation to try with the library.
+
+```
+% ./picotool-master/p8tool luamin helloworld.p8.png 
+% cat helloworld_fmt.p8
+pico-8 cartridge // http://www.pico-8.com
+version 5
+__lua__
+a = 0
+music(0)
+function _update()
+a += 1
+end
+function _draw()
+cls()
 ...
 ```
 
@@ -346,13 +394,13 @@ By default, this produces an HTML coverage report in the `cover` subdirectory. O
 
 * picotool and Pico-8 count tokens in slightly different ways, resulting in different counts. More refinement is needed so that picotool matches Pico-8. As far as I can tell, with picotool making some concessions to match Pico-8 in known cases, Pico-8's counts are consistently higher. So I'm missing a few cases where Pico-8 over-counts (or picotool under-counts). In most cases, the difference is only by a few tokens, even for large carts.
 
-* Pico-8's special single-line short form of the Lua `if` statement has some undocumented behavior that is currently not supported by picotool. Of all of the carts analyzed so far, only one such behavior is used but not yet supported: if the statement after the condition is a `do ... end` block, then the block is allowed to use multiple lines. For now, picotool does not support this. `if (cond) do ... end` can always be rewritten as `if cond then ... end`.
-
 * There may be obscure issues with old carts that cause the picotool's .p8 output to differ slightly from Pico-8's .p8 output for the same .p8.png input. In general, it appears Pico-8 manages some legacy format bugs internally. It is unlikely picotool can ever hope (or should ever try) to recreate the entire internal upgrade path.
   * helloworld.p8.png: The 2nd sfx pattern is has four note volumes in the PNG data that do not match Pico-8's RAM data when the cart is loaded.
   * Tower of Archeos: An old short-if syntax bug allowed this cart at .p8 version 0, but is a syntax error at .p8 version 5.
 
 * Pico-8 has implicit support for a non-ASCII character encoding, but it isn't UTF-8, and I'm not sure what it is. This is almost never an issue because you can't enter high chars in the editor nor print them with the Pico-8 font. I found one case (cart 11968) where there's a high char in a string, and Pico-8 treats it as a similar low char. For now, picotool replaces non-ASCII chars in Lua code with underscores.
+
+* A few old carts use an invalid form of the `if` statement that looks like this: `if (cond) do \n ... end`. This should be `if (cond) then \n ... end`. picotool rejects the invalid form, but Pico-8 allows it accidentally due to a bug in how the short-form `if` is implemented. Pico-8 implements this as a preprocessor pass, converting it to `if (cond) then do end \n ... end`. picotool implements short-if as an extension of the language grammar. Because very few carts are affected, I'm disinclined to fix this, but for undiscovered reasons it may be necessary in the future for picotool to use a preprocessor approach for this feature.
 
 
 ## Future plans
@@ -367,11 +415,7 @@ TODO:
 * luamin: eliminate space left behind by removing semicolons
 * luafmt: adjust spacing between things
 * stats: report info about other regions, e.g. color histograms
+* stats: report on compressed code size for .p8 carts
 * Rewrite expression AST to represent operator precedence
 * Improved API docs, especially the AST API
 * Improved reporting of parser errors
-* Automated tests for tool.py
-* Recreate Lua compression algorithm to report on compressed size stats
-* PNG saving to update an existing PNG cart
-  * ... to create a new PNG cart from a given/generated image
-  * Update stats to report on compressed Lua size when starting from .p8

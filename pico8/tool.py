@@ -493,7 +493,7 @@ def _get_argparser():
     sp_build.add_argument(
         'filename', type=str,
         help='filename of the output cart; if the file exists, '
-             'the cart is used as the default input for each region not'
+             'the cart is used as the default input for each region not '
              'overridden')
     sp_build.set_defaults(func=build.do_build)
 
