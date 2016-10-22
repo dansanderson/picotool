@@ -320,7 +320,6 @@ class TestLexer(unittest.TestCase):
                          lxr._tokens[0])
 
     def testMultilineString(self):
-        print('DEBUG: testMultilineString')
         lxr = lexer.Lexer(version=4)
         lxr._process_line('[[one\n')
         lxr._process_line('"two"\n')
