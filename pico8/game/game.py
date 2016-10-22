@@ -496,6 +496,20 @@ class Game():
 
         return new_game
 
+    def get_compressed_size(self):
+        """Gets the compressed code size.
+
+        If the code was not already stored compressed, this runs the
+        compression routine to determine the size it would be if compressed.
+
+        Returns:
+          The compressed code size, as a number of bytes.
+        """
+        if self.compressed_size is not None:
+            return self.compressed_size
+        comp_result = self.compress_code(''.join(self.lua.to_lines()))
+        return len(comp_result)
+
     def to_p8_file(self, outstr, lua_writer_cls=None, lua_writer_args=None,
                    filename=None):
         """Write the game data as a .p8 file.

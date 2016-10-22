@@ -95,7 +95,7 @@ def stats(args):
                 g.lua.get_char_count(),
                 g.lua.get_token_count(),
                 g.lua.get_line_count(),
-                g.compressed_size
+                g.get_compressed_size()
             ])
         else:
             title = g.lua.get_title()
@@ -112,8 +112,7 @@ def stats(args):
                        '- tokens: {}\n- compressed chars: {}\n'.format(
                 g.lua.version, g.lua.get_line_count(),
                 g.lua.get_char_count(), g.lua.get_token_count(),
-                g.compressed_size if g.compressed_size is not None
-                           else '(not compressed)'))
+                g.get_compressed_size()))
             util.write('\n')
 
     return 0
