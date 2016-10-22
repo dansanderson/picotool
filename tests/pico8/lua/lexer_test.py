@@ -319,6 +319,25 @@ class TestLexer(unittest.TestCase):
         self.assertEqual(lexer.TokNumber('0x1234567890abcdef.1bbf'),
                          lxr._tokens[0])
 
+    def testMultilineString(self):
+        print('DEBUG: testMultilineString')
+        lxr = lexer.Lexer(version=4)
+        lxr._process_line('[[one\n')
+        lxr._process_line('"two"\n')
+        lxr._process_line('[[three]]\n')
+        self.assertEqual(2, len(lxr._tokens))
+        self.assertEqual(lexer.TokString('one\n"two"\n[[three'),
+                         lxr._tokens[0])
+
+    def testMultilineStringMatchedEquals(self):
+        lxr = lexer.Lexer(version=4)
+        lxr._process_line('[===[one\n')
+        lxr._process_line('[[two]]\n')
+        lxr._process_line('[==[three]==]]===]\n')
+        self.assertEqual(2, len(lxr._tokens))
+        self.assertEqual(lexer.TokString('one\n[[two]]\n[==[three]==]'),
+                         lxr._tokens[0])
+
     def testValidLuaNoErrors(self):
         lxr = lexer.Lexer(version=4)
         for line in VALID_LUA.split('\n'):
@@ -348,6 +367,33 @@ class TestLexer(unittest.TestCase):
             'end\n'
         ])
         self.assertEqual(13, len(lxr._tokens))
+
+    def testProcessLinesErrorOnOpenString(self):
+        lxr = lexer.Lexer(version=4)
+        self.assertRaises(
+            lexer.LexerError,
+            lxr.process_lines,
+            ['"one'])
+
+    def testProcessLinesErrorOnOpenMultilineComment(self):
+        lxr = lexer.Lexer(version=4)
+        self.assertRaises(
+            lexer.LexerError,
+            lxr.process_lines,
+            [
+                '--[[one\n',
+                'two\n'
+            ])
+
+    def testProcessLinesErrorOnOpenMultilineString(self):
+        lxr = lexer.Lexer(version=4)
+        self.assertRaises(
+            lexer.LexerError,
+            lxr.process_lines,
+            [
+                '[[one\n',
+                'two\n'
+            ])
 
     def testTokensProperty(self):
         lxr = lexer.Lexer(version=4)

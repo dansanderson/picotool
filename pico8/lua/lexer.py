@@ -126,7 +126,13 @@ class TokString(Token):
     """A string literal."""
     name = 'string literal'
     def __init__(self, *args, **kwargs):
-        if 'quote' in kwargs:
+        self._quote = None
+        self._multiline_quote = None
+
+        if 'multiline_quote' in kwargs:
+            self._multiline_quote = kwargs['multiline_quote']
+            del kwargs['multiline_quote']
+        elif 'quote' in kwargs:
             self._quote = kwargs['quote']
             del kwargs['quote']
         else:
@@ -135,15 +141,20 @@ class TokString(Token):
 
     @property
     def code(self):
-        escaped_chrs = []
-        for c in self._data:
-            if c in _STRING_REVERSE_ESCAPES:
-                escaped_chrs.append('\\' + _STRING_REVERSE_ESCAPES[c])
-            elif c == self._quote:
-                escaped_chrs.append('\\' + c)
-            else:
-                escaped_chrs.append(c)
-        return self._quote + ''.join(escaped_chrs) + self._quote
+        if self._multiline_quote is not None:
+            return ('[' + self._multiline_quote + '[' +
+                    self._data +
+                    ']' + self._multiline_quote + ']')
+        else:
+            escaped_chrs = []
+            for c in self._data:
+                if c in _STRING_REVERSE_ESCAPES:
+                    escaped_chrs.append('\\' + _STRING_REVERSE_ESCAPES[c])
+                elif c == self._quote:
+                    escaped_chrs.append('\\' + c)
+                else:
+                    escaped_chrs.append(c)
+            return self._quote + ''.join(escaped_chrs) + self._quote
 
 
 class TokNumber(Token):
@@ -258,6 +269,15 @@ class Lexer():
         self._in_multiline_comment_lineno = None
         self._in_multiline_comment_charno = None
 
+        # If inside a multiline string (else None):
+        # * the lines of string, as an array of str (possibly empty)
+        self._in_multiline_string = None
+        # The equals signs in [===...[, to match with closing delim.
+        self._in_multiline_string_delim = None
+        # * the pos of the start of the multiline comment
+        self._in_multiline_string_lineno = None
+        self._in_multiline_string_charno = None
+
     def _process_token(self, s):
         """Process a token's worth of chars from a string, if possible.
 
@@ -272,9 +292,8 @@ class Lexer():
         """
         i = 0
 
-        # TODO: Pico-8 doesn't allow multiline strings, so this probably
-        # shouldn't either.
-
+        # TODO: Pico-8 doesn't allow literal newlines in quoted strings,
+        # so this probably shouldn't either.
         if self._in_string is not None:
             # Continue string literal.
             while i < len(s):
@@ -309,14 +328,6 @@ class Lexer():
                 self._in_string.append(c)
                 i += 1
 
-        elif s.startswith("'") or s.startswith('"'):
-            # Begin string literal.
-            self._in_string_delim = s[0]
-            self._in_string_lineno = self._cur_lineno
-            self._in_string_charno = self._cur_charno
-            self._in_string = []
-            i = 1
-
         elif self._in_multiline_comment is not None:
             try:
                 i = s.index(']]') + 2
@@ -333,11 +344,48 @@ class Lexer():
                 self._in_multiline_comment.append(s)
                 i = len(s)
 
+        elif self._in_multiline_string is not None:
+            m = re.search(r'\]' + self._in_multiline_string_delim + r'\]', s)
+            if m:
+                i = m.end()
+                self._in_multiline_string.append(s[:m.start()])
+                self._tokens.append(
+                    TokString(''.join(self._in_multiline_string),
+                              self._in_multiline_string_lineno,
+                              self._in_multiline_string_charno,
+                              multiline_quote=self._in_multiline_string_delim))
+                self._in_multiline_string = None
+                self._in_multiline_string_delim = None
+                self._in_multiline_string_lineno = None
+                self._in_multiline_string_charno = None
+
+            else:
+                self._in_multiline_string.append(s)
+                i = len(s)
+
         elif s.startswith('--[['):
+            # (Multiline comments do not support the [===[ thing that
+            # multiline strings do, so we can match directly.)
             self._in_multiline_comment = ['--[[']
             self._in_multiline_comment_lineno = self._cur_lineno
             self._in_multiline_comment_charno = self._cur_charno
             i = 4
+
+        elif re.match(r'\[=*\[', s):
+            m = re.match(r'\[(=*)\[', s)
+            i = m.end()
+            self._in_multiline_string = []
+            self._in_multiline_string_delim = m.group(1)
+            self._in_multiline_string_lineno = self._cur_lineno
+            self._in_multiline_string_charno = self._cur_charno
+
+        elif s.startswith("'") or s.startswith('"'):
+            # Begin string literal.
+            self._in_string_delim = s[0]
+            self._in_string_lineno = self._cur_lineno
+            self._in_string_charno = self._cur_charno
+            self._in_string = []
+            i = 1
 
         else:
             # Match one-line patterns.
@@ -396,6 +444,19 @@ class Lexer():
         """
         for line in lines:
             self._process_line(line)
+
+        if self._in_string is not None:
+            raise LexerError('Unterminated string',
+                             self._in_string_lineno,
+                             self._in_string_charno)
+        if self._in_multiline_string is not None:
+            raise LexerError('Unterminated multiline string',
+                             self._in_multiline_string_lineno,
+                             self._in_multiline_string_charno)
+        if self._in_multiline_comment is not None:
+            raise LexerError('Unterminated multiline comment',
+                             self._in_multiline_comment_lineno,
+                             self._in_multiline_comment_charno)
 
     @property
     def tokens(self):
