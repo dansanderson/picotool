@@ -233,11 +233,11 @@ class TestP8PNGGame(unittest.TestCase):
         decomp_result = game.Game.decompress_code(code_bytes)
         self.assertEqual(decomp_result[1], test_str)
 
-        # TODO: actual Pico-8 result:
-        #p8_comp_result = bytearray([13, 51, 0, 34, 20, 17, 24, 24, 27, 0,
-        # 34, 1, 14, 60, 90, 2, 13, 24, 31, 60, 223, 61, 254, 62, 253, 63, 252, 64, 171])
-        #self.assertEqual(len(comp_result), len(p8_comp_result))
-        #self.assertEqual(comp_result, p8_comp_result)
+        p8_comp_result = bytearray([
+            13, 51, 0, 34, 20, 17, 24, 24, 27, 0, 34, 1, 14, 60, 90, 2, 13, 24,
+            31, 60, 223, 61, 254, 62, 253, 63, 252, 64, 171, 1])
+        self.assertEqual(len(comp_result), len(p8_comp_result))
+        self.assertEqual(comp_result, p8_comp_result)
 
 
 class TestGameToP8(unittest.TestCase):

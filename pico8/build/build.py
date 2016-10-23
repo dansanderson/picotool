@@ -13,6 +13,7 @@ def do_build(args):
     """
     if (not args.filename.endswith('.p8') and
             not args.filename.endswith('.p8.png')):
+        util.error('Output filename must end with .p8 or .p8.png.')
         return 1
 
     empty_source = game.Game.make_empty_game(filename=args.filename)

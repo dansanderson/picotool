@@ -275,8 +275,10 @@ class Game():
 
         return new_rows
 
+    # TODO: "BROKEN" because I'm investigating why this doesn't match the
+    # Pico-8 algorithm and produces too-large (but compatible) results.
     @classmethod
-    def compress_code(cls, code):
+    def compress_code_BROKEN(cls, code):
         """Compress code.
 
         This returns the compressed code even if the output is larger than the
@@ -343,6 +345,100 @@ class Game():
             i += seglen
 
         return result
+
+    # TODO: Compare this with compress_code_BROKEN and fix the latter.
+    @classmethod
+    def _find_repeatable_block(cls, dat, pos):
+        """Find a repeatable block in the data.
+
+        Part of the literal port of the Pico-8 compression routine. See
+        compress_code().
+
+        Args:
+          dat: array of data bytes
+          pos: starting index in dat
+        """
+        max_block_len = 17
+        max_hist_len = (255 - len(COMPRESSED_LUA_CHAR_TABLE)) * 16
+        best_len = 0
+        best_i = -100000
+
+        max_len = min(max_block_len, len(dat) - pos)
+        max_hist_len = min(max_hist_len, pos);
+
+        i = pos - max_hist_len
+        while i < pos:
+            j = i
+            while (j - i) < max_len and j < pos and dat[j] == dat[pos + j - i]:
+                j += 1
+
+            if (j - i) > best_len:
+                best_len = j - i
+                best_i = i
+
+            i += 1
+
+        block_offset = pos - best_i
+
+        return best_len, block_offset
+
+    # TODO: Compare this with compress_code_BROKEN and fix the latter.
+    @classmethod
+    def compress_code(cls, in_p):
+        """A literal port of the Pico-8 C compression routine.
+
+        For some reason my looser port in compress_code_BROKEN() does not
+        match the original algorithm, so I'm trying a literal port and
+        comparing the results. The original algorithm uses a brute force
+        search for blocks (_find_repeatable_block()), which makes the overall
+        algorithm O(n^2). compress_code_BROKEN() was intended to be faster
+        using a block dictionary.
+
+        Args:
+          in_p: The code to compress, as a str.
+
+        Returns:
+          The compressed code, as a bytearray. The compressed result is
+          returned even if it is longer than in_p. The caller is responsible
+          for comparing it to the original and acting accordingly.
+        """
+        PICO8_CODE_ALLOC_SIZE = (0x10000 + 1)
+        pos = 0
+
+        literal_index = [0] * 256
+        for i in range(1, len(COMPRESSED_LUA_CHAR_TABLE)):
+            literal_index[COMPRESSED_LUA_CHAR_TABLE[i]] = i
+
+        if '_update60' in in_p and len(in_p) < PICO8_CODE_ALLOC_SIZE - (
+            len(PICO8_FUTURE_CODE2) + 1):
+            if in_p[-1] != ' ' and in_p[-1] != '\n':
+                in_p += '\n'
+            in_p += PICO8_FUTURE_CODE2
+
+        out = bytearray()
+
+        # The Pico-8 C code adds the preamble here, but we do it in
+        # get_bytes_from_code().
+        #out += b':c:\x00'
+        #out.append(len(in_p) // 256)
+        #out.append(len(in_p) % 256)
+        #out += b'\x00\x00'
+
+        while pos < len(in_p):
+            block_len, block_offset = cls._find_repeatable_block(in_p, pos)
+
+            if block_len >= 3:
+                out.append(
+                    (block_offset // 16) + len(COMPRESSED_LUA_CHAR_TABLE))
+                out.append((block_offset % 16) + (block_len - 2) * 16)
+                pos += block_len
+            else:
+                out.append(literal_index[ord(in_p[pos])])
+                if literal_index[ord(in_p[pos])] == 0:
+                    out.append(ord(in_p[pos]))
+                pos += 1
+
+        return out
 
     @classmethod
     def decompress_code(cls, codedata):
