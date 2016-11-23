@@ -322,3 +322,8 @@ def main(orig_args):
             finalfh.write(outfh.read())
             
     return 0
+
+
+def main_ep():
+    import sys
+    return main(sys.argv[1:])

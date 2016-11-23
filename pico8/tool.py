@@ -517,3 +517,6 @@ def main(orig_args):
     except KeyboardInterrupt:
         util.error('\nInterrupted with Control-C, stopping.\n')
         return 1
+
+def main_ep():
+    return main(sys.argv[1:])
