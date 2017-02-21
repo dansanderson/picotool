@@ -118,7 +118,8 @@ class BaseSection():
             end_i = start_i + self.HEX_LINE_LENGTH_BYTES
             if end_i > len(self._data):
                 end_i = len(self._data)
-            yield bytes(self._data[start_i:end_i]).hex() + '\n'
+            #Python 3.5###yield bytes(self._data[start_i:end_i]).hex() + '\n'
+            yield ''.join(format(b, '02x') for b in self._data[start_i:end_i]) + '\n'
     
     @classmethod
     def from_bytes(cls, data, version):

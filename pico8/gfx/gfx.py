@@ -92,7 +92,8 @@ class Gfx(util.BaseSection):
             for b in self._data[start_i:end_i]:
                 newdata.append((b & 0x0f) << 4 | (b & 0xf0) >> 4)
                 
-            yield bytes(newdata).hex() + '\n'
+            #Python 3.5###yield bytes(newdata).hex() + '\n'
+            yield ''.join(format(b, '02x') for b in newdata) + '\n'
 
     def get_sprite(self, id, tile_width=1, tile_height=1):
         """Retrieves the graphics data for a sprite.
