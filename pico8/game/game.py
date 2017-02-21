@@ -82,6 +82,7 @@ class Game():
         self.map = None
         self.sfx = None
         self.music = None
+        self.label = None
 
         self.version = None
 
@@ -105,6 +106,7 @@ class Game():
         g.map = Map.empty(version=version, gfx=g.gfx)
         g.sfx = Sfx.empty(version=version)
         g.music = Music.empty(version=version)
+        g.label = Gfx.empty(version=version)
         g.version = version
 
         return g
@@ -170,6 +172,8 @@ class Game():
                 section_lines[section].append(line)
 
         new_game = cls.make_empty_game(filename=filename)
+        # Discard empty label until one is found in the file.
+        new_game.label = None
         new_game.version = version
         for section in section_lines:
             if section == 'lua':
@@ -193,6 +197,9 @@ class Game():
                     section_lines[section], version=version)
             elif section == 'music':
                 new_game.music = Music.from_lines(
+                    section_lines[section], version=version)
+            elif section == 'label':
+                new_game.label = Gfx.from_lines(
                     section_lines[section], version=version)
             else:
                 raise InvalidP8SectionError(section)
@@ -572,6 +579,8 @@ class Game():
         codedata = picodata[0x4300:0x8000]
         version = picodata[0x8000]
 
+        # TODO: Extract new_game.label from data
+
         (code_length, code, compressed_size) = cls.get_code_from_bytes(
             codedata, version)
 
@@ -619,12 +628,7 @@ class Game():
         """
         outstr.write(HEADER_TITLE_STR)
 
-        # Even though we can get the original cart version, we
-        # hard-code version 5 for output because we only know how to
-        # write v5 .p8 files. There are minor changes from previous
-        # versions of .p8 that don't apply to .p8.png (such as the gff
-        # section).
-        outstr.write(HEADER_VERSION_PAT.format(5))
+        outstr.write(HEADER_VERSION_PAT.format(8))
 
         # Sanity-check the Lua written by the writer.
         transformed_lua = Lua.from_lines(
@@ -659,6 +663,13 @@ class Game():
         for l in self.gfx.to_lines():
             outstr.write(l)
 
+        if self.label:
+            outstr.write(SECTION_DELIM_PAT.format('label'))
+            for l in self.label.to_lines():
+                outstr.write(l)
+
+        # Pico-8 emits an extra newline before __gff__ for no good reason, as of 0.1.10c.
+        outstr.write('\n')
         outstr.write(SECTION_DELIM_PAT.format('gff'))
         for l in self.gff.to_lines():
             outstr.write(l)
@@ -693,6 +704,7 @@ class Game():
         # To install: python3 -m pip install pypng
         import png
 
+        # TODO: If self.label, use EMPTY_LABEL_FNAME and substitute the appropriate img_data
         label_fname = label_fname or EMPTY_LABEL_FNAME
         try:
             with open(label_fname, 'rb') as label_fh:

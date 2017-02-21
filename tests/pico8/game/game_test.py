@@ -161,7 +161,7 @@ class TestP8PNGGame(unittest.TestCase):
             'testdata')
 
     def testFromP8PNGFileV0(self):
-        pngpath = os.path.join(self.testdata_path, 'test_cart.p8.png')
+        pngpath = os.path.join(self.testdata_path, 'test_cart_memdump.p8.png')
         with open(pngpath, 'rb') as fh:
             pnggame = game.Game.from_p8png_file(fh)
         first_stat = pnggame.lua.root.stats[0]
@@ -255,6 +255,15 @@ class TestGameToP8(unittest.TestCase):
         with open(os.path.join(self.testdata_path, 'test_cart.p8')) as fh:
             orig_game = game.Game.from_p8_file(fh)
         with open(os.path.join(self.testdata_path, 'test_cart.p8')) as fh:
+            expected_game_p8 = fh.read()
+        outstr = io.StringIO()
+        orig_game.to_p8_file(outstr)
+        self.assertEqual(expected_game_p8, outstr.getvalue())
+
+    def testToP8FileFromP8PreservesLabel(self):
+        with open(os.path.join(self.testdata_path, 'test_cart_with_label.p8')) as fh:
+            orig_game = game.Game.from_p8_file(fh)
+        with open(os.path.join(self.testdata_path, 'test_cart_with_label.p8')) as fh:
             expected_game_p8 = fh.read()
         outstr = io.StringIO()
         orig_game.to_p8_file(outstr)

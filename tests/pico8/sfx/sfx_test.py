@@ -120,7 +120,7 @@ class TestHelloWorld(unittest.TestCase):
         self.assertEqual('01100000183732440518433394033c65539403185432b543184733940318433394033c655306053940339403184733940318423394033c655394031845321433184733940318473394033c655394033940339403\n', l)
 
     def testGame(self):
-        with open(os.path.join(self.testdata_path, 'test_cart.p8.png'), 'rb') as fh:
+        with open(os.path.join(self.testdata_path, 'test_cart_memdump.p8.png'), 'rb') as fh:
             g = game.Game.from_p8png_file(fh)
         dataline = bytes.fromhex('d83e245118373931bc5b393158396b39183f393118373931bc5bb05139313931183f393118353931bc5b3931183b2137183f3931183f3931bc5b39313931393101100000')
         self.assertEqual(dataline, g.sfx._data[68:136])
