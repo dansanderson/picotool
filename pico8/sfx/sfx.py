@@ -129,11 +129,14 @@ class Sfx(util.BaseSection):
           One line of a hex string.
         """
         for id in range(0, 64):
-            hexstrs = [bytes(self.get_properties(id)).hex()]
+            #Python 3.5###hexstrs = [bytes(self.get_properties(id)).hex()]
+            hexstrs = [''.join(format(b, '02x') for b in self.get_properties(id))]
             for note in range(0, 32):
                 pitch, waveform, volume, effect = self.get_note(id, note)
-                hexstrs.append(bytes([pitch, waveform << 4 | volume]).hex())
-                hexstrs.append(bytes([effect]).hex()[1])
+                #Python 3.5###hexstrs.append(bytes([pitch, waveform << 4 | volume]).hex())
+                #Python 3.5###hexstrs.append(bytes([effect]).hex()[1])
+                hexstrs.append(''.join(format(b, '02x') for b in [pitch, waveform << 4 | volume]))
+                hexstrs.append(''.join(format(b, '02x') for b in [effect])[1])
             yield ''.join(hexstrs) + '\n'
 
     def get_note(self, id, note):

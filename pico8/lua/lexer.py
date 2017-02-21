@@ -197,12 +197,35 @@ class TokSymbol(Token):
 # "\" character, mapped to their unescaped values.
 _STRING_ESCAPES = {
     '\n': '\n', 'a': '\a', 'b': '\b', 'f': '\f', 'n': '\n',
-    'r': '\r', 't': '\t', 'v': '\v', '\\': '\\', '"': '"',
-    "'": "'"
+    'r': '\r', 't': '\t', 'v': '\v', '\\': '\\',
+    '"': '"', "'": "'"
 }
 _STRING_REVERSE_ESCAPES = dict((v,k) for k,v in _STRING_ESCAPES.items())
 del _STRING_REVERSE_ESCAPES["'"]
 del _STRING_REVERSE_ESCAPES['"']
+
+# Add decimal escapes of the special P8 glyphs to the reverse dictionary.
+# If wanting to write the 8-bit chars instead, comment these lines out.
+#
+# Custom 8-bit char handling is possible with:
+#   encoding='iso-8859-1', errors='backslashreplace'  (on read)
+#   encoding='iso-8859-1', errors=None                (on write)
+# This would be more correct if it worked (odd that it doesn't):
+#   encoding='ascii', errors='backslashreplace'  (on read)
+#   encoding='ascii', errors=None                (on write)
+# This alternative has the effect of preserving both escaped and embedded
+# chars separately:
+#   encoding='ascii', errors='surrogateescape'  (on read and write)
+#   Could push the escaped chars up to U+DC80..FF to force all to embedded.
+#
+# User should save as windows-1252 but it can't be used here due to odd
+# error. This rule could be editor dependent.
+# This expands multi-byte chars (like UTF-8) but so does PICO-8.
+#
+#_STRING_REVERSE_ESCAPES.update({chr(c): format(c) for c in range(128, 154)})
+#_STRING_REVERSE_ESCAPES.update({'\xA0': '160'})  #nbsp (\t also works as nbsp)
+# Why fight it? Add the whole extended 8-bit range.
+_STRING_REVERSE_ESCAPES.update({chr(c): format(c) for c in range(128, 256)})
 
 # A list of single-line token matching patterns and corresponding token
 # classes. A token class of None causes the lexer to consume the pattern
@@ -315,15 +338,22 @@ class Lexer():
                 
                 if c == '\\':
                     # Escape character.
+                    # Handles decimal, \128, and hex, \x80, escapes
+                    # but recontructs them both as decimal.
                     num_m = re.match(r'\d{1,3}', s[i+1:])
                     if num_m:
                         c = chr(int(num_m.group(0)))
                         i += len(num_m.group(0))
                     else:
-                        next_c = s[i+1]
-                        if next_c in _STRING_ESCAPES:
-                            c = _STRING_ESCAPES[next_c]
-                            i += 1
+                        num_m = re.match(r'[xX][0-9a-fA-F]{2}', s[i+1:i+4])
+                        if num_m:
+                            c = chr(int(num_m.group(0)[1:3], 16))
+                            i += 3
+                        else:
+                            next_c = s[i+1]
+                            if next_c in _STRING_ESCAPES:
+                                c = _STRING_ESCAPES[next_c]
+                                i += 1
                             
                 self._in_string.append(c)
                 i += 1

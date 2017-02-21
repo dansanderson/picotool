@@ -22,7 +22,8 @@ PICO8_LUA_COMPRESSED_CHAR_LIMIT = 15360
 
 
 PICO8_BUILTINS = {
-    '_init', '_update', '_draw',
+    '_init', '_update', '_update60', '_draw',
+    'setmetatable', 'cocreate', 'coresume', 'costatus', 'yield',
     'load', 'save', 'folder', 'ls', 'run', 'resume', 'reboot', 'stat', 'info',
     'flip', 'printh', 'clip', 'pget', 'pset', 'sget', 'sset', 'fget', 'fset',
     'print', 'cursor', 'color', 'cls', 'camera', 'circ', 'circfill', 'line',
@@ -34,6 +35,7 @@ PICO8_BUILTINS = {
     'count',  # deprecated function
     'mapdraw',  # deprecated function
     'self',   # a special name in Lua OO
+    '_update_buttons'  # announced for 30/60 fps compat but not yet/ever used ???
 }
 
 

@@ -20,6 +20,8 @@ from ..map.map import Map
 from ..sfx.sfx import Sfx
 from ..music.music import Music
 
+from ..lua.lua import LuaMinifyTokenWriter
+
 HEADER_TITLE_STR = 'pico-8 cartridge // http://www.pico-8.com\n'
 HEADER_VERSION_RE = re.compile('version (\d+)\n')
 HEADER_VERSION_PAT = 'version {}\n'
@@ -86,6 +88,9 @@ class Game():
 
         self.version = None
 
+        self.title = None
+        self.byline = None
+
     @classmethod
     def make_empty_game(cls, filename=None, version=DEFAULT_VERSION):
         """Create an empty game.
@@ -128,7 +133,7 @@ class Game():
         """
         assert filename.endswith('.p8.png') or filename.endswith('.p8')
         if filename.endswith('.p8'):
-            with open(filename, 'r', encoding='utf-8') as fh:
+            with open(filename, 'r', encoding='iso-8859-1', errors='backslashreplace') as fh:
                 g = Game.from_p8_file(fh, filename=filename)
         else:
             with open(filename, 'rb') as fh:
@@ -171,10 +176,77 @@ class Game():
             elif section:
                 section_lines[section].append(line)
 
+        # Grab the title and byline.
+        title = None
+        byline = None
+        if len(section_lines['lua']) > 1:
+            title = section_lines['lua'][0]
+            byline = section_lines['lua'][1]
+            if title[:2] == '--':
+                title = title[2:]
+                if byline[:2] == '--':
+                    byline = byline[2:]
+                else:
+                    byline = None
+            else:
+                title = None
+                byline = None
+
+        #######################################
+        # if ???:                             #
+        # Need to make this section optional. #
+        #######################################
+        # Look for CONSTANT tags and process them.
+        # That is, replace all constant references with their value
+        # and remove the constant declarations to reclaim their tokens.
+        # Assumptions:
+        #   One constant assignment per line like so:
+        #       --[[const]] foo = 1
+        #   No other code on line. Line will be commented out like so:
+        #       --[[const]]-- foo = 1
+        #   Later comment okay:
+        #       --[[const]] foo = 1   -- this is foo
+        #   Keep the right side simple. e.g. Simplified literals.
+        #     This will be a straight text replace in the code.
+        #     Thus, anything complex will add tokens rather than save.
+        #   No other lines should contain "--[[const]]" for any reason.
+        #   Everything is case sensitive.
+        CONSTANT_TAG = '--[[const]]'
+        game_constants = {}
+        for l in section_lines['lua']:
+            tag_start = l.find(CONSTANT_TAG)
+            if tag_start > -1:
+                tag_end = tag_start + len(CONSTANT_TAG)
+                op = l.find('=', tag_end + 1)
+                if op > -1:
+                    comment_start = l.find('--', op + 2)
+                    ckey = l[tag_end:op].strip()
+                    cval = l[op + 1:comment_start if comment_start > -1 else len(l)].strip()
+                    if ckey:
+                        game_constants.update({ckey: cval})
+                        #print(ckey + ': ' + cval)
+        # Must loop twice because it is possible to declare a global
+        # in a function below where it is used.
+        #for l in section_lines['lua']:
+        for i in range(len(section_lines['lua'])):
+            l = section_lines['lua'][i]
+            # Don't replace the constant declaration itself...
+            if l.find(CONSTANT_TAG) > -1:
+                # comment it out...
+                l = l.replace(CONSTANT_TAG, CONSTANT_TAG + '--')
+            else:
+                # and replace all other references to it with its value.
+                for c in game_constants.items():
+                    l = re.sub(r'\b' + c[0] + r'\b', c[1], l)
+            # This is where I needed the index iterator.
+            section_lines['lua'][i] = l
+
         new_game = cls.make_empty_game(filename=filename)
         # Discard empty label until one is found in the file.
         new_game.label = None
         new_game.version = version
+        new_game.title = title
+        new_game.byline = byline
         for section in section_lines:
             if section == 'lua':
                 new_game.lua = Lua.from_lines(
@@ -651,11 +723,51 @@ class Game():
                 PICO8_LUA_CHAR_LIMIT))
 
         outstr.write(SECTION_DELIM_PAT.format('lua'))
+        # There is surely a better way to check this:
+        if lua_writer_cls == LuaMinifyTokenWriter:
+            # Of course, the above char count is now off.
+            if self.title:
+                outstr.write('--' + self.title)
+            if self.byline:
+                outstr.write('--' + self.byline)
+
         ended_in_newline = None
+        lbuffer = ''
+        char_count = 0
+        transformed_char_count = transformed_lua.get_char_count()
         for l in self.lua.to_lines(writer_cls=lua_writer_cls,
                                    writer_args=lua_writer_args):
-            outstr.write(l)
             ended_in_newline = l.endswith('\n')
+            lbuffer += l
+            char_count += len(l)
+            if ended_in_newline or char_count == transformed_char_count:
+                # Last-chance fix to edge cases needing spaces around arithmetic assignments.
+                # Regex for this is a lot simpler than I was first testing,
+                # but no guarantees on it working for all cases.
+                # "[^\s\)]|\)[^a-z]" means no spaces and no ")" unless it is a ")" followed by
+                # something other than a letter.  In other words, ingore "()" if used on
+                # the left side (possible?), but if ")" is the last char of the previous
+                # statement, then that is okay (which would look like: "...)someletter+=..." ).
+                #
+                # Left, then right, separately.  (Can't use re.finditer due to expansion.)
+                while True:
+                    m = re.search(r'(\]|\})[a-z]([^\s\)]|\)[^a-z]| and | or |not )*(\+=|-=|\*=|\/=|%=)', lbuffer)
+                    if m:
+                        lbuffer = lbuffer[:m.start()+1] + ' ' + lbuffer[m.start()+1:]
+                        #print(lbuffer)
+                    else:
+                        break
+                while True:
+                    m = re.search(r'(\+=|-=|\*=|\/=|%=)(\S| and | or |not )*(\]|\))[a-z]', lbuffer)
+                    if m:
+                        lbuffer = lbuffer[:m.end()-1] + ' ' + lbuffer[m.end()-1:]
+                        #print(lbuffer)
+                    else:
+                        break
+                outstr.write(lbuffer)
+                lbuffer = ''
+            #outstr.write(l)
+            #ended_in_newline = l.endswith('\n')
         if not ended_in_newline:
             outstr.write('\n')
 
@@ -747,7 +859,7 @@ class Game():
         if filename.endswith('.png'):
             file_args = {'mode':'wb+'}
         else:
-            file_args = {'mode':'w+', 'encoding':'utf-8'}
+            file_args = {'mode':'w+', 'encoding':'iso-8859-1'}
         with tempfile.TemporaryFile(**file_args) as outfh:
             if filename.endswith('.png'):
                 if kwargs.get('label_fname', None) is None:
