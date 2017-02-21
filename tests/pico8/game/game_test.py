@@ -12,27 +12,27 @@ from pico8.game import game
 from pico8.lua import lexer
 from pico8.lua import parser
 
-VALID_P8_HEADER = '''pico-8 cartridge // http://www.pico-8.com
+VALID_P8_HEADER = b'''pico-8 cartridge // http://www.pico-8.com
 version 4
 '''
 
-INVALID_P8_HEADER_ONE = '''INVALID HEADER
+INVALID_P8_HEADER_ONE = b'''INVALID HEADER
 version 4
 '''
 
-INVALID_P8_HEADER_TWO = '''pico-8 cartridge // http://www.pico-8.com
+INVALID_P8_HEADER_TWO = b'''pico-8 cartridge // http://www.pico-8.com
 INVALID HEADER
 '''
 
-VALID_P8_LUA_SECTION_HEADER = '__lua__\n'
+VALID_P8_LUA_SECTION_HEADER = b'__lua__\n'
 
 VALID_P8_FOOTER = (
-    '\n__gfx__\n' + (('0' * 128) + '\n') * 128 +
-    '__gff__\n' + (('0' * 256) + '\n') * 2 +
-    '__map__\n' + (('0' * 256) + '\n') * 32 +
-    '__sfx__\n' + '0001' + ('0' * 164) + '\n' +
-    ('001' + ('0' * 165) + '\n') * 63 +
-    '__music__\n' + '00 41424344\n' * 64 + '\n\n')
+    b'\n__gfx__\n' + ((b'0' * 128) + b'\n') * 128 +
+    b'__gff__\n' + ((b'0' * 256) + b'\n') * 2 +
+    b'__map__\n' + ((b'0' * 256) + b'\n') * 32 +
+    b'__sfx__\n' + b'0001' + (b'0' * 164) + b'\n' +
+    (b'001' + (b'0' * 165) + b'\n') * 63 +
+    b'__music__\n' + b'00 41424344\n' * 64 + b'\n\n')
 
 CODE_UNCOMPRESSED_BYTES = bytearray([
     102, 111, 114, 32, 105, 61, 49, 44, 49, 48, 32, 100, 111, 10, 32, 32, 112,
@@ -47,7 +47,8 @@ CODE_COMPRESSED_BYTES = bytearray([
     26, 61, 16, 62, 116, 14, 33, 38, 38, 0, 34, 62, 34, 61, 242, 62, 244, 0, 9,
     2, 17, 26, 16, 1, 60, 36])
 
-CODE_COMPRESSED_AS_STRING = '''-- some title
+# Intentional mix of tabs and spaces, don't change!
+CODE_COMPRESSED_AS_STRING = b'''-- some title
 -- some author
 
 for i=1,10 do
@@ -100,7 +101,7 @@ class TestP8Game(unittest.TestCase):
             'testdata')
 
     def testFromP8File(self):
-        g = game.Game.from_p8_file(io.StringIO(
+        g = game.Game.from_p8_file(io.BytesIO(
             VALID_P8_HEADER +
             VALID_P8_LUA_SECTION_HEADER +
             VALID_P8_FOOTER))
@@ -123,7 +124,7 @@ class TestP8Game(unittest.TestCase):
         self.assertRaises(
             game.InvalidP8HeaderError,
             game.Game.from_p8_file,
-            io.StringIO(
+            io.BytesIO(
                 INVALID_P8_HEADER_ONE +
                 VALID_P8_LUA_SECTION_HEADER +
                 VALID_P8_FOOTER))
@@ -132,7 +133,7 @@ class TestP8Game(unittest.TestCase):
         self.assertRaises(
             game.InvalidP8HeaderError,
             game.Game.from_p8_file,
-            io.StringIO(
+            io.BytesIO(
                 INVALID_P8_HEADER_TWO +
                 VALID_P8_LUA_SECTION_HEADER +
                 VALID_P8_FOOTER))
@@ -141,15 +142,15 @@ class TestP8Game(unittest.TestCase):
         self.assertRaises(
             game.InvalidP8SectionError,
             game.Game.from_p8_file,
-            io.StringIO(
+            io.BytesIO(
                 VALID_P8_HEADER +
                 VALID_P8_LUA_SECTION_HEADER +
-                '\n__bad__\n\n' +
+                b'\n__bad__\n\n' +
                 VALID_P8_FOOTER))
 
     def testFromP8FileGoL(self):
         p8path = os.path.join(self.testdata_path, 'test_gol.p8')
-        with open(p8path, 'r') as fh:
+        with open(p8path, 'rb') as fh:
             p8game = game.Game.from_p8_file(fh)
             # TODO: validate game
 
@@ -185,7 +186,7 @@ class TestP8PNGGame(unittest.TestCase):
             game.Game.get_code_from_bytes(codedata, 1)
         self.assertEqual(len(CODE_UNCOMPRESSED_BYTES), code_length)
         # (added trailing newline)
-        self.assertEqual(CODE_UNCOMPRESSED_BYTES.decode('utf-8') + '\n', code)
+        self.assertEqual(CODE_UNCOMPRESSED_BYTES + b'\n', code)
         self.assertIsNone(compressed_size)
 
     def testGetCodeFromBytesCompressed(self):
@@ -223,9 +224,9 @@ class TestP8PNGGame(unittest.TestCase):
             self.assertEqual(bytearray(TEST_PNG['data'][row_i]), pngdata[row_i])
 
     def testCompressCodeHelloExample(self):
-        test_str = ('a="hello"\nb="hello also"\nb="hello also"\n'
-                    'b="hello also"\nb="hello also"\nb="hello also"\n'
-                    'b="hello also"\n\n')
+        test_str = (b'a="hello"\nb="hello also"\nb="hello also"\n'
+                    b'b="hello also"\nb="hello also"\nb="hello also"\n'
+                    b'b="hello also"\n\n')
         comp_result = game.Game.compress_code(test_str)
         code_length_bytes = bytes([len(test_str) >> 8, len(test_str) & 255])
         code_bytes = b''.join([b':c:\0', code_length_bytes, b'\0\0',
@@ -252,20 +253,20 @@ class TestGameToP8(unittest.TestCase):
         util._error_stream = self.orig_error_stream
 
     def testToP8FileFromP8(self):
-        with open(os.path.join(self.testdata_path, 'test_cart.p8')) as fh:
+        with open(os.path.join(self.testdata_path, 'test_cart.p8'), 'rb') as fh:
             orig_game = game.Game.from_p8_file(fh)
-        with open(os.path.join(self.testdata_path, 'test_cart.p8')) as fh:
+        with open(os.path.join(self.testdata_path, 'test_cart.p8'), 'rb') as fh:
             expected_game_p8 = fh.read()
-        outstr = io.StringIO()
+        outstr = io.BytesIO()
         orig_game.to_p8_file(outstr)
         self.assertEqual(expected_game_p8, outstr.getvalue())
 
     def testToP8FileFromP8PreservesLabel(self):
-        with open(os.path.join(self.testdata_path, 'test_cart_with_label.p8')) as fh:
+        with open(os.path.join(self.testdata_path, 'test_cart_with_label.p8'), 'rb') as fh:
             orig_game = game.Game.from_p8_file(fh)
-        with open(os.path.join(self.testdata_path, 'test_cart_with_label.p8')) as fh:
+        with open(os.path.join(self.testdata_path, 'test_cart_with_label.p8'), 'rb') as fh:
             expected_game_p8 = fh.read()
-        outstr = io.StringIO()
+        outstr = io.BytesIO()
         orig_game.to_p8_file(outstr)
         self.assertEqual(expected_game_p8, outstr.getvalue())
 
@@ -273,17 +274,17 @@ class TestGameToP8(unittest.TestCase):
         with open(os.path.join(self.testdata_path, 'test_cart.p8.png'),
                   'rb') as fh:
             orig_game = game.Game.from_p8png_file(fh)
-        with open(os.path.join(self.testdata_path, 'test_cart.p8')) as fh:
+        with open(os.path.join(self.testdata_path, 'test_cart.p8'), 'rb') as fh:
             expected_game_p8 = fh.read()
-        outstr = io.StringIO()
+        outstr = io.BytesIO()
         orig_game.to_p8_file(outstr)
         self.assertEqual(expected_game_p8, outstr.getvalue())
 
     def testCharCountWarning(self):
         g = game.Game.make_empty_game(filename='test')
         g.lua.update_from_lines(
-            ['-- 345678901234567890123456789012345678\n'] * 820)
-        outstr = io.StringIO()
+            [b'-- 345678901234567890123456789012345678\n'] * 820)
+        outstr = io.BytesIO()
         g.to_p8_file(outstr, filename='test')
         self.assertTrue(util._error_stream.getvalue().startswith(
             'test: warning: character count'))
@@ -291,9 +292,9 @@ class TestGameToP8(unittest.TestCase):
     def testTokenCountWarning(self):
         g = game.Game.make_empty_game()
         g.lua.update_from_lines(
-            ['a=b=c=d=e=f=g=h=i=j=k=l=m=n=o=p=q=r=s=t=u\n'] * 199 +
-            ['a=b=c=d=e=f=g=h=i=j=k=l=m=n=o=p=q=r=s=t=u'])
-        outstr = io.StringIO()
+            [b'a=b=c=d=e=f=g=h=i=j=k=l=m=n=o=p=q=r=s=t=u\n'] * 199 +
+            [b'a=b=c=d=e=f=g=h=i=j=k=l=m=n=o=p=q=r=s=t=u'])
+        outstr = io.BytesIO()
         g.to_p8_file(outstr)
         self.assertTrue(util._error_stream.getvalue().startswith(
             'warning: token count'))

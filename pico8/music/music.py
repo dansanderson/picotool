@@ -54,18 +54,18 @@ class Music(util.BaseSection):
         """
         data = bytearray()
         for l in lines:
-            if l.find(' ') == -1:
+            if l.find(b' ') == -1:
                 continue
-            flagstr, chanstr = l.split(' ')
-            flags = bytes.fromhex(flagstr)[0]
+            flagstr, chanstr = l.split(b' ')
+            flags = bytes.fromhex(str(flagstr, encoding='ascii'))[0]
             fstop = (flags & 4) >> 2
             frepeat = (flags & 2) >> 1
             fnext = flags & 1
 
-            chan1 = bytes.fromhex(chanstr[0:2])
-            chan2 = bytes.fromhex(chanstr[2:4])
-            chan3 = bytes.fromhex(chanstr[4:6])
-            chan4 = bytes.fromhex(chanstr[6:8])
+            chan1 = bytes.fromhex(str(chanstr[0:2], encoding='ascii'))
+            chan2 = bytes.fromhex(str(chanstr[2:4], encoding='ascii'))
+            chan3 = bytes.fromhex(str(chanstr[4:6], encoding='ascii'))
+            chan4 = bytes.fromhex(str(chanstr[6:8], encoding='ascii'))
             data.append(chan1[0] | fnext << 7)
             data.append(chan2[0] | frepeat << 7)
             data.append(chan3[0] | fstop << 7)
@@ -88,8 +88,8 @@ class Music(util.BaseSection):
             chan2 = self._data[start_i+1] & 127
             chan3 = self._data[start_i+2] & 127
             chan4 = self._data[start_i+3] & 127
-            yield (bytes([p8flags]).hex() + ' ' +
-                   bytes([chan1, chan2, chan3, chan4]).hex() + '\n')
+            yield (bytes(bytes([p8flags]).hex(), encoding='ascii') + b' ' +
+                   bytes(bytes([chan1, chan2, chan3, chan4]).hex(), encoding='ascii') + b'\n')
 
     def get_channel(self, id, channel):
         """Gets the sfx ID on a channel for a given pattern.

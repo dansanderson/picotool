@@ -104,7 +104,7 @@ class BaseSection():
           lines: .p8 lines for the section.
           version: The Pico-8 data version from the game file header.
         """
-        data = b''.join(bytearray.fromhex(l.rstrip()) for l in lines)
+        data = b''.join(bytearray.fromhex(str(l.rstrip(), encoding='ascii')) for l in lines)
         return cls(data=data, version=version)
 
     HEX_LINE_LENGTH_BYTES = 64
@@ -118,7 +118,7 @@ class BaseSection():
             end_i = start_i + self.HEX_LINE_LENGTH_BYTES
             if end_i > len(self._data):
                 end_i = len(self._data)
-            yield bytes(self._data[start_i:end_i]).hex() + '\n'
+            yield bytes(bytes(self._data[start_i:end_i]).hex(), encoding='ascii') + b'\n'
     
     @classmethod
     def from_bytes(cls, data, version):

@@ -167,38 +167,38 @@ print('two')
 )
 
 
-VALID_P8_HEADER = '''pico-8 cartridge // http://www.pico-8.com
+VALID_P8_HEADER = b'''pico-8 cartridge // http://www.pico-8.com
 version 4
 '''
 
-VALID_P8_LUA_SECTION_HEADER = '__lua__\n'
+VALID_P8_LUA_SECTION_HEADER = b'__lua__\n'
 
 VALID_P8_FOOTER = (
-    '__gfx__\n' + (('0' * 128) + '\n') * 128 +
-    '__gff__\n' + (('0' * 256) + '\n') * 2 +
-    '__map__\n' + (('0' * 256) + '\n') * 32 +
-    '__sfx__\n' + '0001' + ('0' * 164) + '\n' +
-    ('001' + ('0' * 165) + '\n') * 63 +
-    '__music__\n' + '00 41424344\n' * 64 + '\n\n')
+    b'__gfx__\n' + ((b'0' * 128) + b'\n') * 128 +
+    b'__gff__\n' + ((b'0' * 256) + b'\n') * 2 +
+    b'__map__\n' + ((b'0' * 256) + b'\n') * 32 +
+    b'__sfx__\n' + b'0001' + (b'0' * 164) + b'\n' +
+    (b'001' + (b'0' * 165) + b'\n') * 63 +
+    b'__music__\n' + b'00 41424344\n' * 64 + b'\n\n')
 
 
 class TestCounts(unittest.TestCase):
     def testCharCounts(self):
         for t in TESTS:
-            g = game.Game.from_p8_file(io.StringIO(
+            g = game.Game.from_p8_file(io.BytesIO(
                 VALID_P8_HEADER +
                 VALID_P8_LUA_SECTION_HEADER +
-                t['code'] +
+                bytes(t['code'], encoding='ascii') +
                 VALID_P8_FOOTER))
             self.assertEqual(t['chars'], g.lua.get_char_count(),
                              'Mismatched char count: ' + repr(t['code']))
 
     def testTokenCounts(self):
         for t in TESTS:
-            g = game.Game.from_p8_file(io.StringIO(
+            g = game.Game.from_p8_file(io.BytesIO(
                 VALID_P8_HEADER +
                 VALID_P8_LUA_SECTION_HEADER +
-                t['code'] +
+                bytes(t['code'], encoding='ascii') +
                 VALID_P8_FOOTER))
             self.assertEqual(t['tokens'], g.lua.get_token_count(),
                              'Mismatched token count: ' + repr(t['code']))

@@ -23,7 +23,7 @@ To install the `picotool` tools and libraries:
 
 1. Download and unpack [the zip archive](https://github.com/dansanderson/picotool/archive/master.zip), or use Git to clone [the Github repository](https://github.com/dansanderson/picotool).
    * Unpacking the zip archive creates a root directory named `picotool-master`. When cloning the repo, this is just `picotool`, or whatever you named it when you cloned it.
-1. Install [Python 3](https://www.python.org/), if necessary. (picotool has not been tested with Python 2.)
+1. Install [Python 3](https://www.python.org/) version 3.4 or later, if necessary. (picotool has not been tested with Python 2.)
 1. To enable PNG support, install the [PyPNG library](https://github.com/drj11/pypng):
    ```
    python3 -m pip install pypng

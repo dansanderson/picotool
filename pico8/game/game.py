@@ -20,11 +20,9 @@ from ..map.map import Map
 from ..sfx.sfx import Sfx
 from ..music.music import Music
 
-HEADER_TITLE_STR = 'pico-8 cartridge // http://www.pico-8.com\n'
-HEADER_VERSION_RE = re.compile('version (\d+)\n')
-HEADER_VERSION_PAT = 'version {}\n'
-SECTION_DELIM_RE = re.compile('__(\w+)__\n')
-SECTION_DELIM_PAT = '__{}__\n'
+HEADER_TITLE_STR = b'pico-8 cartridge // http://www.pico-8.com\n'
+HEADER_VERSION_RE = re.compile(br'version (\d+)\n')
+SECTION_DELIM_RE = re.compile(br'__(\w+)__\n')
 
 DEFAULT_VERSION = 8
 EMPTY_LABEL_FNAME = os.path.join(os.path.dirname(__file__), 'empty_018.p8.png')
@@ -33,8 +31,8 @@ COMPRESSED_LUA_CHAR_TABLE = list(b'#\n 0123456789abcdefghijklmnopqrstuvwxyz!#%()
 # Pico-8 adds this automatically to compressed code and removes it
 # automatically from decompressed code to maintain compatibility with Pico-8
 # 0.1.7.
-PICO8_FUTURE_CODE2 = ('if(_update60)_update=function()'
-                      '_update60()_update_buttons()_update60()end')
+PICO8_FUTURE_CODE2 = (b'if(_update60)_update=function()'
+                      b'_update60()_update_buttons()_update60()end')
 
 
 class InvalidP8HeaderError(util.InvalidP8DataError):
@@ -128,7 +126,7 @@ class Game():
         """
         assert filename.endswith('.p8.png') or filename.endswith('.p8')
         if filename.endswith('.p8'):
-            with open(filename, 'r', encoding='utf-8') as fh:
+            with open(filename, 'rb') as fh:
                 g = Game.from_p8_file(fh, filename=filename)
         else:
             with open(filename, 'rb') as fh:
@@ -140,7 +138,7 @@ class Game():
         """Loads a game from a .p8 file.
     
         Args:
-          instr: The input stream.
+          instr: The binary input stream.
           filename: The filename, if any, for tool messages.
     
         Returns:
@@ -158,6 +156,7 @@ class Game():
             raise InvalidP8HeaderError()
         version = int(version_m.group(1))
 
+        # (section is a text str.)
         section = None
         section_lines = {}
         while True:
@@ -166,7 +165,7 @@ class Game():
                 break
             section_delim_m = SECTION_DELIM_RE.match(line)
             if section_delim_m:
-                section = section_delim_m.group(1)
+                section = str(section_delim_m.group(1), encoding='ascii')
                 section_lines[section] = []
             elif section:
                 section_lines[section].append(line)
@@ -402,7 +401,7 @@ class Game():
         using a block dictionary.
 
         Args:
-          in_p: The code to compress, as a str.
+          in_p: The code to compress, as a bytestring.
 
         Returns:
           The compressed code, as a bytearray. The compressed result is
@@ -416,10 +415,10 @@ class Game():
         for i in range(1, len(COMPRESSED_LUA_CHAR_TABLE)):
             literal_index[COMPRESSED_LUA_CHAR_TABLE[i]] = i
 
-        if '_update60' in in_p and len(in_p) < PICO8_CODE_ALLOC_SIZE - (
+        if b'_update60' in in_p and len(in_p) < PICO8_CODE_ALLOC_SIZE - (
             len(PICO8_FUTURE_CODE2) + 1):
-            if in_p[-1] != ' ' and in_p[-1] != '\n':
-                in_p += '\n'
+            if in_p[-1] != b' ' and in_p[-1] != b'\n':
+                in_p += b'\n'
             in_p += PICO8_FUTURE_CODE2
 
         out = bytearray()
@@ -440,9 +439,9 @@ class Game():
                 out.append((block_offset % 16) + (block_len - 2) * 16)
                 pos += block_len
             else:
-                out.append(literal_index[ord(in_p[pos])])
-                if literal_index[ord(in_p[pos])] == 0:
-                    out.append(ord(in_p[pos]))
+                out.append(literal_index[in_p[pos]])
+                if literal_index[in_p[pos]] == 0:
+                    out.append(in_p[pos])
                 pos += 1
 
         return out
@@ -455,7 +454,7 @@ class Game():
           codedata: The bytes of the code region (0x4300:0x8000).
 
         Returns:
-          The tuple (code_length, code, compressed_size).
+          The tuple (code_length, code, compressed_size). code is a bytestring.
         """
         code_length = (codedata[4] << 8) | codedata[5]
         assert bytes(codedata[6:8]) == b'\x00\x00'
@@ -481,10 +480,10 @@ class Game():
                 out_i += length
             in_i += 1
 
-        code = ''.join(chr(c) for c in out)
+        code = bytes(out)
         if code.endswith(PICO8_FUTURE_CODE2):
             code = code[:-len(PICO8_FUTURE_CODE2)]
-            if code[-1] == '\n':
+            if code[-1] == b'\n':
                 code = code[:-1]
 
         compressed_size = in_i
@@ -501,7 +500,7 @@ class Game():
 
         Returns:
           The tuple (code_length, code, compressed_size). compressed_size is
-          None if the code data was not compressed.
+          None if the code data was not compressed. code is a bytestring.
         """
 
         if version == 0 or bytes(codedata[:4]) != b':c:\x00':
@@ -513,14 +512,14 @@ class Game():
                 # Edge case: uncompressed code completely fills the code area.
                 code_length = 0x8000 - 0x4300
 
-            code = ''.join(chr(c) for c in codedata[:code_length]) + '\n'
+            code = bytes(codedata[:code_length]) + b'\n'
             compressed_size = None
 
         else:
             # code is compressed
             code_length, code, compressed_size = cls.decompress_code(codedata)
 
-        code = code.replace('\r', ' ')
+        code = code.replace(b'\r', b' ')
 
         return code_length, code, compressed_size
 
@@ -628,7 +627,7 @@ class Game():
         """
         outstr.write(HEADER_TITLE_STR)
 
-        outstr.write(HEADER_VERSION_PAT.format(8))
+        outstr.write(b'version 8\n')
 
         # Sanity-check the Lua written by the writer.
         transformed_lua = Lua.from_lines(
@@ -650,43 +649,45 @@ class Game():
                 transformed_lua.get_char_count(),
                 PICO8_LUA_CHAR_LIMIT))
 
-        outstr.write(SECTION_DELIM_PAT.format('lua'))
+        outstr.write(b'__lua__\n')
         ended_in_newline = None
         for l in self.lua.to_lines(writer_cls=lua_writer_cls,
                                    writer_args=lua_writer_args):
             outstr.write(l)
-            ended_in_newline = l.endswith('\n')
+            ended_in_newline = l.endswith(b'\n')
         if not ended_in_newline:
-            outstr.write('\n')
+            outstr.write(b'\n')
 
-        outstr.write(SECTION_DELIM_PAT.format('gfx'))
+        outstr.write(b'__gfx__\n')
         for l in self.gfx.to_lines():
             outstr.write(l)
 
         if self.label:
-            outstr.write(SECTION_DELIM_PAT.format('label'))
+            outstr.write(b'__label__\n')
             for l in self.label.to_lines():
                 outstr.write(l)
 
-        # Pico-8 emits an extra newline before __gff__ for no good reason, as of 0.1.10c.
-        outstr.write('\n')
-        outstr.write(SECTION_DELIM_PAT.format('gff'))
+        # Pico-8 emits an extra newline before __gff__ for no good reason, as
+        # of 0.1.10c. Pico-8 doesn't care whether we do, but our tests want to
+        # match the test cart data exactly.
+        outstr.write(b'\n')
+        outstr.write(b'__gff__\n')
         for l in self.gff.to_lines():
             outstr.write(l)
 
-        outstr.write(SECTION_DELIM_PAT.format('map'))
+        outstr.write(b'__map__\n')
         for l in self.map.to_lines():
             outstr.write(l)
 
-        outstr.write(SECTION_DELIM_PAT.format('sfx'))
+        outstr.write(b'__sfx__\n')
         for l in self.sfx.to_lines():
             outstr.write(l)
 
-        outstr.write(SECTION_DELIM_PAT.format('music'))
+        outstr.write(b'__music__\n')
         for l in self.music.to_lines():
             outstr.write(l)
 
-        outstr.write('\n')
+        outstr.write(b'\n')
 
     def to_p8png_file(self, outstr, label_fname=None, lua_writer_cls=None,
                       lua_writer_args=None, filename=None):
@@ -744,10 +745,7 @@ class Game():
         Args:
             filename: The filename.
         """
-        if filename.endswith('.png'):
-            file_args = {'mode':'wb+'}
-        else:
-            file_args = {'mode':'w+', 'encoding':'utf-8'}
+        file_args = {'mode':'wb+'}
         with tempfile.TemporaryFile(**file_args) as outfh:
             if filename.endswith('.png'):
                 if kwargs.get('label_fname', None) is None:

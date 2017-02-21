@@ -116,7 +116,7 @@ class Lua():
         """Produces a Lua data object from lines of Lua source.
 
         Args:
-          lines: The Lua source, as an iterable of strings.
+          lines: The Lua source, as an iterable of bytestrings.
           version: The Pico-8 data version from the game file header.
 
         Returns:
@@ -130,9 +130,10 @@ class Lua():
         """Updates the parser data with new lines of Lua source.
 
         Args:
-          lines: The Lua source, as an iterable of strings.
+          lines: The Lua source, as an iterable of bytestrings.
         """
-        self._lexer.process_lines(lines)
+        # TODO: temporarily encoding back to text string, fix this
+        self._lexer.process_lines(str(l, encoding='utf-8') for l in lines)
         self._parser.process_tokens(self._lexer.tokens)
 
     def to_lines(self, writer_cls=None, writer_args=None):
@@ -144,14 +145,15 @@ class Lua():
           writer_args: Args for the writer.
 
         Yields:
-          A line of Lua code.
+          A line of Lua code, as a bytestring.
         """
         if writer_cls is None:
             writer_cls = LuaEchoWriter
         writer = writer_cls(tokens=self._lexer.tokens, root=self._parser.root,
                             args=writer_args)
         for line in writer.to_lines():
-            yield line
+            # TODO: temporarily encoding back to bytes, fix this
+            yield bytes(line, encoding='utf-8')
 
     def reparse(self, writer_cls=None, writer_args=None):
         """Run the output of a Lua writer back through the parser, then re-store the tokens and parser.

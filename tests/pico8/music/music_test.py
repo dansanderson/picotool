@@ -7,7 +7,7 @@ from unittest.mock import patch
 from pico8.music import music
 
 
-VALID_MUSIC_LINES = ['00 41424344\n'] * 64
+VALID_MUSIC_LINES = [b'00 41424344\n'] * 64
 
 
 class TestMusic(unittest.TestCase):

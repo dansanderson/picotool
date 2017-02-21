@@ -7,14 +7,14 @@ from unittest.mock import patch
 from pico8.lua import lua
 
 
-VALID_LUA_SHORT_LINES = [l + '\n' for l in '''-- short test
+VALID_LUA_SHORT_LINES = [l + b'\n' for l in b'''-- short test
 -- by dan
 function foo()
   return 999
-end'''.split('\n')]
+end'''.split(b'\n')]
 
 
-VALID_LUA_EVERY_NODE = [l + '\n' for l in '''
+VALID_LUA_EVERY_NODE = [l + b'\n' for l in b'''
 -- the code with the nodes
 -- doesn't have to make sense
 
@@ -86,7 +86,7 @@ a=1; b=2; c=3
 if ((x < 1) or (x > width) or (y < 1) or (y > height)) then
   return 0
 end
-'''.split('\n')]
+'''.split(b'\n')]
 
 
 class TestLua(unittest.TestCase):
@@ -110,9 +110,9 @@ class TestLua(unittest.TestCase):
 
     def testGetTokenCountCarriageReturns(self):
         result = lua.Lua.from_lines([
-            'function foo()\r\n',
-            '  return 999\r\n',
-            'end\r\n'
+            b'function foo()\r\n',
+            b'  return 999\r\n',
+            b'end\r\n'
         ], 4)
         self.assertEqual(5, result.get_token_count())
         
@@ -137,9 +137,9 @@ class TestLuaEchoWriter(unittest.TestCase):
         self.assertEqual(lines, VALID_LUA_SHORT_LINES)
         
     def testToLinesEchoWriterLastCharIsntNewline(self):
-        result = lua.Lua.from_lines(VALID_LUA_SHORT_LINES + ['break'], 4)
+        result = lua.Lua.from_lines(VALID_LUA_SHORT_LINES + [b'break'], 4)
         lines = list(result.to_lines())
-        self.assertEqual(lines, VALID_LUA_SHORT_LINES + ['break'])
+        self.assertEqual(lines, VALID_LUA_SHORT_LINES + [b'break'])
 
 
 class TestLuaASTEchoWriter(unittest.TestCase):
@@ -158,34 +158,34 @@ class TestLuaMinifyWriter(unittest.TestCase):
     def testMinifiesNames(self):
         result = lua.Lua.from_lines(VALID_LUA_SHORT_LINES, 4)
         lines = list(result.to_lines(writer_cls=lua.LuaMinifyWriter))
-        txt = ''.join(lines)
-        self.assertIn('function a()', txt)
+        txt = b''.join(lines)
+        self.assertIn(b'function a()', txt)
         
     def testMinifiesNamesEveryNode(self):
         result = lua.Lua.from_lines(VALID_LUA_EVERY_NODE, 4)
         lines = list(result.to_lines(writer_cls=lua.LuaMinifyWriter))
-        txt = ''.join(lines)
-        self.assertIn('function a(b,', txt)
-        self.assertIn('local c', txt)
-        self.assertIn('c[b]', txt)
-        self.assertIn('return c', txt)
-        self.assertIn('local function d(e)', txt)
-        self.assertIn('print(e)', txt)
+        txt = b''.join(lines)
+        self.assertIn(b'function a(b,', txt)
+        self.assertIn(b'local c', txt)
+        self.assertIn(b'c[b]', txt)
+        self.assertIn(b'return c', txt)
+        self.assertIn(b'local function d(e)', txt)
+        self.assertIn(b'print(e)', txt)
 
     def testMinifiesSpaces(self):
         result = lua.Lua.from_lines(VALID_LUA_SHORT_LINES, 4)
         lines = list(result.to_lines(writer_cls=lua.LuaMinifyWriter))
-        txt = ''.join(lines)
-        self.assertEqual('''function a()
+        txt = b''.join(lines)
+        self.assertEqual(b'''function a()
 return 999
 end''', txt)
         
     def testMinifiesSpacesEveryNode(self):
         result = lua.Lua.from_lines(VALID_LUA_EVERY_NODE, 4)
         lines = list(result.to_lines(writer_cls=lua.LuaMinifyWriter))
-        txt = ''.join(lines)
-        self.assertNotIn('-- the code with the nodes', txt)
-        self.assertIn('''while f < 10 do
+        txt = b''.join(lines)
+        self.assertNotIn(b'-- the code with the nodes', txt)
+        self.assertIn(b'''while f < 10 do
 f += 1
 if f % 2 == 0 then
 a(f)
@@ -197,55 +197,55 @@ g *= 2
 end
 end
 ''', txt)
-        self.assertIn('''for g in i() do
+        self.assertIn(b'''for g in i() do
 a(g)
 end
 ''', txt)
-        self.assertIn('f=1  n=2  o=3', txt)
+        self.assertIn(b'f=1  n=2  o=3', txt)
 
     def testMinifyTokenWriterMinifiesSpacesEveryNode(self):
         result = lua.Lua.from_lines(VALID_LUA_EVERY_NODE, 4)
         lines = list(result.to_lines(writer_cls=lua.LuaMinifyTokenWriter))
-        txt = ''.join(lines)
-        self.assertNotIn('-- the code with the nodes', txt)
-        self.assertIn('while f<10 do f+=1 if f%2==0 then\na(f)elseif f>5 then a(f,5)else a(f,1)g*=2 end end', txt)
-        self.assertIn('for g in i()do a(g)end', txt)
-        self.assertIn('f=1;n=2;o=3', txt)
+        txt = b''.join(lines)
+        self.assertNotIn(b'-- the code with the nodes', txt)
+        self.assertIn(b'while f<10 do f+=1 if f%2==0 then\na(f)elseif f>5 then a(f,5)else a(f,1)g*=2 end end', txt)
+        self.assertIn(b'for g in i()do a(g)end', txt)
+        self.assertIn(b'f=1;n=2;o=3', txt)
 
 
 class TestLuaFormatterWriter(unittest.TestCase):
     def testNormalizesSpaceCharacters(self):
-        result = lua.Lua.from_lines(['a\t=\tb\r\n'], 4)
+        result = lua.Lua.from_lines([b'a\t=\tb\r\n'], 4)
         lines = list(result.to_lines(writer_cls=lua.LuaFormatterWriter))
-        txt = ''.join(lines)
-        self.assertEqual('a = b\n', txt)
+        txt = b''.join(lines)
+        self.assertEqual(b'a = b\n', txt)
 
     def testTrailingWhitespace(self):
-        result = lua.Lua.from_lines(['a = b   \nc = d   \n'], 4)
+        result = lua.Lua.from_lines([b'a = b   \nc = d   \n'], 4)
         lines = list(result.to_lines(writer_cls=lua.LuaFormatterWriter))
-        txt = ''.join(lines)
-        self.assertEqual('a = b\nc = d\n', txt)
+        txt = b''.join(lines)
+        self.assertEqual(b'a = b\nc = d\n', txt)
 
     def testCommentAtEndOfLine(self):
-        result = lua.Lua.from_lines(['a = b     -- comment\nc = d\n'], 4)
+        result = lua.Lua.from_lines([b'a = b     -- comment\nc = d\n'], 4)
         lines = list(result.to_lines(writer_cls=lua.LuaFormatterWriter))
-        txt = ''.join(lines)
-        self.assertEqual('a = b  -- comment\nc = d\n', txt)
+        txt = b''.join(lines)
+        self.assertEqual(b'a = b  -- comment\nc = d\n', txt)
 
     def testCommentOnOwnLine(self):
-        result = lua.Lua.from_lines(['a = b\n    -- comment\nc = d\n'], 4)
+        result = lua.Lua.from_lines([b'a = b\n    -- comment\nc = d\n'], 4)
         lines = list(result.to_lines(writer_cls=lua.LuaFormatterWriter))
-        txt = ''.join(lines)
-        self.assertEqual('a = b\n-- comment\nc = d\n', txt)
+        txt = b''.join(lines)
+        self.assertEqual(b'a = b\n-- comment\nc = d\n', txt)
 
     def testIndentZero(self):
-        result = lua.Lua.from_lines(['\n  a = b\n        c = d\n'], 4)
+        result = lua.Lua.from_lines([b'\n  a = b\n        c = d\n'], 4)
         lines = list(result.to_lines(writer_cls=lua.LuaFormatterWriter))
-        txt = ''.join(lines)
-        self.assertEqual('\na = b\nc = d\n', txt)
+        txt = b''.join(lines)
+        self.assertEqual(b'\na = b\nc = d\n', txt)
 
     def testIndentBlock(self):
-        result = lua.Lua.from_lines(['''
+        result = lua.Lua.from_lines([b'''
 a = 1
 do
 b = 2
@@ -280,8 +280,8 @@ for x in foo do
 end
 '''], 4)
         lines = list(result.to_lines(writer_cls=lua.LuaFormatterWriter))
-        txt = ''.join(lines)
-        self.assertEqual('''
+        txt = b''.join(lines)
+        self.assertEqual(b'''
 a = 1
 do
   b = 2
@@ -317,7 +317,7 @@ end
 ''', txt)
 
     def testIndentMulti(self):
-        result = lua.Lua.from_lines(['''
+        result = lua.Lua.from_lines([b'''
 do
 a = 1
 while foo do
@@ -338,8 +338,8 @@ end
 h = 8
 '''], 4)
         lines = list(result.to_lines(writer_cls=lua.LuaFormatterWriter))
-        txt = ''.join(lines)
-        self.assertEqual('''
+        txt = b''.join(lines)
+        self.assertEqual(b'''
 do
   a = 1
   while foo do
@@ -361,7 +361,7 @@ h = 8
 ''', txt)
 
     def testIndentCommentsAndStatements(self):
-        result = lua.Lua.from_lines(['''
+        result = lua.Lua.from_lines([b'''
  x += 1    -- increment x
 do
 -- do stuff in here
@@ -371,8 +371,8 @@ end
  -- END
 '''], 4)
         lines = list(result.to_lines(writer_cls=lua.LuaFormatterWriter))
-        txt = ''.join(lines)
-        self.assertEqual('''
+        txt = b''.join(lines)
+        self.assertEqual(b'''
 x += 1  -- increment x
 do
   -- do stuff in here
@@ -383,7 +383,7 @@ end
 ''', txt)
 
     def testIndentTableConstructor(self):
-        result = lua.Lua.from_lines(['''
+        result = lua.Lua.from_lines([b'''
 obj = {
 foo=function(arg)
  a = 1
@@ -398,8 +398,8 @@ foo=function(arg)
           }
 '''], 4)
         lines = list(result.to_lines(writer_cls=lua.LuaFormatterWriter))
-        txt = ''.join(lines)
-        self.assertEqual('''
+        txt = b''.join(lines)
+        self.assertEqual(b'''
 obj = {
   foo=function(arg)
     a = 1
@@ -415,7 +415,7 @@ obj = {
 ''', txt)
 
     def testTooManyNewlines(self):
-        result = lua.Lua.from_lines(['''
+        result = lua.Lua.from_lines([b'''
 
 
  a = 1
@@ -429,8 +429,8 @@ obj = {
    c = 3
 '''], 4)
         lines = list(result.to_lines(writer_cls=lua.LuaFormatterWriter))
-        txt = ''.join(lines)
-        self.assertEqual('''
+        txt = b''.join(lines)
+        self.assertEqual(b'''
 
 a = 1
 
@@ -440,7 +440,7 @@ c = 3
 ''', txt)
 
     def testAcceptsIndentWidthArg(self):
-        result = lua.Lua.from_lines(['''
+        result = lua.Lua.from_lines([b'''
 do
 a = 1
 while foo do
@@ -462,8 +462,8 @@ h = 8
 '''], 4)
         lines = list(result.to_lines(writer_cls=lua.LuaFormatterWriter,
                                      writer_args={'indentwidth':3}))
-        txt = ''.join(lines)
-        self.assertEqual('''
+        txt = b''.join(lines)
+        self.assertEqual(b'''
 do
    a = 1
    while foo do
@@ -487,37 +487,37 @@ h = 8
 
 class TestLuaFormatterTokenWriter(unittest.TestCase):
     def testNormalizesSpaceCharacters(self):
-        result = lua.Lua.from_lines(['a\t=\tb\r\n'], 4)
+        result = lua.Lua.from_lines([b'a\t=\tb\r\n'], 4)
         lines = list(result.to_lines(writer_cls=lua.LuaFormatterTokenWriter))
-        txt = ''.join(lines)
-        self.assertEqual('a = b\n', txt)
+        txt = b''.join(lines)
+        self.assertEqual(b'a = b\n', txt)
 
     def testTrailingWhitespace(self):
-        result = lua.Lua.from_lines(['a = b   \nc = d   \n'], 4)
+        result = lua.Lua.from_lines([b'a = b   \nc = d   \n'], 4)
         lines = list(result.to_lines(writer_cls=lua.LuaFormatterTokenWriter))
-        txt = ''.join(lines)
-        self.assertEqual('a = b\nc = d\n', txt)
+        txt = b''.join(lines)
+        self.assertEqual(b'a = b\nc = d\n', txt)
 
     def testCommentAtEndOfLine(self):
-        result = lua.Lua.from_lines(['a = b     -- comment\nc = d\n'], 4)
+        result = lua.Lua.from_lines([b'a = b     -- comment\nc = d\n'], 4)
         lines = list(result.to_lines(writer_cls=lua.LuaFormatterTokenWriter))
-        txt = ''.join(lines)
-        self.assertEqual('a = b  -- comment\nc = d\n', txt)
+        txt = b''.join(lines)
+        self.assertEqual(b'a = b  -- comment\nc = d\n', txt)
 
     def testCommentOnOwnLine(self):
-        result = lua.Lua.from_lines(['a = b\n    -- comment\nc = d\n'], 4)
+        result = lua.Lua.from_lines([b'a = b\n    -- comment\nc = d\n'], 4)
         lines = list(result.to_lines(writer_cls=lua.LuaFormatterTokenWriter))
-        txt = ''.join(lines)
-        self.assertEqual('a = b\n-- comment\nc = d\n', txt)
+        txt = b''.join(lines)
+        self.assertEqual(b'a = b\n-- comment\nc = d\n', txt)
 
     def testIndentZero(self):
-        result = lua.Lua.from_lines(['\n  a = b\n        c = d\n'], 4)
+        result = lua.Lua.from_lines([b'\n  a = b\n        c = d\n'], 4)
         lines = list(result.to_lines(writer_cls=lua.LuaFormatterTokenWriter))
-        txt = ''.join(lines)
-        self.assertEqual('\na = b\nc = d\n', txt)
+        txt = b''.join(lines)
+        self.assertEqual(b'\na = b\nc = d\n', txt)
 
     def testIndentBlock(self):
-        result = lua.Lua.from_lines(['''
+        result = lua.Lua.from_lines([b'''
 a = 1
 do
 b = 2
@@ -552,8 +552,8 @@ for x in foo do
 end
 '''], 4)
         lines = list(result.to_lines(writer_cls=lua.LuaFormatterTokenWriter))
-        txt = ''.join(lines)
-        self.assertEqual('''
+        txt = b''.join(lines)
+        self.assertEqual(b'''
 a = 1
 do
   b = 2
@@ -589,7 +589,7 @@ end
 ''', txt)
 
     def testIndentMulti(self):
-        result = lua.Lua.from_lines(['''
+        result = lua.Lua.from_lines([b'''
 do
 a = 1
 while foo do
@@ -610,8 +610,8 @@ end
 h = 8
 '''], 4)
         lines = list(result.to_lines(writer_cls=lua.LuaFormatterTokenWriter))
-        txt = ''.join(lines)
-        self.assertEqual('''
+        txt = b''.join(lines)
+        self.assertEqual(b'''
 do
   a = 1
   while foo do
@@ -633,7 +633,7 @@ h = 8
 ''', txt)
 
     def testIndentCommentsAndStatements(self):
-        result = lua.Lua.from_lines(['''
+        result = lua.Lua.from_lines([b'''
  x += 1    -- increment x
 do
 -- do stuff in here
@@ -643,8 +643,8 @@ end
  -- END
 '''], 4)
         lines = list(result.to_lines(writer_cls=lua.LuaFormatterTokenWriter))
-        txt = ''.join(lines)
-        self.assertEqual('''
+        txt = b''.join(lines)
+        self.assertEqual(b'''
 x += 1  -- increment x
 do
   -- do stuff in here
@@ -655,7 +655,7 @@ end
 ''', txt)
 
     def testIndentTableConstructor(self):
-        result = lua.Lua.from_lines(['''
+        result = lua.Lua.from_lines([b'''
 obj = {
 foo=function(arg)
  a = 1
@@ -670,8 +670,8 @@ foo=function(arg)
           }
 '''], 4)
         lines = list(result.to_lines(writer_cls=lua.LuaFormatterTokenWriter))
-        txt = ''.join(lines)
-        self.assertEqual('''
+        txt = b''.join(lines)
+        self.assertEqual(b'''
 obj = {
   foo = function(arg)
     a = 1
@@ -687,7 +687,7 @@ obj = {
 ''', txt)
 
     def testTooManyNewlines(self):
-        result = lua.Lua.from_lines(['''
+        result = lua.Lua.from_lines([b'''
 
 
  a = 1
@@ -701,8 +701,8 @@ obj = {
    c = 3
 '''], 4)
         lines = list(result.to_lines(writer_cls=lua.LuaFormatterTokenWriter))
-        txt = ''.join(lines)
-        self.assertEqual('''
+        txt = b''.join(lines)
+        self.assertEqual(b'''
 
 a = 1
 
@@ -712,7 +712,7 @@ c = 3
 ''', txt)
 
     def testAcceptsIndentWidthArg(self):
-        result = lua.Lua.from_lines(['''
+        result = lua.Lua.from_lines([b'''
 do
 a = 1
 while foo do
@@ -734,8 +734,8 @@ h = 8
 '''], 4)
         lines = list(result.to_lines(writer_cls=lua.LuaFormatterTokenWriter,
                                      writer_args={'indentwidth':3}))
-        txt = ''.join(lines)
-        self.assertEqual('''
+        txt = b''.join(lines)
+        self.assertEqual(b'''
 do
    a = 1
    while foo do
@@ -757,10 +757,10 @@ h = 8
 ''', txt)
 
     def testEliminateSpaceAroundSomePunctuation(self):
-        result = lua.Lua.from_lines(['a  =   {   "x" ,  y,  -3, 4+5*6}'], 4)
+        result = lua.Lua.from_lines([b'a  =   {   "x" ,  y,  -3, 4+5*6}'], 4)
         lines = list(result.to_lines(writer_cls=lua.LuaFormatterTokenWriter))
-        txt = ''.join(lines)
-        self.assertEqual('a = {"x", y, - 3, 4 + 5 * 6}\n', txt)
+        txt = b''.join(lines)
+        self.assertEqual(b'a = {"x", y, - 3, 4 + 5 * 6}\n', txt)
 
 
 if __name__ == '__main__':

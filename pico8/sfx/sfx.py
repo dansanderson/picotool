@@ -109,9 +109,9 @@ class Sfx(util.BaseSection):
             note = 0
             for i in range(8,168,5):
                 pitch = int(l[i:i+2], 16)
-                waveform = int(l[i+2], 16)
-                volume = int(l[i+3], 16)
-                effect = int(l[i+4], 16)
+                waveform = int(l[i+2:i+3], 16)
+                volume = int(l[i+3:i+4], 16)
+                effect = int(l[i+4:i+5], 16)
                 result.set_note(id, note,
                                 pitch=pitch,
                                 waveform=waveform,
@@ -129,12 +129,12 @@ class Sfx(util.BaseSection):
           One line of a hex string.
         """
         for id in range(0, 64):
-            hexstrs = [bytes(self.get_properties(id)).hex()]
+            hexstrs = [bytes(bytes(self.get_properties(id)).hex(), encoding='ascii')]
             for note in range(0, 32):
                 pitch, waveform, volume, effect = self.get_note(id, note)
-                hexstrs.append(bytes([pitch, waveform << 4 | volume]).hex())
-                hexstrs.append(bytes([effect]).hex()[1])
-            yield ''.join(hexstrs) + '\n'
+                hexstrs.append(bytes(bytes([pitch, waveform << 4 | volume]).hex(), encoding='ascii'))
+                hexstrs.append(bytes(bytes([effect]).hex()[1], encoding='ascii'))
+            yield b''.join(hexstrs) + b'\n'
 
     def get_note(self, id, note):
         """Gets a note from a pattern.

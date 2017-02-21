@@ -51,7 +51,7 @@ def do_build(args):
             # Load section from source and store it in the result.
             # TODO: support .png files as gfx source
             if section == 'lua' and fn.endswith('.lua'):
-                with open(fn) as infh:
+                with open(fn, 'rb') as infh:
                     # TODO: support require() with .lua
                     result.lua = lua.Lua.from_lines(
                         infh, version=game.DEFAULT_VERSION)

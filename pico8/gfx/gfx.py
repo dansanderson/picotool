@@ -72,7 +72,8 @@ class Gfx(util.BaseSection):
             for i in range(0,128,2):
                 (larray[i], larray[i+1]) = (larray[i+1], larray[i])
 
-            datastrs.append(bytearray.fromhex(''.join(larray)))
+            larray_str = str(bytes(larray), encoding='ascii')
+            datastrs.append(bytearray.fromhex(larray_str))
 
         data = b''.join(datastrs)
         return cls(data=data, version=version)
@@ -92,7 +93,7 @@ class Gfx(util.BaseSection):
             for b in self._data[start_i:end_i]:
                 newdata.append((b & 0x0f) << 4 | (b & 0xf0) >> 4)
                 
-            yield bytes(newdata).hex() + '\n'
+            yield bytes(bytes(newdata).hex(), encoding='ascii') + b'\n'
 
     def get_sprite(self, id, tile_width=1, tile_height=1):
         """Retrieves the graphics data for a sprite.
