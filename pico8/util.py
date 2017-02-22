@@ -118,7 +118,7 @@ class BaseSection():
             end_i = start_i + self.HEX_LINE_LENGTH_BYTES
             if end_i > len(self._data):
                 end_i = len(self._data)
-            yield bytes(bytes(self._data[start_i:end_i]).hex(), encoding='ascii') + b'\n'
+            yield bytes(bytes_to_hex(bytes(self._data[start_i:end_i])), encoding='ascii') + b'\n'
     
     @classmethod
     def from_bytes(cls, data, version):
@@ -131,3 +131,22 @@ class BaseSection():
 
     def to_bytes(self):
         return self._data
+
+
+def bytes_to_hex(bstr):
+    """Convert a bytestring to a text string of hexadecimal digits.
+
+    This exists solely to support Python 3.4 for Cygwin users.
+    bytes(...).hex() was added in Python 3.5.
+
+    Note that most callers of this function need to encode the text string
+    back into a bytestring of ASCII characters. This function does not do that
+    to remain equivalent to bytes(...).hex().
+
+    Args:
+        bstr: The bytestring.
+
+    Returns:
+        The text string of hexadecimal digits.
+    """
+    return ''.join(format(b, '02x') for b in bstr)

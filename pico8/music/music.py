@@ -88,8 +88,8 @@ class Music(util.BaseSection):
             chan2 = self._data[start_i+1] & 127
             chan3 = self._data[start_i+2] & 127
             chan4 = self._data[start_i+3] & 127
-            yield (bytes(bytes([p8flags]).hex(), encoding='ascii') + b' ' +
-                   bytes(bytes([chan1, chan2, chan3, chan4]).hex(), encoding='ascii') + b'\n')
+            yield (bytes(util.bytes_to_hex(bytes([p8flags])), encoding='ascii') + b' ' +
+                   bytes(util.bytes_to_hex(bytes([chan1, chan2, chan3, chan4])), encoding='ascii') + b'\n')
 
     def get_channel(self, id, channel):
         """Gets the sfx ID on a channel for a given pattern.
