@@ -22,7 +22,8 @@ PICO8_LUA_COMPRESSED_CHAR_LIMIT = 15360
 
 
 PICO8_BUILTINS = {
-    b'_init', b'_update', b'_draw',
+    b'_init', b'_update', b'_update60', b'_draw',
+    b'setmetatable', b'cocreate', b'coresume', b'costatus', b'yield',
     b'load', b'save', b'folder', b'ls', b'run', b'resume', b'reboot', b'stat', b'info',
     b'flip', b'printh', b'clip', b'pget', b'pset', b'sget', b'sset', b'fget', b'fset',
     b'print', b'cursor', b'color', b'cls', b'camera', b'circ', b'circfill', b'line',
@@ -31,6 +32,7 @@ PICO8_BUILTINS = {
     b'peek', b'poke', b'memcpy', b'reload', b'cstore', b'memset', b'max', b'min', b'mid',
     b'flr', b'cos', b'sin', b'atan2', b'sqrt', b'abs', b'rnd', b'srand', b'band', b'bor',
     b'bxor', b'bnot', b'shl', b'shr', b'cartdata', b'dget', b'dset', b'sub', b'sgn',
+    b'_update_buttons',  # announced for 30/60 fps compatibility but not yet used?
     b'count',  # deprecated function
     b'mapdraw',  # deprecated function
     b'self',   # a special name in Lua OO
