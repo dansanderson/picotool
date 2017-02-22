@@ -281,88 +281,19 @@ class Game():
 
         return new_rows
 
-    # TODO: "BROKEN" because I'm investigating why this doesn't match the
-    # Pico-8 algorithm and produces too-large (but compatible) results.
     @classmethod
-    def compress_code_BROKEN(cls, code):
-        """Compress code.
-
-        This returns the compressed code even if the output is larger than the
-        input. The caller should compare the sizes and do the appropriate thing.
-
-        Args:
-          code: The code text (str), non-empty.
-
-        Returns:
-          The compressed code data (bytearray).
-        """
-        result = bytearray()
-
-        # Constants from Pico-8, courtesy zep
-        PICO8_BLOCK_LEN_MIN = 3
-        PICO8_BLOCK_LEN_MAX = 17
-        PICO8_CODE_ALLOC_SIZE = 0x10000 + 1
-
-        # Implement Pico-8 0.1.7 forwards compatibility feature.
-        # This injected code is removed by Pico-8 if it exists.
-        if (len(code) + len(PICO8_FUTURE_CODE2) + 1) < PICO8_CODE_ALLOC_SIZE:
-            if code[-1] != ' ' and code[-1] != '\n':
-                code += '\n'
-            code += PICO8_FUTURE_CODE2
-
-        # maps string segments to (start_i, end_i) indexes in the original
-        # string, or None if is a single-char entry
-        lzd = {}
-        for c in range(256):
-            lzd[chr(c)] = None
-
-        i = 0
-        while i < len(code):
-            seglen = 1
-            while i + seglen <= len(code) and code[i:i + seglen] in lzd:
-                seglen += 1
-            seglen -= 1
-
-            if seglen < PICO8_BLOCK_LEN_MIN:
-                # emit one char
-                seglen = 1
-                try:
-                    char_i = COMPRESSED_LUA_CHAR_TABLE.index(ord(code[i]))
-                except ValueError:
-                    char_i = 0
-                if char_i >= 1:
-                    result.append(char_i)
-                else:
-                    result.append(0)
-                    result.append(ord(code[i]))
-            else:
-                # emit lzd entry
-                start_i, end_i = lzd[code[i:i + seglen]]
-                offset = i - start_i
-                length = end_i - start_i
-                result.append((offset >> 4) + 0x3c)
-                result.append(((length - 2) << 4) | (offset & 0xf))
-
-            # extend lzd
-            if ((i + seglen + 1 <= len(code)) and
-                (i + seglen + 1 <= PICO8_BLOCK_LEN_MAX)):
-                lzd[code[i:i + seglen + 1]] = (i, i + seglen + 1)
-
-            i += seglen
-
-        return result
-
-    # TODO: Compare this with compress_code_BROKEN and fix the latter.
-    @classmethod
-    def _find_repeatable_block(cls, dat, pos):
+    def _find_repeatable_block(cls, dat, pos, memotable=None):
         """Find a repeatable block in the data.
 
         Part of the literal port of the Pico-8 compression routine. See
         compress_code().
 
         Args:
-          dat: array of data bytes
-          pos: starting index in dat
+            dat: Array of data bytes.
+            pos: Starting index in dat.
+
+        Returns:
+            A tuple: (best_len, block_offset)
         """
         max_block_len = 17
         max_hist_len = (255 - len(COMPRESSED_LUA_CHAR_TABLE)) * 16
@@ -388,17 +319,16 @@ class Game():
 
         return best_len, block_offset
 
-    # TODO: Compare this with compress_code_BROKEN and fix the latter.
     @classmethod
     def compress_code(cls, in_p):
         """A literal port of the Pico-8 C compression routine.
 
-        For some reason my looser port in compress_code_BROKEN() does not
-        match the original algorithm, so I'm trying a literal port and
-        comparing the results. The original algorithm uses a brute force
-        search for blocks (_find_repeatable_block()), which makes the overall
-        algorithm O(n^2). compress_code_BROKEN() was intended to be faster
-        using a block dictionary.
+        TODO: The original algorithm uses a brute force search for blocks
+        (_find_repeatable_block()), which makes the overall algorithm O(n^2).
+        I had a previous implementation that was faster but did not produce
+        the same compressed result. It should be possible to optimize the
+        working implementation using Python features without changing its result.
+        (A quick attempt at memoization did not result in a speed increase.)
 
         Args:
           in_p: The code to compress, as a bytestring.
