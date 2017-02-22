@@ -611,7 +611,7 @@ class Game():
         """
         if self.compressed_size is not None:
             return self.compressed_size
-        comp_result = self.compress_code(''.join(self.lua.to_lines()))
+        comp_result = self.compress_code(b''.join(self.lua.to_lines()))
         return len(comp_result)
 
     def to_p8_file(self, outstr, lua_writer_cls=None, lua_writer_args=None,

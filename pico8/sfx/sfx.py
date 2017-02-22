@@ -235,15 +235,18 @@ class Sfx(util.BaseSection):
           loop_end: The loop range end, as a note number (0-63). None to
             leave unchanged.
         """
+        # (The asserts are only appropriate if the cart uses the sfx memory
+        # for actual sfx, which not all carts do. Keeping them for
+        # documentation purposes.)
         if editor_mode is not None:
-            assert 0 <= editor_mode <= 1
+            # assert 0 <= editor_mode <= 1
             self._data[id * 68 + 64] = editor_mode
         if note_duration is not None:
-            assert 0 <= note_duration <= 255
+            # assert 0 <= note_duration <= 255
             self._data[id * 68 + 65] = note_duration
         if loop_start is not None:
-            assert 0 <= loop_start <= 63
+            # assert 0 <= loop_start <= 63
             self._data[id * 68 + 66] = loop_start
         if loop_end is not None:
-            assert 0 <= loop_end <= 63
+            # assert 0 <= loop_end <= 63
             self._data[id * 68 + 67] = loop_end

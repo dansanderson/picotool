@@ -56,6 +56,27 @@ def _games_for_filenames(filenames):
             yield (fname, g)
 
 
+def _as_friendly_string(s):
+    """Converts a bytestring to a text string.
+
+    To avoid encoding errors caused by arbitrary high characters (allowed in
+    Pico-8 source), this replaces all high characters with underscores.
+
+    Args:
+        s: The bytestring.
+
+    Returns:
+        The text string with high characters censored, or None if s is None.
+    """
+    if s is None:
+        return None
+    s_arr = bytearray(s)
+    for i,c in enumerate(s_arr):
+        if c > 127:
+            s_arr[i] = 95  # ASCII for b'_'
+    return str(s_arr, encoding='ascii')
+
+
 def stats(args):
     """Run the stats tool.
 
@@ -98,9 +119,9 @@ def stats(args):
                 g.get_compressed_size()
             ])
         else:
-            title = g.lua.get_title()
-            byline = g.lua.get_byline()
-                
+            title = _as_friendly_string(g.lua.get_title())
+            byline = _as_friendly_string(g.lua.get_byline())
+
             if title is not None:
                 util.write('{} ({})\n'.format(
                     title, os.path.basename(g.filename)))
