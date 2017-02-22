@@ -282,7 +282,7 @@ class Game():
         return new_rows
 
     @classmethod
-    def _find_repeatable_block(cls, dat, pos, memotable=None):
+    def _find_repeatable_block(cls, dat, pos):
         """Find a repeatable block in the data.
 
         Part of the literal port of the Pico-8 compression routine. See
