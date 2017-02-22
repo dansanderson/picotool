@@ -13,25 +13,25 @@ from unittest.mock import patch
 from pico8.lua import lexer
 
 
-VALID_P8_HEADER = '''pico-8 cartridge // http://www.pico-8.com
+VALID_P8_HEADER = b'''pico-8 cartridge // http://www.pico-8.com
 version 4
 '''
 
-INVALID_P8_HEADER = '''INVALID HEADER
+INVALID_P8_HEADER = b'''INVALID HEADER
 INVALID HEADER
 '''
 
-VALID_P8_LUA_SECTION_HEADER = '__lua__\n'
+VALID_P8_LUA_SECTION_HEADER = b'__lua__\n'
 
 VALID_P8_FOOTER = (
-    '\n__gfx__\n' + (('0' * 128) + '\n') * 128 +
-    '__gff__\n' + (('0' * 256) + '\n') * 2 +
-    '__map__\n' + (('0' * 256) + '\n') * 32 +
-    '__sfx__\n' + '0001' + ('0' * 164) + '\n' +
-    ('001' + ('0' * 165) + '\n') * 63 +
-    '__music__\n' + '00 41424344\n' * 64 + '\n\n')
+    b'\n__gfx__\n' + ((b'0' * 128) + b'\n') * 128 +
+    b'__gff__\n' + ((b'0' * 256) + b'\n') * 2 +
+    b'__map__\n' + ((b'0' * 256) + b'\n') * 32 +
+    b'__sfx__\n' + b'0001' + (b'0' * 164) + b'\n' +
+    (b'001' + (b'0' * 165) + b'\n') * 63 +
+    b'__music__\n' + b'00 41424344\n' * 64 + b'\n\n')
 
-VALID_LUA = '''
+VALID_LUA = b'''
 v1 = nil
 v2 = false
 v3 = true
@@ -148,210 +148,210 @@ if (a ~= 2) print("ok") end
 class TestLexer(unittest.TestCase):
     def testTokenLength(self):
         lxr = lexer.Lexer(version=4)
-        lxr._process_line('break')
+        lxr._process_line(b'break')
         self.assertEqual(1, len(lxr._tokens))
         self.assertEqual(5, len(lxr._tokens[0]))
 
     def testTokenRepr(self):
         lxr = lexer.Lexer(version=4)
-        lxr._process_line('break')
+        lxr._process_line(b'break')
         self.assertEqual(1, len(lxr._tokens))
         self.assertIn('line 0', repr(lxr._tokens[0]))
         
     def testTokenMatches(self):
         lxr = lexer.Lexer(version=4)
-        lxr._process_line('break')
+        lxr._process_line(b'break')
         self.assertEqual(1, len(lxr._tokens))
-        self.assertTrue(lxr._tokens[0].matches(lexer.TokKeyword('break')))
+        self.assertTrue(lxr._tokens[0].matches(lexer.TokKeyword(b'break')))
         self.assertTrue(lxr._tokens[0].matches(lexer.TokKeyword))
-        self.assertFalse(lxr._tokens[0].matches(lexer.TokKeyword('and')))
+        self.assertFalse(lxr._tokens[0].matches(lexer.TokKeyword(b'and')))
         self.assertFalse(lxr._tokens[0].matches(lexer.TokSpace))
         
     def testWhitespace(self):
         lxr = lexer.Lexer(version=4)
-        lxr._process_line('    \n')
+        lxr._process_line(b'    \n')
         self.assertEqual(2, len(lxr._tokens))
         self.assertEqual(4, len(lxr._tokens[0]))
 
     def testOneKeyword(self):
         lxr = lexer.Lexer(version=4)
-        lxr._process_line('and\n')
+        lxr._process_line(b'and\n')
         self.assertEqual(2, len(lxr._tokens))
-        self.assertEqual(lexer.TokKeyword('and'), lxr._tokens[0])
+        self.assertEqual(lexer.TokKeyword(b'and'), lxr._tokens[0])
 
     def testOneName(self):
         lxr = lexer.Lexer(version=4)
-        lxr._process_line('android\n')
+        lxr._process_line(b'android\n')
         self.assertEqual(2, len(lxr._tokens))
-        self.assertEqual(lexer.TokName('android'), lxr._tokens[0])
+        self.assertEqual(lexer.TokName(b'android'), lxr._tokens[0])
 
     def testOneLabel(self):
         lxr = lexer.Lexer(version=4)
-        lxr._process_line('::foobar::\n')
+        lxr._process_line(b'::foobar::\n')
         self.assertEqual(2, len(lxr._tokens))
-        self.assertEqual(lexer.TokLabel('::foobar::'), lxr._tokens[0])
+        self.assertEqual(lexer.TokLabel(b'::foobar::'), lxr._tokens[0])
         
     def testThreeDots(self):
         lxr = lexer.Lexer(version=4)
-        lxr._process_line('...\n')
+        lxr._process_line(b'...\n')
         self.assertEqual(2, len(lxr._tokens))
-        self.assertEqual(lexer.TokSymbol('...'), lxr._tokens[0])
+        self.assertEqual(lexer.TokSymbol(b'...'), lxr._tokens[0])
 
     def testStringDoubleQuotes(self):
         lxr = lexer.Lexer(version=4)
-        lxr._process_line('"abc def ghi and jkl"\n')
+        lxr._process_line(b'"abc def ghi and jkl"\n')
         self.assertEqual(2, len(lxr._tokens))
-        self.assertEqual(lexer.TokString('abc def ghi and jkl'),
+        self.assertEqual(lexer.TokString(b'abc def ghi and jkl'),
                          lxr._tokens[0])
 
     def testStringSingleQuotes(self):
         lxr = lexer.Lexer(version=4)
-        lxr._process_line("'abc def ghi and jkl'\n")
+        lxr._process_line(b"'abc def ghi and jkl'\n")
         self.assertEqual(2, len(lxr._tokens))
-        self.assertEqual(lexer.TokString('abc def ghi and jkl'),
+        self.assertEqual(lexer.TokString(b'abc def ghi and jkl'),
                          lxr._tokens[0])
 
     def testStringMultipleLines(self):
         # TODO: Pico-8 doesn't allow multiline strings, so this probably
         # shouldn't either.
         lxr = lexer.Lexer(version=4)
-        lxr._process_line('"abc def ghi \n')
-        lxr._process_line('and jkl"\n')
+        lxr._process_line(b'"abc def ghi \n')
+        lxr._process_line(b'and jkl"\n')
         self.assertEqual(2, len(lxr._tokens))
-        self.assertEqual(lexer.TokString('abc def ghi \nand jkl'),
+        self.assertEqual(lexer.TokString(b'abc def ghi \nand jkl'),
                          lxr._tokens[0])
         
     def testStringMultipleLinesPlusAToken(self):
         lxr = lexer.Lexer(version=4)
-        lxr._process_line('"abc def ghi \nand jkl" and\n')
+        lxr._process_line(b'"abc def ghi \nand jkl" and\n')
         self.assertEqual(4, len(lxr._tokens))
-        self.assertEqual(lexer.TokString('abc def ghi \nand jkl'),
+        self.assertEqual(lexer.TokString(b'abc def ghi \nand jkl'),
                          lxr._tokens[0])
-        self.assertEqual(lexer.TokKeyword('and'), lxr._tokens[2])
+        self.assertEqual(lexer.TokKeyword(b'and'), lxr._tokens[2])
 
     def testStringEscapes(self):
         lxr = lexer.Lexer(version=4)
-        lxr._process_line('"\\\n\\a\\b\\f\\n\\r\\t\\v\\\\\\"\\\'\\65"\n')
+        lxr._process_line(b'"\\\n\\a\\b\\f\\n\\r\\t\\v\\\\\\"\\\'\\65"\n')
         self.assertEqual(2, len(lxr._tokens))
-        self.assertEqual(lexer.TokString('\n\a\b\f\n\r\t\v\\"\'A'),
+        self.assertEqual(lexer.TokString(b'\n\a\b\f\n\r\t\v\\"\'A'),
                          lxr._tokens[0])
 
     def testComment(self):
         lxr = lexer.Lexer(version=4)
-        lxr._process_line('-- comment text and stuff\n')
+        lxr._process_line(b'-- comment text and stuff\n')
         self.assertEqual(2, len(lxr._tokens))
-        self.assertEqual(lexer.TokComment('-- comment text and stuff'),
+        self.assertEqual(lexer.TokComment(b'-- comment text and stuff'),
                          lxr._tokens[0])
 
     def testMultilineComment(self):
         lxr = lexer.Lexer(version=8)
-        lxr._process_line('--[[comment text\nand "stuff\n]]\n')
+        lxr._process_line(b'--[[comment text\nand "stuff\n]]\n')
         self.assertEqual(2, len(lxr._tokens))
-        self.assertEqual(lexer.TokComment('--[[comment text\nand "stuff\n]]'),
+        self.assertEqual(lexer.TokComment(b'--[[comment text\nand "stuff\n]]'),
                          lxr._tokens[0])
 
     def testMultilineCommentNoLinebreaks(self):
         lxr = lexer.Lexer(version=8)
-        lxr._process_line('--[[comment text and "stuff]]\n')
+        lxr._process_line(b'--[[comment text and "stuff]]\n')
         self.assertEqual(2, len(lxr._tokens))
-        self.assertEqual(lexer.TokComment('--[[comment text and "stuff]]'),
+        self.assertEqual(lexer.TokComment(b'--[[comment text and "stuff]]'),
                          lxr._tokens[0])
 
     def testMultilineCommentMultipleCalls(self):
         lxr = lexer.Lexer(version=8)
-        lxr._process_line('--[[comment text\n')
-        lxr._process_line('and "stuff\n')
-        lxr._process_line(']]\n')
+        lxr._process_line(b'--[[comment text\n')
+        lxr._process_line(b'and "stuff\n')
+        lxr._process_line(b']]\n')
         self.assertEqual(2, len(lxr._tokens))
-        self.assertEqual(lexer.TokComment('--[[comment text\nand "stuff\n]]'),
+        self.assertEqual(lexer.TokComment(b'--[[comment text\nand "stuff\n]]'),
                          lxr._tokens[0])
 
     def testTokenAndComment(self):
         lxr = lexer.Lexer(version=4)
-        lxr._process_line('and-- comment text and stuff\n')
+        lxr._process_line(b'and-- comment text and stuff\n')
         self.assertEqual(3, len(lxr._tokens))
-        self.assertEqual(lexer.TokKeyword('and'),
+        self.assertEqual(lexer.TokKeyword(b'and'),
                          lxr._tokens[0])
-        self.assertEqual(lexer.TokComment('-- comment text and stuff'),
+        self.assertEqual(lexer.TokComment(b'-- comment text and stuff'),
                          lxr._tokens[1])
         
     def testNumberInteger(self):
         lxr = lexer.Lexer(version=4)
-        lxr._process_line('1234567890\n')
+        lxr._process_line(b'1234567890\n')
         self.assertEqual(2, len(lxr._tokens))
-        self.assertEqual(lexer.TokNumber('1234567890'),
+        self.assertEqual(lexer.TokNumber(b'1234567890'),
                          lxr._tokens[0])
 
     def testNumberDecimal(self):
         lxr = lexer.Lexer(version=4)
-        lxr._process_line('1.234567890\n')
+        lxr._process_line(b'1.234567890\n')
         self.assertEqual(2, len(lxr._tokens))
-        self.assertEqual(lexer.TokNumber('1.234567890'),
+        self.assertEqual(lexer.TokNumber(b'1.234567890'),
                          lxr._tokens[0])
 
     def testNumberDecimalWithExp(self):
         lxr = lexer.Lexer(version=4)
-        lxr._process_line('1.234567890e-6\n')
+        lxr._process_line(b'1.234567890e-6\n')
         self.assertEqual(2, len(lxr._tokens))
-        self.assertEqual(lexer.TokNumber('1.234567890e-6'),
+        self.assertEqual(lexer.TokNumber(b'1.234567890e-6'),
                          lxr._tokens[0])
         
     def testNegatedNumber(self):
         lxr = lexer.Lexer(version=4)
-        lxr._process_line('-1.234567890e-6\n')
+        lxr._process_line(b'-1.234567890e-6\n')
         self.assertEqual(3, len(lxr._tokens))
-        self.assertEqual(lexer.TokSymbol('-'),
+        self.assertEqual(lexer.TokSymbol(b'-'),
                          lxr._tokens[0])
-        self.assertEqual(lexer.TokNumber('1.234567890e-6'),
+        self.assertEqual(lexer.TokNumber(b'1.234567890e-6'),
                          lxr._tokens[1])
 
     def testNumberHex(self):
         lxr = lexer.Lexer(version=4)
-        lxr._process_line('0x1234567890abcdef\n')
+        lxr._process_line(b'0x1234567890abcdef\n')
         self.assertEqual(2, len(lxr._tokens))
-        self.assertEqual(lexer.TokNumber('0x1234567890abcdef'),
+        self.assertEqual(lexer.TokNumber(b'0x1234567890abcdef'),
                          lxr._tokens[0])
 
     def testNumberHexWithFrac(self):
         lxr = lexer.Lexer(version=4)
-        lxr._process_line('0x1234567890abcdef.1bbf\n')
+        lxr._process_line(b'0x1234567890abcdef.1bbf\n')
         self.assertEqual(2, len(lxr._tokens))
-        self.assertEqual(lexer.TokNumber('0x1234567890abcdef.1bbf'),
+        self.assertEqual(lexer.TokNumber(b'0x1234567890abcdef.1bbf'),
                          lxr._tokens[0])
 
     def testMultilineString(self):
         lxr = lexer.Lexer(version=4)
-        lxr._process_line('[[one\n')
-        lxr._process_line('"two"\n')
-        lxr._process_line('[[three]]\n')
+        lxr._process_line(b'[[one\n')
+        lxr._process_line(b'"two"\n')
+        lxr._process_line(b'[[three]]\n')
         self.assertEqual(2, len(lxr._tokens))
-        self.assertEqual(lexer.TokString('one\n"two"\n[[three'),
+        self.assertEqual(lexer.TokString(b'one\n"two"\n[[three'),
                          lxr._tokens[0])
 
     def testMultilineStringMatchedEquals(self):
         lxr = lexer.Lexer(version=4)
-        lxr._process_line('[===[one\n')
-        lxr._process_line('[[two]]\n')
-        lxr._process_line('[==[three]==]]===]\n')
+        lxr._process_line(b'[===[one\n')
+        lxr._process_line(b'[[two]]\n')
+        lxr._process_line(b'[==[three]==]]===]\n')
         self.assertEqual(2, len(lxr._tokens))
-        self.assertEqual(lexer.TokString('one\n[[two]]\n[==[three]==]'),
+        self.assertEqual(lexer.TokString(b'one\n[[two]]\n[==[three]==]'),
                          lxr._tokens[0])
 
     def testValidLuaNoErrors(self):
         lxr = lexer.Lexer(version=4)
-        for line in VALID_LUA.split('\n'):
+        for line in VALID_LUA.split(b'\n'):
             lxr._process_line(line)
         tokens = lxr.tokens
-        self.assertEqual(lexer.TokName('v1'), tokens[0])
-        self.assertEqual(lexer.TokSpace(' '), tokens[1])
-        self.assertEqual(lexer.TokSymbol('='), tokens[2])
-        self.assertEqual(lexer.TokSpace(' '), tokens[3])
-        self.assertEqual(lexer.TokKeyword('nil'), tokens[4])
+        self.assertEqual(lexer.TokName(b'v1'), tokens[0])
+        self.assertEqual(lexer.TokSpace(b' '), tokens[1])
+        self.assertEqual(lexer.TokSymbol(b'='), tokens[2])
+        self.assertEqual(lexer.TokSpace(b' '), tokens[3])
+        self.assertEqual(lexer.TokKeyword(b'nil'), tokens[4])
 
     def testLexerError(self):
         lxr = lexer.Lexer(version=4)
         try:
-            lxr._process_line('123 @ 456')
+            lxr._process_line(b'123 @ 456')
             self.fail()
         except lexer.LexerError as e:
             txt = str(e)  # coverage test
@@ -361,9 +361,9 @@ class TestLexer(unittest.TestCase):
     def testProcessLines(self):
         lxr = lexer.Lexer(version=4)
         lxr.process_lines([
-            'function foo()\n',
-            '  return 999\n',
-            'end\n'
+            b'function foo()\n',
+            b'  return 999\n',
+            b'end\n'
         ])
         self.assertEqual(13, len(lxr._tokens))
 
@@ -372,7 +372,7 @@ class TestLexer(unittest.TestCase):
         self.assertRaises(
             lexer.LexerError,
             lxr.process_lines,
-            ['"one'])
+            [b'"one'])
 
     def testProcessLinesErrorOnOpenMultilineComment(self):
         lxr = lexer.Lexer(version=4)
@@ -380,8 +380,8 @@ class TestLexer(unittest.TestCase):
             lexer.LexerError,
             lxr.process_lines,
             [
-                '--[[one\n',
-                'two\n'
+                b'--[[one\n',
+                b'two\n'
             ])
 
     def testProcessLinesErrorOnOpenMultilineString(self):
@@ -390,28 +390,28 @@ class TestLexer(unittest.TestCase):
             lexer.LexerError,
             lxr.process_lines,
             [
-                '[[one\n',
-                'two\n'
+                b'[[one\n',
+                b'two\n'
             ])
 
     def testTokensProperty(self):
         lxr = lexer.Lexer(version=4)
         lxr.process_lines([
-            'function foo()\n',
-            '  return 999\n',
-            'end\n'
+            b'function foo()\n',
+            b'  return 999\n',
+            b'end\n'
         ])
         self.assertEqual(13, len(lxr.tokens))
 
     def testHelloWorldExample(self):
-        code='-- hello world\n-- by zep\n\nt = 0\n\nmusic(0)\n\nfunction _update()\n t += 1\nend\n\nfunction _draw()\n cls()\n  \n for i=1,11 do\n  for j0=0,7 do\n  j = 7-j0\n  col = 7+j\n  t1 = t + i*4 - j*2\n  x = cos(t0)*5\n  y = 38 + j + cos(t1/50)*5\n  pal(7,col)\n  spr(16+i, 8+i*8 + x, y)\n  end\n end\n \n  print("this is pico-8",\n    37, 70, 14) --8+(t/4)%8)\n\n print("nice to meet you",\n    34, 80, 12) --8+(t/4)%8)\n\n  spr(1, 64-4, 90)\nend\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n'        
+        code=b'-- hello world\n-- by zep\n\nt = 0\n\nmusic(0)\n\nfunction _update()\n t += 1\nend\n\nfunction _draw()\n cls()\n  \n for i=1,11 do\n  for j0=0,7 do\n  j = 7-j0\n  col = 7+j\n  t1 = t + i*4 - j*2\n  x = cos(t0)*5\n  y = 38 + j + cos(t1/50)*5\n  pal(7,col)\n  spr(16+i, 8+i*8 + x, y)\n  end\n end\n \n  print("this is pico-8",\n    37, 70, 14) --8+(t/4)%8)\n\n print("nice to meet you",\n    34, 80, 12) --8+(t/4)%8)\n\n  spr(1, 64-4, 90)\nend\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n'
         lxr = lexer.Lexer(version=4)
         lxr.process_lines([code])
         tokens = lxr.tokens
-        self.assertEqual(lexer.TokComment('-- hello world'), tokens[0])
-        self.assertEqual(lexer.TokNewline('\n'), tokens[1])
-        self.assertEqual(lexer.TokComment('-- by zep'), tokens[2])
-        self.assertEqual(lexer.TokNewline('\n'), tokens[3])
+        self.assertEqual(lexer.TokComment(b'-- hello world'), tokens[0])
+        self.assertEqual(lexer.TokNewline(b'\n'), tokens[1])
+        self.assertEqual(lexer.TokComment(b'-- by zep'), tokens[2])
+        self.assertEqual(lexer.TokNewline(b'\n'), tokens[3])
 
         
 if __name__ == '__main__':

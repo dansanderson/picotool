@@ -118,11 +118,11 @@ class TestLua(unittest.TestCase):
         
     def testGetTitle(self):
         result = lua.Lua.from_lines(VALID_LUA_SHORT_LINES, 4)
-        self.assertEqual('short test', result.get_title())
+        self.assertEqual(b'short test', result.get_title())
 
     def testGetByline(self):
         result = lua.Lua.from_lines(VALID_LUA_SHORT_LINES, 4)
-        self.assertEqual('by dan', result.get_byline())
+        self.assertEqual(b'by dan', result.get_byline())
 
     def testBaseLuaWriterNotYetImplemented(self):
         # coverage

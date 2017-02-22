@@ -22,9 +22,9 @@ __all__ = [
 ]
 
 LUA_KEYWORDS = {
-    'and', 'break', 'do', 'else', 'elseif', 'end', 'false', 'for',
-    'function', 'goto', 'if', 'in', 'local', 'nil', 'not', 'or', 'repeat',
-    'return', 'then', 'true', 'until', 'while'
+    b'and', b'break', b'do', b'else', b'elseif', b'end', b'false', b'for',
+    b'function', b'goto', b'if', b'in', b'local', b'nil', b'not', b'or', b'repeat',
+    b'return', b'then', b'true', b'until', b'while'
 }
 
 
@@ -136,25 +136,26 @@ class TokString(Token):
             self._quote = kwargs['quote']
             del kwargs['quote']
         else:
-            self._quote = '"'
+            self._quote = b'"'
         super().__init__(*args, **kwargs)
 
     @property
     def code(self):
         if self._multiline_quote is not None:
-            return ('[' + self._multiline_quote + '[' +
+            return (b'[' + self._multiline_quote + b'[' +
                     self._data +
-                    ']' + self._multiline_quote + ']')
+                    b']' + self._multiline_quote + b']')
         else:
             escaped_chrs = []
             for c in self._data:
+                c = bytes([c])
                 if c in _STRING_REVERSE_ESCAPES:
-                    escaped_chrs.append('\\' + _STRING_REVERSE_ESCAPES[c])
+                    escaped_chrs.append(b'\\' + _STRING_REVERSE_ESCAPES[c])
                 elif c == self._quote:
-                    escaped_chrs.append('\\' + c)
+                    escaped_chrs.append(b'\\' + c)
                 else:
                     escaped_chrs.append(c)
-            return self._quote + ''.join(escaped_chrs) + self._quote
+            return self._quote + b''.join(escaped_chrs) + self._quote
 
 
 class TokNumber(Token):
@@ -196,42 +197,42 @@ class TokSymbol(Token):
 # A mapping of characters that can be escaped in Lua string literals using a
 # "\" character, mapped to their unescaped values.
 _STRING_ESCAPES = {
-    '\n': '\n', 'a': '\a', 'b': '\b', 'f': '\f', 'n': '\n',
-    'r': '\r', 't': '\t', 'v': '\v', '\\': '\\', '"': '"',
-    "'": "'"
+    b'\n': b'\n', b'a': b'\a', b'b': b'\b', b'f': b'\f', b'n': b'\n',
+    b'r': b'\r', b't': b'\t', b'v': b'\v', b'\\': b'\\', b'"': b'"',
+    b"'": b"'"
 }
 _STRING_REVERSE_ESCAPES = dict((v,k) for k,v in _STRING_ESCAPES.items())
-del _STRING_REVERSE_ESCAPES["'"]
-del _STRING_REVERSE_ESCAPES['"']
+del _STRING_REVERSE_ESCAPES[b"'"]
+del _STRING_REVERSE_ESCAPES[b'"']
 
 # A list of single-line token matching patterns and corresponding token
 # classes. A token class of None causes the lexer to consume the pattern
 # without emitting a token. The patterns are matched in order.
 _TOKEN_MATCHERS = []
 _TOKEN_MATCHERS.extend([
-    (re.compile(r'--.*'), TokComment),
-    (re.compile(r'[ \t]+'), TokSpace),
-    (re.compile(r'\r\n'), TokNewline),
-    (re.compile(r'\n'), TokNewline),
-    (re.compile(r'\r'), TokNewline),
-    (re.compile(r'0[xX][0-9a-fA-F]+(\.[0-9a-fA-F]+)?'), TokNumber),
-    (re.compile(r'0[xX]\.[0-9a-fA-F]+'), TokNumber),
-    (re.compile(r'[0-9]+(\.[0-9]+)?([eE]-?[0-9]+)?'), TokNumber),
-    (re.compile(r'\.[0-9]+([eE]-?[0-9]+)?'), TokNumber),
-    (re.compile(r'::[a-zA-Z_][a-zA-Z0-9_]*::'), TokLabel),
+    (re.compile(br'--.*'), TokComment),
+    (re.compile(br'[ \t]+'), TokSpace),
+    (re.compile(br'\r\n'), TokNewline),
+    (re.compile(br'\n'), TokNewline),
+    (re.compile(br'\r'), TokNewline),
+    (re.compile(br'0[xX][0-9a-fA-F]+(\.[0-9a-fA-F]+)?'), TokNumber),
+    (re.compile(br'0[xX]\.[0-9a-fA-F]+'), TokNumber),
+    (re.compile(br'[0-9]+(\.[0-9]+)?([eE]-?[0-9]+)?'), TokNumber),
+    (re.compile(br'\.[0-9]+([eE]-?[0-9]+)?'), TokNumber),
+    (re.compile(br'::[a-zA-Z_][a-zA-Z0-9_]*::'), TokLabel),
 ])
 _TOKEN_MATCHERS.extend([
-    (re.compile(r'\b'+keyword+r'\b'), TokKeyword) for keyword in LUA_KEYWORDS])
+    (re.compile(br'\b'+keyword+br'\b'), TokKeyword) for keyword in LUA_KEYWORDS])
 _TOKEN_MATCHERS.extend([
     (re.compile(symbol), TokSymbol) for symbol in [
-    r'\+=', '-=', r'\*=', '/=', '%=',
-    '==', '~=', '!=', '<=', '>=',
-    r'\+', '-', r'\*', '/', '%', r'\^', '#',
-    '<', '>', '=',
-    r'\(', r'\)', '{', '}', r'\[', r'\]', ';', ':', ',',
-    r'\.\.\.', r'\.\.', r'\.']])
+    br'\+=', b'-=', br'\*=', b'/=', b'%=',
+    b'==', b'~=', b'!=', b'<=', b'>=',
+    br'\+', b'-', br'\*', b'/', b'%', br'\^', b'#',
+    b'<', b'>', b'=',
+    br'\(', br'\)', b'{', b'}', br'\[', br'\]', b';', b':', b',',
+    br'\.\.\.', br'\.\.', br'\.']])
 _TOKEN_MATCHERS.extend([
-    (re.compile(r'[a-zA-Z_][a-zA-Z0-9_]*'), TokName)
+    (re.compile(br'[a-zA-Z_][a-zA-Z0-9_]*'), TokName)
 ])
 
 
@@ -297,12 +298,12 @@ class Lexer():
         if self._in_string is not None:
             # Continue string literal.
             while i < len(s):
-                c = s[i]
+                c = s[i:i+1]
 
                 if c == self._in_string_delim:
                     # End string literal.
                     self._tokens.append(
-                        TokString(str(''.join(self._in_string)),
+                        TokString(b''.join(self._in_string),
                                   self._in_string_lineno,
                                   self._in_string_charno,
                                   quote=self._in_string_delim))
@@ -313,14 +314,14 @@ class Lexer():
                     i += 1
                     break
                 
-                if c == '\\':
+                if c == b'\\':
                     # Escape character.
-                    num_m = re.match(r'\d{1,3}', s[i+1:])
+                    num_m = re.match(br'\d{1,3}', s[i+1:])
                     if num_m:
-                        c = chr(int(num_m.group(0)))
+                        c = bytes([int(num_m.group(0))])
                         i += len(num_m.group(0))
                     else:
-                        next_c = s[i+1]
+                        next_c = s[i+1:i+2]
                         if next_c in _STRING_ESCAPES:
                             c = _STRING_ESCAPES[next_c]
                             i += 1
@@ -330,10 +331,10 @@ class Lexer():
 
         elif self._in_multiline_comment is not None:
             try:
-                i = s.index(']]') + 2
+                i = s.index(b']]') + 2
                 self._in_multiline_comment.append(s[:i])
                 self._tokens.append(
-                    TokComment(''.join(self._in_multiline_comment),
+                    TokComment(b''.join(self._in_multiline_comment),
                                self._in_multiline_comment_lineno,
                                self._in_multiline_comment_charno))
                 self._in_multiline_comment = None
@@ -345,12 +346,12 @@ class Lexer():
                 i = len(s)
 
         elif self._in_multiline_string is not None:
-            m = re.search(r'\]' + self._in_multiline_string_delim + r'\]', s)
+            m = re.search(br'\]' + self._in_multiline_string_delim + br'\]', s)
             if m:
                 i = m.end()
                 self._in_multiline_string.append(s[:m.start()])
                 self._tokens.append(
-                    TokString(''.join(self._in_multiline_string),
+                    TokString(b''.join(self._in_multiline_string),
                               self._in_multiline_string_lineno,
                               self._in_multiline_string_charno,
                               multiline_quote=self._in_multiline_string_delim))
@@ -363,25 +364,25 @@ class Lexer():
                 self._in_multiline_string.append(s)
                 i = len(s)
 
-        elif s.startswith('--[['):
+        elif s.startswith(b'--[['):
             # (Multiline comments do not support the [===[ thing that
             # multiline strings do, so we can match directly.)
-            self._in_multiline_comment = ['--[[']
+            self._in_multiline_comment = [b'--[[']
             self._in_multiline_comment_lineno = self._cur_lineno
             self._in_multiline_comment_charno = self._cur_charno
             i = 4
 
-        elif re.match(r'\[=*\[', s):
-            m = re.match(r'\[(=*)\[', s)
+        elif re.match(br'\[=*\[', s):
+            m = re.match(br'\[(=*)\[', s)
             i = m.end()
             self._in_multiline_string = []
             self._in_multiline_string_delim = m.group(1)
             self._in_multiline_string_lineno = self._cur_lineno
             self._in_multiline_string_charno = self._cur_charno
 
-        elif s.startswith("'") or s.startswith('"'):
+        elif s.startswith(b"'") or s.startswith(b'"'):
             # Begin string literal.
-            self._in_string_delim = s[0]
+            self._in_string_delim = s[0:1]
             self._in_string_lineno = self._cur_lineno
             self._in_string_charno = self._cur_charno
             self._in_string = []
@@ -401,7 +402,7 @@ class Lexer():
                     break
 
         for c in s[:i]:
-            if c == '\n':
+            if c == b'\n':
                 self._cur_lineno += 1
                 self._cur_charno = 0
             else:

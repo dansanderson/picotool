@@ -149,8 +149,8 @@ for (name, fields) in _ast_node_types:
 
 # (!= is PICO-8 specific.)
 BINOP_PATS = ([lexer.TokSymbol(sym) for sym in [
-    '<', '>', '<=', '>=', '~=', '!=', '==', '..', '+', '-', '*', '/', '%', '^'
-]] + [lexer.TokKeyword('and'), lexer.TokKeyword('or')])
+    b'<', b'>', b'<=', b'>=', b'~=', b'!=', b'==', b'..', b'+', b'-', b'*', b'/', b'%', b'^'
+]] + [lexer.TokKeyword(b'and'), lexer.TokKeyword(b'or')])
 
     
     
@@ -282,7 +282,7 @@ class Parser():
         stats = []
         while True:
             # Eat leading and intervening semicolons.
-            while self._accept(lexer.TokSymbol(';')) is not None:
+            while self._accept(lexer.TokSymbol(b';')) is not None:
                 pass
             stat = self._stat()
             if stat is None:
@@ -290,7 +290,7 @@ class Parser():
             stats.append(stat)
 
         # Eat leading and intervening semicolons.
-        while self._accept(lexer.TokSymbol(';')) is not None:
+        while self._accept(lexer.TokSymbol(b';')) is not None:
             pass
         
         laststat = self._laststat()
@@ -298,7 +298,7 @@ class Parser():
             stats.append(laststat)
 
         # Eat trailing semicolons.
-        while self._accept(lexer.TokSymbol(';')) is not None:
+        while self._accept(lexer.TokSymbol(b';')) is not None:
             pass
         
         return Chunk(stats, start=pos, end=self._pos)
@@ -340,12 +340,12 @@ class Parser():
         if varlist is not None:
             # (Missing '=' is not a fatal error because varlist might also match
             # the beginning of a functioncall.)
-            assign_op = (self._accept(lexer.TokSymbol('=')) or
-                         self._accept(lexer.TokSymbol('+=')) or
-                         self._accept(lexer.TokSymbol('-=')) or
-                         self._accept(lexer.TokSymbol('*=')) or
-                         self._accept(lexer.TokSymbol('/=')) or
-                         self._accept(lexer.TokSymbol('%=')))
+            assign_op = (self._accept(lexer.TokSymbol(b'=')) or
+                         self._accept(lexer.TokSymbol(b'+=')) or
+                         self._accept(lexer.TokSymbol(b'-=')) or
+                         self._accept(lexer.TokSymbol(b'*=')) or
+                         self._accept(lexer.TokSymbol(b'/=')) or
+                         self._accept(lexer.TokSymbol(b'%=')))
             if assign_op is not None:
                 explist = self._assert(self._explist(),
                                        'Expected expression in assignment')
@@ -358,33 +358,33 @@ class Parser():
             return StatFunctionCall(functioncall, start=pos, end=self._pos)
         self._pos = pos
 
-        if self._accept(lexer.TokKeyword('do')) is not None:
+        if self._accept(lexer.TokKeyword(b'do')) is not None:
             block = self._assert(self._chunk(), 'block in do')
-            self._expect(lexer.TokKeyword('end'))
+            self._expect(lexer.TokKeyword(b'end'))
             return StatDo(block, start=pos, end=self._pos)
 
-        if self._accept(lexer.TokKeyword('while')) is not None:
+        if self._accept(lexer.TokKeyword(b'while')) is not None:
             exp = self._assert(self._exp(), 'exp in while')
-            self._expect(lexer.TokKeyword('do'))
+            self._expect(lexer.TokKeyword(b'do'))
             block = self._assert(self._chunk(), 'block in while')
-            self._expect(lexer.TokKeyword('end'))
+            self._expect(lexer.TokKeyword(b'end'))
             return StatWhile(exp, block, start=pos, end=self._pos)
 
-        if self._accept(lexer.TokKeyword('repeat')) is not None:
+        if self._accept(lexer.TokKeyword(b'repeat')) is not None:
             block = self._assert(self._chunk(),
                                  'block in repeat')
-            self._expect(lexer.TokKeyword('until'))
+            self._expect(lexer.TokKeyword(b'until'))
             exp = self._assert(self._exp(),
                                'expression in repeat')
             return StatRepeat(block, exp, start=pos, end=self._pos)
 
-        if self._accept(lexer.TokKeyword('if')) is not None:
+        if self._accept(lexer.TokKeyword(b'if')) is not None:
             exp_block_pairs = []
             exp = self._exp()
 
             then_pos = self._pos
-            if (self._accept(lexer.TokKeyword('then')) is None and
-                (self._tokens[exp._end_token_pos - 1] == lexer.TokSymbol(')'))):
+            if (self._accept(lexer.TokKeyword(b'then')) is None and
+                (self._tokens[exp._end_token_pos - 1] == lexer.TokSymbol(b')'))):
                 # Check for Pico-8 short form.
 
                 then_end_pos = exp._end_token_pos
@@ -397,7 +397,7 @@ class Parser():
                     block = self._assert(self._chunk(),
                                          'valid chunk in short-if')
                     else_block = None
-                    if self._accept(lexer.TokKeyword('else')) is not None:
+                    if self._accept(lexer.TokKeyword(b'else')) is not None:
                         # Pico-8 accepts an else with nothing after it.
                         else_block = self._chunk()
                 finally:
@@ -415,57 +415,57 @@ class Parser():
 
             # TODO: hack: accept "do" for "then" to support seven carts that
             # exploit a loophole in short-if.
-            self._expect(lexer.TokKeyword('then'))
+            self._expect(lexer.TokKeyword(b'then'))
             block = self._chunk()
             self._assert(block, 'Expected block in if')
             exp_block_pairs.append((exp, block))
-            while self._accept(lexer.TokKeyword('elseif')) is not None:
+            while self._accept(lexer.TokKeyword(b'elseif')) is not None:
                 exp = self._exp()
-                self._expect(lexer.TokKeyword('then'))
+                self._expect(lexer.TokKeyword(b'then'))
                 block = self._chunk()
                 self._assert(block, 'Expected block in elseif')
                 exp_block_pairs.append((exp, block))
-            if self._accept(lexer.TokKeyword('else')) is not None:
+            if self._accept(lexer.TokKeyword(b'else')) is not None:
                 block = self._chunk()
                 self._assert(block, 'Expected block in else')
                 exp_block_pairs.append((None, block))
-            self._expect(lexer.TokKeyword('end'))
+            self._expect(lexer.TokKeyword(b'end'))
             return StatIf(exp_block_pairs, start=pos, end=self._pos)
 
-        if self._accept(lexer.TokKeyword('for')) is not None:
+        if self._accept(lexer.TokKeyword(b'for')) is not None:
             for_pos = self._pos
 
             name = self._accept(lexer.TokName)
-            eq_sym = self._accept(lexer.TokSymbol('='))
+            eq_sym = self._accept(lexer.TokSymbol(b'='))
             if eq_sym is not None:
                 exp_init = self._assert(self._exp(), 'exp-init in for')
-                self._expect(lexer.TokSymbol(','))
+                self._expect(lexer.TokSymbol(b','))
                 exp_end = self._assert(self._exp(), 'exp-end in for')
                 exp_step = None
-                if self._accept(lexer.TokSymbol(',')):
+                if self._accept(lexer.TokSymbol(b',')):
                     exp_step = self._assert(self._exp(), 'exp-step in for')
-                self._expect(lexer.TokKeyword('do'))
+                self._expect(lexer.TokKeyword(b'do'))
                 block = self._assert(self._chunk(), 'block in for')
-                self._expect(lexer.TokKeyword('end'))
+                self._expect(lexer.TokKeyword(b'end'))
                 return StatForStep(name, exp_init, exp_end, exp_step, block,
                                    start=pos, end=self._pos)
             self._pos = for_pos
                 
             namelist = self._assert(self._namelist(), 'namelist in for-in')
-            self._expect(lexer.TokKeyword('in'))
+            self._expect(lexer.TokKeyword(b'in'))
             explist = self._assert(self._explist(), 'explist in for-in')
-            self._expect(lexer.TokKeyword('do'))
+            self._expect(lexer.TokKeyword(b'do'))
             block = self._assert(self._chunk(), 'block in for-in')
-            self._expect(lexer.TokKeyword('end'))
+            self._expect(lexer.TokKeyword(b'end'))
             return StatForIn(namelist, explist, block, start=pos, end=self._pos)
 
-        if self._accept(lexer.TokKeyword('function')) is not None:
+        if self._accept(lexer.TokKeyword(b'function')) is not None:
             funcname = self._assert(self._funcname(), 'funcname in function')
             funcbody = self._assert(self._funcbody(), 'funcbody in function')
             return StatFunction(funcname, funcbody, start=pos, end=self._pos)
 
-        if self._accept(lexer.TokKeyword('local')) is not None:
-            if self._accept(lexer.TokKeyword('function')) is not None:
+        if self._accept(lexer.TokKeyword(b'local')) is not None:
+            if self._accept(lexer.TokKeyword(b'function')) is not None:
                 funcname = self._expect(lexer.TokName)
                 funcbody = self._assert(self._funcbody(),
                                         'funcbody in local function')
@@ -474,13 +474,13 @@ class Parser():
             namelist = self._assert(self._namelist(),
                                     'namelist in local assignment')
             explist = None
-            if self._accept(lexer.TokSymbol('=')) is not None:
+            if self._accept(lexer.TokSymbol(b'=')) is not None:
                 explist = self._assert(self._explist(),
                                        'explist in local assignment')
             return StatLocalAssignment(namelist, explist,
                                        start=pos, end=self._pos)
 
-        if self._accept(lexer.TokKeyword('goto')) is not None:
+        if self._accept(lexer.TokKeyword(b'goto')) is not None:
             label = self._expect(lexer.TokName)
             return StatGoto(label.value, start=pos, end=self._pos)
         
@@ -503,9 +503,9 @@ class Parser():
           StatReturn(explist)
         """
         pos = self._pos
-        if self._accept(lexer.TokKeyword('break')) is not None:
+        if self._accept(lexer.TokKeyword(b'break')) is not None:
             return StatBreak(start=pos, end=self._pos)
-        if self._accept(lexer.TokKeyword('return')) is not None:
+        if self._accept(lexer.TokKeyword(b'return')) is not None:
             explist = self._explist()
             return StatReturn(explist, start=pos, end=self._pos)
         self._pos = pos
@@ -527,9 +527,9 @@ class Parser():
         if name is None:
             return None
         namepath.append(name)
-        while self._accept(lexer.TokSymbol('.')) is not None:
+        while self._accept(lexer.TokSymbol(b'.')) is not None:
             namepath.append(self._expect(lexer.TokName))
-        if self._accept(lexer.TokSymbol(':')) is not None:
+        if self._accept(lexer.TokSymbol(b':')) is not None:
             methodname = self._expect(lexer.TokName)
 
         return FunctionName(namepath, methodname, start=pos, end=self._pos)
@@ -548,7 +548,7 @@ class Parser():
         if var is None:
             return None
         _vars.append(var)
-        while self._accept(lexer.TokSymbol(',')) is not None:
+        while self._accept(lexer.TokSymbol(b',')) is not None:
             _vars.append(self._assert(self._var(), 'var in varlist'))
         return VarList(_vars, start=pos, end=self._pos)
 
@@ -584,7 +584,7 @@ class Parser():
             return None
         names.append(name)
         last_pos = self._pos
-        while self._accept(lexer.TokSymbol(',')) is not None:
+        while self._accept(lexer.TokSymbol(b',')) is not None:
             name = self._accept(lexer.TokName)
             if name is None:
                 # Don't eat the trailing separator if there is one.
@@ -611,7 +611,7 @@ class Parser():
             return None
         exps.append(exp)
         while True:
-            if self._accept(lexer.TokSymbol(',')) is None:
+            if self._accept(lexer.TokSymbol(b',')) is None:
                 break
             exp = self._assert(self._exp(), 'exp after comma')
             exps.append(exp)
@@ -685,11 +685,11 @@ class Parser():
           ExpUnOp(unop, exp)
         """
         pos = self._pos
-        if self._accept(lexer.TokKeyword('nil')) is not None:
+        if self._accept(lexer.TokKeyword(b'nil')) is not None:
             return ExpValue(None, start=pos, end=self._pos)
-        if self._accept(lexer.TokKeyword('false')) is not None:
+        if self._accept(lexer.TokKeyword(b'false')) is not None:
             return ExpValue(False, start=pos, end=self._pos)
-        if self._accept(lexer.TokKeyword('true')) is not None:
+        if self._accept(lexer.TokKeyword(b'true')) is not None:
             return ExpValue(True, start=pos, end=self._pos)
         val = self._accept(lexer.TokNumber)
         if val is not None:
@@ -697,7 +697,7 @@ class Parser():
         val = self._accept(lexer.TokString)
         if val is not None:
             return ExpValue(val, start=pos, end=self._pos)
-        if self._accept(lexer.TokSymbol('...')) is not None:
+        if self._accept(lexer.TokSymbol(b'...')) is not None:
             return VarargDots(start=pos, end=self._pos)
         val = self._function()
         if val is not None:
@@ -709,11 +709,11 @@ class Parser():
         if val is not None:
             return ExpValue(val, start=pos, end=self._pos)
         
-        unop = self._accept(lexer.TokSymbol('-'))
+        unop = self._accept(lexer.TokSymbol(b'-'))
         if unop is None:
-            unop = self._accept(lexer.TokKeyword('not'))
+            unop = self._accept(lexer.TokKeyword(b'not'))
             if unop is None:
-                unop = self._accept(lexer.TokSymbol('#'))
+                unop = self._accept(lexer.TokSymbol(b'#'))
                 if unop is None:
                     return None
         exp = self._assert(self._exp(), 'exp after unary op')
@@ -756,10 +756,10 @@ class Parser():
             return self._prefixexp_recur(
                 VarName(name, start=pos, end=self._pos))
         
-        if self._accept(lexer.TokSymbol('(')) is not None:
+        if self._accept(lexer.TokSymbol(b'(')) is not None:
             # (exp can be None.)
             exp = self._exp()
-            self._expect(lexer.TokSymbol(')'))
+            self._expect(lexer.TokSymbol(b')'))
             return self._prefixexp_recur(exp)
 
         return None
@@ -784,12 +784,12 @@ class Parser():
           prefixexp_first
         """
         pos = self._pos
-        if self._accept(lexer.TokSymbol('[')) is not None:
+        if self._accept(lexer.TokSymbol(b'[')) is not None:
             exp = self._assert(self._exp(), 'exp in prefixexp index')
-            self._expect(lexer.TokSymbol(']'))
+            self._expect(lexer.TokSymbol(b']'))
             return self._prefixexp_recur(VarIndex(prefixexp_first, exp,
                                                   start=pos, end=self._pos))
-        if self._accept(lexer.TokSymbol('.')) is not None:
+        if self._accept(lexer.TokSymbol(b'.')) is not None:
             name = self._expect(lexer.TokName)
             return self._prefixexp_recur(VarAttribute(prefixexp_first, name,
                                                       start=pos, end=self._pos))
@@ -797,7 +797,7 @@ class Parser():
         if args is not None:
             return self._prefixexp_recur(FunctionCall(prefixexp_first, args,
                                                       start=pos, end=self._pos))
-        if self._accept(lexer.TokSymbol(':')) is not None:
+        if self._accept(lexer.TokSymbol(b':')) is not None:
             name = self._expect(lexer.TokName)
             args = self._assert(self._args(), 'args for method call')
             return self._prefixexp_recur(
@@ -832,9 +832,9 @@ class Parser():
           None
         """
         pos = self._pos
-        if self._accept(lexer.TokSymbol('(')):
+        if self._accept(lexer.TokSymbol(b'(')):
             explist = self._explist()
-            self._expect(lexer.TokSymbol(')'))
+            self._expect(lexer.TokSymbol(b')'))
             return FunctionArgs(explist, start=pos, end=self._pos)
 
         tableconstructor = self._tableconstructor()
@@ -856,7 +856,7 @@ class Parser():
           Function(funcbody)
         """
         pos = self._pos
-        if self._accept(lexer.TokKeyword('function')):
+        if self._accept(lexer.TokKeyword(b'function')):
             funcbody = self._assert(self._funcbody(), 'funcbody in function')
             return Function(funcbody, start=pos, end=self._pos)
         return None
@@ -872,24 +872,24 @@ class Parser():
           FunctionBody(parlist, dots, block)
         """
         pos = self._pos
-        if self._accept(lexer.TokSymbol('(')) is None:
+        if self._accept(lexer.TokSymbol(b'(')) is None:
             return None
 
         namelist = self._namelist()
         dots = None
         if namelist is not None:
-            if self._accept(lexer.TokSymbol(',')) is not None:
+            if self._accept(lexer.TokSymbol(b',')) is not None:
                 dots_pos = self._pos
-                dots = self._expect(lexer.TokSymbol('...'))
+                dots = self._expect(lexer.TokSymbol(b'...'))
         else:
             dots_pos = self._pos
-            dots = self._accept(lexer.TokSymbol('...'))
+            dots = self._accept(lexer.TokSymbol(b'...'))
         if dots is not None:
             dots = VarargDots(start=dots_pos, end=self._pos)
 
-        self._expect(lexer.TokSymbol(')'))
+        self._expect(lexer.TokSymbol(b')'))
         block = self._assert(self._chunk(), 'block in funcbody')
-        self._expect(lexer.TokKeyword('end'))
+        self._expect(lexer.TokKeyword(b'end'))
             
         return FunctionBody(namelist, dots, block, start=pos, end=self._pos)
 
@@ -898,29 +898,29 @@ class Parser():
 
         tableconstructor ::= '{' [fieldlist] '}'
 
-	fieldlist ::= field {fieldsep field} [fieldsep]
+        fieldlist ::= field {fieldsep field} [fieldsep]
 
-	fieldsep ::= ',' | ';'
+        fieldsep ::= ',' | ';'
 
         Returns:
           TableConstructor(fields)
         """
         pos = self._pos
-        if self._accept(lexer.TokSymbol('{')) is None:
+        if self._accept(lexer.TokSymbol(b'{')) is None:
             return None
 
         fields = []
         field = self._field()
         if field is not None:
             fields.append(field)
-        while (self._accept(lexer.TokSymbol(',')) is not None or
-               self._accept(lexer.TokSymbol(';')) is not None):
+        while (self._accept(lexer.TokSymbol(b',')) is not None or
+               self._accept(lexer.TokSymbol(b';')) is not None):
             field = self._field()
             if field is None:
                 break
             fields.append(field)
 
-        self._expect(lexer.TokSymbol('}'))
+        self._expect(lexer.TokSymbol(b'}'))
         return TableConstructor(fields, start=pos, end=self._pos)
 
     def _field(self):
@@ -934,16 +934,16 @@ class Parser():
           FieldExp(exp)
         """
         pos = self._pos
-        if self._accept(lexer.TokSymbol('[')):
+        if self._accept(lexer.TokSymbol(b'[')):
             key_exp = self._assert(self._exp(), 'exp key in field')
-            self._expect(lexer.TokSymbol(']'))
-            self._expect(lexer.TokSymbol('='))
+            self._expect(lexer.TokSymbol(b']'))
+            self._expect(lexer.TokSymbol(b'='))
             exp = self._assert(self._exp(), 'exp value in field')
             return FieldExpKey(key_exp, exp, start=pos, end=self._pos)
 
         key_name = self._accept(lexer.TokName)
         if (key_name is not None and
-            self._accept(lexer.TokSymbol('=')) is not None):
+            self._accept(lexer.TokSymbol(b'=')) is not None):
             exp = self._assert(self._exp(), 'exp value in field')
             return FieldNamedKey(key_name, exp, start=pos, end=self._pos)
         self._pos = pos

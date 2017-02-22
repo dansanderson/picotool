@@ -22,18 +22,18 @@ PICO8_LUA_COMPRESSED_CHAR_LIMIT = 15360
 
 
 PICO8_BUILTINS = {
-    '_init', '_update', '_draw',
-    'load', 'save', 'folder', 'ls', 'run', 'resume', 'reboot', 'stat', 'info',
-    'flip', 'printh', 'clip', 'pget', 'pset', 'sget', 'sset', 'fget', 'fset',
-    'print', 'cursor', 'color', 'cls', 'camera', 'circ', 'circfill', 'line',
-    'rect', 'rectfill', 'pal', 'palt', 'spr', 'sspr', 'add', 'del', 'all',
-    'foreach', 'pairs', 'btn', 'btnp', 'sfx', 'music', 'mget', 'mset', 'map',
-    'peek', 'poke', 'memcpy', 'reload', 'cstore', 'memset', 'max', 'min', 'mid',
-    'flr', 'cos', 'sin', 'atan2', 'sqrt', 'abs', 'rnd', 'srand', 'band', 'bor',
-    'bxor', 'bnot', 'shl', 'shr', 'cartdata', 'dget', 'dset', 'sub', 'sgn',
-    'count',  # deprecated function
-    'mapdraw',  # deprecated function
-    'self',   # a special name in Lua OO
+    b'_init', b'_update', b'_draw',
+    b'load', b'save', b'folder', b'ls', b'run', b'resume', b'reboot', b'stat', b'info',
+    b'flip', b'printh', b'clip', b'pget', b'pset', b'sget', b'sset', b'fget', b'fset',
+    b'print', b'cursor', b'color', b'cls', b'camera', b'circ', b'circfill', b'line',
+    b'rect', b'rectfill', b'pal', b'palt', b'spr', b'sspr', b'add', b'del', b'all',
+    b'foreach', b'pairs', b'btn', b'btnp', b'sfx', b'music', b'mget', b'mset', b'map',
+    b'peek', b'poke', b'memcpy', b'reload', b'cstore', b'memset', b'max', b'min', b'mid',
+    b'flr', b'cos', b'sin', b'atan2', b'sqrt', b'abs', b'rnd', b'srand', b'band', b'bor',
+    b'bxor', b'bnot', b'shl', b'shr', b'cartdata', b'dget', b'dset', b'sub', b'sgn',
+    b'count',  # deprecated function
+    b'mapdraw',  # deprecated function
+    b'self',   # a special name in Lua OO
 }
 
 
@@ -58,16 +58,16 @@ class Lua():
         c = 0
         for t in self._lexer._tokens:
             # TODO: As of 0.1.8, "1 .. 5" is three tokens, "1..5" is one token
-            if (t.matches(lexer.TokSymbol(':')) or
-                    t.matches(lexer.TokSymbol('.')) or
-                    t.matches(lexer.TokSymbol(')')) or
-                    t.matches(lexer.TokSymbol(']')) or
-                    t.matches(lexer.TokSymbol('}')) or
-                    t.matches(lexer.TokKeyword('local')) or
-                    t.matches(lexer.TokKeyword('end'))):
+            if (t.matches(lexer.TokSymbol(b':')) or
+                    t.matches(lexer.TokSymbol(b'.')) or
+                    t.matches(lexer.TokSymbol(b')')) or
+                    t.matches(lexer.TokSymbol(b']')) or
+                    t.matches(lexer.TokSymbol(b'}')) or
+                    t.matches(lexer.TokKeyword(b'local')) or
+                    t.matches(lexer.TokKeyword(b'end'))):
                 # Pico-8 generously does not count these as tokens.
                 pass
-            elif t.matches(lexer.TokNumber) and t._data.find('e') != -1:
+            elif t.matches(lexer.TokNumber) and t._data.find(b'e') != -1:
                 # Pico-8 counts 'e' part of number as a separate token.
                 c += 2
             elif (not isinstance(t, lexer.TokSpace) and
@@ -132,8 +132,7 @@ class Lua():
         Args:
           lines: The Lua source, as an iterable of bytestrings.
         """
-        # TODO: temporarily encoding back to text string, fix this
-        self._lexer.process_lines(str(l, encoding='utf-8') for l in lines)
+        self._lexer.process_lines(lines)
         self._parser.process_tokens(self._lexer.tokens)
 
     def to_lines(self, writer_cls=None, writer_args=None):
@@ -152,8 +151,7 @@ class Lua():
         writer = writer_cls(tokens=self._lexer.tokens, root=self._parser.root,
                             args=writer_args)
         for line in writer.to_lines():
-            # TODO: temporarily encoding back to bytes, fix this
-            yield bytes(line, encoding='utf-8')
+            yield line
 
     def reparse(self, writer_cls=None, writer_args=None):
         """Run the output of a Lua writer back through the parser, then re-store the tokens and parser.
@@ -285,10 +283,10 @@ class LuaEchoWriter(BaseLuaWriter):
         for token in self._tokens:
             strs.append(token.code)
             if token.matches(lexer.TokNewline):
-                yield ''.join(strs)
+                yield b''.join(strs)
                 strs.clear()
         if strs:
-            yield ''.join(strs)
+            yield b''.join(strs)
 
 
 class LuaASTEchoWriter(BaseLuaWriter):
@@ -318,7 +316,7 @@ class LuaASTEchoWriter(BaseLuaWriter):
           A string representing the tokens.
         """
         if self._args.get('ignore_tokens'):
-            return '\n'
+            return b'\n'
 
         strs = []
         while (((node is None and self._pos < len(self._tokens)) or
@@ -328,7 +326,7 @@ class LuaASTEchoWriter(BaseLuaWriter):
                 isinstance(self._tokens[self._pos], lexer.TokComment))):
             strs.append(self._tokens[self._pos].code)
             self._pos += 1
-        return ''.join(strs)
+        return b''.join(strs)
 
     def _get_name(self, node, tok):
         """Gets the code for a TokName.
@@ -343,7 +341,7 @@ class LuaASTEchoWriter(BaseLuaWriter):
           The text for the name.
         """
         if self._args.get('ignore_tokens'):
-            return ' ' + tok.code
+            return b' ' + tok.code
 
         spaces = self._get_code_for_spaces(node)
         assert tok.matches(lexer.TokName)
@@ -361,7 +359,7 @@ class LuaASTEchoWriter(BaseLuaWriter):
           The text for the keyword or symbol.
         """
         if self._args.get('ignore_tokens'):
-            return ' ' + keyword
+            return b' ' + keyword
 
         spaces = self._get_code_for_spaces(node)
         assert (self._tokens[self._pos].matches(lexer.TokKeyword(keyword)) or
@@ -379,18 +377,18 @@ class LuaASTEchoWriter(BaseLuaWriter):
           The text for the semicolons and preceding spaces.
         """
         if self._args.get('ignore_tokens'):
-            return ' '
+            return b' '
 
         spaces_and_semis = []
         while True:
             spaces = self._get_code_for_spaces(node)
-            if self._tokens[self._pos].matches(lexer.TokSymbol(';')):
+            if self._tokens[self._pos].matches(lexer.TokSymbol(b';')):
                 self._pos += 1
-                spaces_and_semis.append(spaces + ';')
+                spaces_and_semis.append(spaces + b';')
             else:
                 spaces_and_semis.append(spaces)
                 break
-        return ''.join(spaces_and_semis)
+        return b''.join(spaces_and_semis)
 
     def _walk_Chunk(self, node):
         for stat in node.stats:
@@ -411,31 +409,31 @@ class LuaASTEchoWriter(BaseLuaWriter):
             yield t
 
     def _walk_StatDo(self, node):
-        yield self._get_text(node, 'do')
+        yield self._get_text(node, b'do')
         self._indent += 1
         for t in self._walk(node.block):
             yield t
         self._indent -= 1
-        yield self._get_text(node, 'end')
+        yield self._get_text(node, b'end')
 
     def _walk_StatWhile(self, node):
-        yield self._get_text(node, 'while')
+        yield self._get_text(node, b'while')
         for t in self._walk(node.exp):
             yield t
-        yield self._get_text(node, 'do')
+        yield self._get_text(node, b'do')
         self._indent += 1
         for t in self._walk(node.block):
             yield t
         self._indent -= 1
-        yield self._get_text(node, 'end')
+        yield self._get_text(node, b'end')
 
     def _walk_StatRepeat(self, node):
-        yield self._get_text(node, 'repeat')
+        yield self._get_text(node, b'repeat')
         self._indent += 1
         for t in self._walk(node.block):
             yield t
         self._indent -= 1
-        yield self._get_text(node, 'until')
+        yield self._get_text(node, b'until')
         for t in self._walk(node.exp):
             yield t
 
@@ -449,107 +447,107 @@ class LuaASTEchoWriter(BaseLuaWriter):
         for (exp, block) in node.exp_block_pairs:
             if exp is not None:
                 if first:
-                    yield self._get_text(node, 'if')
+                    yield self._get_text(node, b'if')
                     first = False
                 else:
-                    yield self._get_text(node, 'elseif')
+                    yield self._get_text(node, b'elseif')
                 if short_if:
-                    yield self._get_text(node, '(')
+                    yield self._get_text(node, b'(')
                     self._indent += 1
                     for t in self._walk(exp):
                         yield t
                     self._indent -= 1
-                    yield self._get_text(node, ')')
+                    yield self._get_text(node, b')')
                 else:
                     for t in self._walk(exp):
                         yield t
-                    yield self._get_text(node, 'then')
+                    yield self._get_text(node, b'then')
                     self._indent += 1
                 for t in self._walk(block):
                     yield t
                 if not short_if:
                     self._indent -= 1
             else:
-                yield self._get_text(node, 'else')
+                yield self._get_text(node, b'else')
                 self._indent += 1
                 for t in self._walk(block):
                     yield t
                 self._indent -= 1
         if not short_if:
-            yield self._get_text(node, 'end')
+            yield self._get_text(node, b'end')
 
     def _walk_StatForStep(self, node):
-        yield self._get_text(node, 'for')
+        yield self._get_text(node, b'for')
         yield self._get_name(node, node.name)
-        yield self._get_text(node, '=')
+        yield self._get_text(node, b'=')
         for t in self._walk(node.exp_init):
             yield t
-        yield self._get_text(node, ',')
+        yield self._get_text(node, b',')
         for t in self._walk(node.exp_end):
             yield t
         if node.exp_step is not None:
-            yield self._get_text(node, ',')
+            yield self._get_text(node, b',')
             for t in self._walk(node.exp_step):
                 yield t
-        yield self._get_text(node, 'do')
+        yield self._get_text(node, b'do')
         self._indent += 1
         for t in self._walk(node.block):
             yield t
         self._indent -= 1
-        yield self._get_text(node, 'end')
+        yield self._get_text(node, b'end')
 
     def _walk_StatForIn(self, node):
-        yield self._get_text(node, 'for')
+        yield self._get_text(node, b'for')
         for t in self._walk(node.namelist):
             yield t
-        yield self._get_text(node, 'in')
+        yield self._get_text(node, b'in')
         for t in self._walk(node.explist):
             yield t
-        yield self._get_text(node, 'do')
+        yield self._get_text(node, b'do')
         self._indent += 1
         for t in self._walk(node.block):
             yield t
         self._indent -= 1
-        yield self._get_text(node, 'end')
+        yield self._get_text(node, b'end')
 
     def _walk_StatFunction(self, node):
-        yield self._get_text(node, 'function')
+        yield self._get_text(node, b'function')
         for t in self._walk(node.funcname):
             yield t
         for t in self._walk(node.funcbody):
             yield t
 
     def _walk_StatLocalFunction(self, node):
-        yield self._get_text(node, 'local')
-        yield self._get_text(node, 'function')
+        yield self._get_text(node, b'local')
+        yield self._get_text(node, b'function')
         yield self._get_name(node, node.funcname)
         for t in self._walk(node.funcbody):
             yield t
 
     def _walk_StatLocalAssignment(self, node):
-        yield self._get_text(node, 'local')
+        yield self._get_text(node, b'local')
         for t in self._walk(node.namelist):
             yield t
         if node.explist is not None:
-            yield self._get_text(node, '=')
+            yield self._get_text(node, b'=')
             for t in self._walk(node.explist):
                 yield t
 
     def _walk_StatGoto(self, node):
-        yield self._get_text(node, 'goto')
+        yield self._get_text(node, b'goto')
         yield self._get_name(node, lexer.TokName(node.label))
 
     def _walk_StatLabel(self, node):
         yield self._get_code_for_spaces(node)
-        yield '::'
+        yield b'::'
         yield self._get_name(node, lexer.TokName(node.label))
-        yield '::'
+        yield b'::'
 
     def _walk_StatBreak(self, node):
-        yield self._get_text(node, 'break')
+        yield self._get_text(node, b'break')
 
     def _walk_StatReturn(self, node):
-        yield self._get_text(node, 'return')
+        yield self._get_text(node, b'return')
         if node.explist is not None:
             for t in self._walk(node.explist):
                 yield t
@@ -558,27 +556,27 @@ class LuaASTEchoWriter(BaseLuaWriter):
         yield self._get_name(node, node.namepath[0])
         if len(node.namepath) > 1:
             for i in range(1, len(node.namepath)):
-                yield self._get_text(node, '.')
+                yield self._get_text(node, b'.')
                 yield self._get_name(node, node.namepath[i])
         if node.methodname is not None:
-            yield self._get_text(node, ':')
+            yield self._get_text(node, b':')
             yield self._get_name(node, node.methodname)
 
     def _walk_FunctionArgs(self, node):
-        yield self._get_text(node, '(')
+        yield self._get_text(node, b'(')
         self._indent += 1
         if node.explist is not None:
             for t in self._walk(node.explist):
                 yield t
         self._indent -= 1
-        yield self._get_text(node, ')')
+        yield self._get_text(node, b')')
 
     def _walk_VarList(self, node):
         for t in self._walk(node.vars[0]):
             yield t
         if len(node.vars) > 1:
             for i in range(1, len(node.vars)):
-                yield self._get_text(node, ',')
+                yield self._get_text(node, b',')
                 for t in self._walk(node.vars[i]):
                     yield t
 
@@ -588,17 +586,17 @@ class LuaASTEchoWriter(BaseLuaWriter):
     def _walk_VarIndex(self, node):
         for t in self._walk(node.exp_prefix):
             yield t
-        yield self._get_text(node, '[')
+        yield self._get_text(node, b'[')
         self._indent += 1
         for t in self._walk(node.exp_index):
             yield t
         self._indent -= 1
-        yield self._get_text(node, ']')
+        yield self._get_text(node, b']')
 
     def _walk_VarAttribute(self, node):
         for t in self._walk(node.exp_prefix):
             yield t
-        yield self._get_text(node, '.')
+        yield self._get_text(node, b'.')
         yield self._get_name(node, node.attr_name)
 
     def _walk_NameList(self, node):
@@ -606,7 +604,7 @@ class LuaASTEchoWriter(BaseLuaWriter):
             yield self._get_name(node, node.names[0])
             if len(node.names) > 1:
                 for i in range(1, len(node.names)):
-                    yield self._get_text(node, ',')
+                    yield self._get_text(node, b',')
                     yield self._get_name(node, node.names[i])
 
     def _walk_ExpList(self, node):
@@ -615,7 +613,7 @@ class LuaASTEchoWriter(BaseLuaWriter):
                 yield t
             if len(node.exps) > 1:
                 for i in range(1, len(node.exps)):
-                    yield self._get_text(node, ',')
+                    yield self._get_text(node, b',')
                     for t in self._walk(node.exps[i]):
                         yield t
 
@@ -626,22 +624,22 @@ class LuaASTEchoWriter(BaseLuaWriter):
         if self._args.get('ignore_tokens'):
             # Use node.value type to determine whether exp needs parens.
             if isinstance(node.value, parser.Node):
-                yield '('
+                yield b'('
                 in_parens = True
                 self._indent += 1
         else:
-            if self._tokens[self._pos].matches(lexer.TokSymbol('(')):
-                yield '('
+            if self._tokens[self._pos].matches(lexer.TokSymbol(b'(')):
+                yield b'('
                 in_parens = True
                 self._pos += 1
                 self._indent += 1
 
         if node.value == None:
-            yield self._get_text(node, 'nil')
+            yield self._get_text(node, b'nil')
         elif node.value == False:
-            yield self._get_text(node, 'false')
+            yield self._get_text(node, b'false')
         elif node.value == True:
-            yield self._get_text(node, 'true')
+            yield self._get_text(node, b'true')
         elif isinstance(node.value, lexer.TokName):
             yield self._get_name(node, node.value)
         elif (isinstance(node.value, lexer.TokNumber) or
@@ -656,10 +654,10 @@ class LuaASTEchoWriter(BaseLuaWriter):
 
         if in_parens:
             self._indent -= 1
-            yield self._get_text(node, ')')
+            yield self._get_text(node, b')')
 
     def _walk_VarargDots(self, node):
-        yield self._get_text(node, '...')
+        yield self._get_text(node, b'...')
 
     def _walk_ExpBinOp(self, node):
         for t in self._walk(node.exp1):
@@ -677,8 +675,8 @@ class LuaASTEchoWriter(BaseLuaWriter):
         for t in self._walk(node.exp_prefix):
             yield t
         if node.args is None:
-            yield self._get_text(node, '(')
-            yield self._get_text(node, ')')
+            yield self._get_text(node, b'(')
+            yield self._get_text(node, b')')
         elif isinstance(node.args, lexer.TokString):
             yield self._get_code_for_spaces(node)
             if not self._args.get('ignore_tokens'):
@@ -691,11 +689,11 @@ class LuaASTEchoWriter(BaseLuaWriter):
     def _walk_FunctionCallMethod(self, node):
         for t in self._walk(node.exp_prefix):
             yield t
-        yield self._get_text(node, ':')
+        yield self._get_text(node, b':')
         yield self._get_name(node, node.methodname)
         if node.args is None:
-            yield self._get_text(node, '(')
-            yield self._get_text(node, ')')
+            yield self._get_text(node, b'(')
+            yield self._get_text(node, b')')
         elif isinstance(node.args, lexer.TokString):
             yield self._get_code_for_spaces(node)
             if not self._args.get('ignore_tokens'):
@@ -708,18 +706,18 @@ class LuaASTEchoWriter(BaseLuaWriter):
                 yield t
 
     def _walk_Function(self, node):
-        yield self._get_text(node, 'function')
+        yield self._get_text(node, b'function')
         for t in self._walk(node.funcbody):
             yield t
 
     def _walk_FunctionBody(self, node):
-        yield self._get_text(node, '(')
+        yield self._get_text(node, b'(')
         self._indent += 1
         if node.parlist is not None:
             for t in self._walk(node.parlist):
                 yield t
             if node.dots is not None:
-                yield self._get_text(node, ',')
+                yield self._get_text(node, b',')
                 for t in self._walk(node.dots):
                     yield t
         else:
@@ -727,15 +725,15 @@ class LuaASTEchoWriter(BaseLuaWriter):
                 for t in self._walk(node.dots):
                     yield t
         self._indent -= 1
-        yield self._get_text(node, ')')
+        yield self._get_text(node, b')')
         self._indent += 1
         for t in self._walk(node.block):
             yield t
         self._indent -= 1
-        yield self._get_text(node, 'end')
+        yield self._get_text(node, b'end')
 
     def _walk_TableConstructor(self, node):
-        yield self._get_text(node, '{')
+        yield self._get_text(node, b'{')
         self._indent += 1
         if node.fields:
             for t in self._walk(node.fields[0]):
@@ -746,7 +744,7 @@ class LuaASTEchoWriter(BaseLuaWriter):
                     # used, so we have to find it in the token stream.
                     yield self._get_code_for_spaces(node)
                     if self._args.get('ignore_tokens'):
-                        yield ', '
+                        yield b', '
                     else:
                         yield self._get_text(node, self._tokens[self._pos].code)
                     for t in self._walk(node.fields[i]):
@@ -755,25 +753,25 @@ class LuaASTEchoWriter(BaseLuaWriter):
         self._indent -= 1
         yield self._get_code_for_spaces(node)
         if not self._args.get('ignore_tokens'):
-            if (self._tokens[self._pos].matches(lexer.TokSymbol(',')) or
-                self._tokens[self._pos].matches(lexer.TokSymbol(';'))):
+            if (self._tokens[self._pos].matches(lexer.TokSymbol(b',')) or
+                self._tokens[self._pos].matches(lexer.TokSymbol(b';'))):
                 yield self._get_text(node, self._tokens[self._pos].code)
-        yield self._get_text(node, '}')
+        yield self._get_text(node, b'}')
 
     def _walk_FieldExpKey(self, node):
-        yield self._get_text(node, '[')
+        yield self._get_text(node, b'[')
         self._indent += 1
         for t in self._walk(node.key_exp):
             yield t
         self._indent -= 1
-        yield self._get_text(node, ']')
-        yield self._get_text(node, '=')
+        yield self._get_text(node, b']')
+        yield self._get_text(node, b'=')
         for t in self._walk(node.exp):
             yield t
 
     def _walk_FieldNamedKey(self, node):
         yield self._get_name(node, node.key_name)
-        yield self._get_text(node, '=')
+        yield self._get_text(node, b'=')
         for t in self._walk(node.exp):
             yield t
 
@@ -808,31 +806,31 @@ class LuaASTEchoWriter(BaseLuaWriter):
         for chunk in self.walk():
             if self._args.get('ignore_tokens'):
                 # Clean up extraneous spacing.
-                if chunk == '\n':
+                if chunk == b'\n':
                     if last_was_newline:
-                        chunk = ''
+                        chunk = b''
                     last_was_newline = True
                 else:
                     last_was_newline = False
-            parts = chunk.split('\n')
+            parts = chunk.split(b'\n')
             while len(parts) > 1:
                 linebuf.append(parts.pop(0))
-                yield ''.join(linebuf) + '\n'
+                yield b''.join(linebuf) + b'\n'
                 linebuf.clear()
             linebuf.append(parts.pop(0))
 
         # Write the last line and any trailing spaces, as lines.
-        last = ''.join(linebuf) + self._get_code_for_spaces(None)
-        parts = last.split('\n')
+        last = b''.join(linebuf) + self._get_code_for_spaces(None)
+        parts = last.split(b'\n')
         for i in range(len(parts)-1):
-            yield parts[i] + '\n'
+            yield parts[i] + b'\n'
         if parts[-1]:
             yield parts[-1]
 
 
 class MinifyNameFactory():
     """Maps code names to generated short names."""
-    NAME_CHARS = 'abcdefghijklmnopqrstuvwxyz'
+    NAME_CHARS = b'abcdefghijklmnopqrstuvwxyz'
     PRESERVED_NAMES = lexer.LUA_KEYWORDS | PICO8_BUILTINS
 
     def __init__(self):
@@ -841,10 +839,10 @@ class MinifyNameFactory():
 
     @classmethod
     def _name_for_id(cls, id):
-        first = ''
+        first = b''
         if id >= len(MinifyNameFactory.NAME_CHARS):
             first = cls._name_for_id(int(id / len(MinifyNameFactory.NAME_CHARS)))
-        return first + (MinifyNameFactory.NAME_CHARS[id % len(MinifyNameFactory.NAME_CHARS)])
+        return first + bytes([MinifyNameFactory.NAME_CHARS[id % len(MinifyNameFactory.NAME_CHARS)]])
 
     def get_short_name(self, name):
         if name in MinifyNameFactory.PRESERVED_NAMES:
@@ -906,16 +904,16 @@ class LuaMinifyWriter(LuaASTEchoWriter):
                 strs.append(self._tokens[self._pos].code)
             self._pos += 1
 
-        if ((start_pos == 0) or (self._pos == len(self._tokens))):
+        if (start_pos == 0) or (self._pos == len(self._tokens)):
             # Eliminate all spaces at beginning and end of code.
-            return ''
+            return b''
 
-        spaces = ''.join(strs)
-        spaces = re.sub(r'\t', ' ', spaces)      # one tab -> one space
-        spaces = re.sub(r'\n +', '\n', spaces)   # leading spaces -> none
-        spaces = re.sub(r' +\n', '\n', spaces)   # trailing spaces -> none
-        spaces = re.sub(r'  +', ' ', spaces)     # multiple spaces -> one space
-        spaces = re.sub(r'\n\n+', '\n', spaces)  # multiple newlines -> one newline
+        spaces = b''.join(strs)
+        spaces = re.sub(br'\t', b' ', spaces)      # one tab -> one space
+        spaces = re.sub(br'\n +', b'\n', spaces)   # leading spaces -> none
+        spaces = re.sub(br' +\n', b'\n', spaces)   # trailing spaces -> none
+        spaces = re.sub(br'  +', b' ', spaces)     # multiple spaces -> one space
+        spaces = re.sub(br'\n\n+', b'\n', spaces)  # multiple newlines -> one newline
 
         # TODO: Eliminate space between symbols and names/keywords on the same
         # line. (Use self._tokens[start_pos-1] and self._tokens[self._pos].)
@@ -934,17 +932,17 @@ class LuaMinifyWriter(LuaASTEchoWriter):
         spaces_without_semis = []
         while True:
             spaces = self._get_code_for_spaces(node)
-            if self._tokens[self._pos].matches(lexer.TokSymbol(';')):
+            if self._tokens[self._pos].matches(lexer.TokSymbol(b';')):
                 self._pos += 1
                 # Insert a space where the semi was to prevent 'a;b' from
                 # becoming 'ab'.
                 # TODO: This is an extraneous space in cases where the
                 # semicolon had a space before or after it.
-                spaces_without_semis.append(spaces + ' ')
+                spaces_without_semis.append(spaces + b' ')
             else:
                 spaces_without_semis.append(spaces)
                 break
-        return ''.join(spaces_without_semis)
+        return b''.join(spaces_without_semis)
 
 
 class LuaFormatterWriter(LuaASTEchoWriter):
@@ -978,42 +976,42 @@ class LuaFormatterWriter(LuaASTEchoWriter):
                 isinstance(self._tokens[self._pos], lexer.TokComment))):
             strs.append(self._tokens[self._pos].code)
             self._pos += 1
-        spaces = ''.join(strs)
+        spaces = b''.join(strs)
 
         # Normalize space characters.
-        spaces = re.sub(r'\t', ' ', spaces)
-        spaces = re.sub(r'\r\n', '\n', spaces)
-        spaces = re.sub(r'\n\r', '\n', spaces)
-        spaces = re.sub(r'\r', '\n', spaces)
+        spaces = re.sub(br'\t', b' ', spaces)
+        spaces = re.sub(br'\r\n', b'\n', spaces)
+        spaces = re.sub(br'\n\r', b'\n', spaces)
+        spaces = re.sub(br'\r', b'\n', spaces)
 
         # Delete trailing whitespace.
-        spaces = re.sub(r' +\n', '\n', spaces)
+        spaces = re.sub(br' +\n', b'\n', spaces)
 
         # If a comment is on the same line as previous, separate it by two
         # spaces.
         if start_pos != 0:
-            spaces = re.sub(r'^ *--', '  --', spaces)
+            spaces = re.sub(br'^ *--', b'  --', spaces)
 
         # If a comment is on its own line, indent it at the indent level.
-        spaces = re.sub(r'\n *--',
-                        '\n' + ' ' * self._indent_mult * self._indent + '--',
+        spaces = re.sub(br'\n *--',
+                        b'\n' + b' ' * self._indent_mult * self._indent + b'--',
                         spaces)
         if start_pos == 0:
-            spaces = re.sub(r'^ *--', '--', spaces)
+            spaces = re.sub(br'^ *--', b'--', spaces)
 
         # If next non-space is on its own line, indent it at the indent level.
-        spaces = re.sub(r'\n *$', '\n' + ' ' * self._indent_mult * self._indent,
+        spaces = re.sub(br'\n *$', b'\n' + b' ' * self._indent_mult * self._indent,
                         spaces)
         if start_pos == 0:
-            spaces = re.sub(r'^ *$', '', spaces)
+            spaces = re.sub(br'^ *$', b'', spaces)
 
         # Collapse regions of 2+ consecutive newlines to 2 newlines.
         # TODO: two blank lines before function defs? classes?
-        spaces = re.sub(r'\n\n+', '\n\n', spaces)
+        spaces = re.sub(br'\n\n+', b'\n\n', spaces)
 
         # Remove excess trailing whitespace at end of file.
         if self._pos == len(self._tokens):
-            spaces = re.sub(r'[ \n]+$', '\n', spaces)
+            spaces = re.sub(br'[ \n]+$', b'\n', spaces)
 
         # TODO: same-line spacing patterns:
         # - one space before and after binop
@@ -1053,23 +1051,23 @@ class LuaMinifyTokenWriter(BaseLuaWriter):
                 if self._saw_if:
                     self._saw_if = False
                     self._last_was_name_keyword_number = False
-                    yield '\n'
+                    yield b'\n'
                 continue
             elif token.matches(lexer.TokName):
                 if self._last_was_name_keyword_number:
-                    yield ' '
+                    yield b' '
                 self._last_was_name_keyword_number = True
                 yield self._name_factory.get_short_name(token.code)
             elif token.matches(lexer.TokKeyword):
-                if token.code == 'if':
+                if token.code == b'if':
                     self._saw_if = True
                 if self._last_was_name_keyword_number:
-                    yield ' '
+                    yield b' '
                 self._last_was_name_keyword_number = True
                 yield token.code
             elif token.matches(lexer.TokNumber):
                 if self._last_was_name_keyword_number:
-                    yield ' '
+                    yield b' '
                 self._last_was_name_keyword_number = True
                 yield token.code
             else:
@@ -1114,9 +1112,9 @@ class LuaFormatterTokenWriter(LuaASTEchoWriter):
 
             # Decrease the indentation level.
             if (any(token.matches(lexer.TokSymbol(s))
-                    for s in (')', '}', ']')) or
+                    for s in (b')', b'}', b']')) or
                 any(token.matches(lexer.TokKeyword(k))
-                    for k in ('end', 'until', 'elseif', 'else'))):
+                    for k in (b'end', b'until', b'elseif', b'else'))):
                 indent_level -= 1
 
             # Rules for spaces and newlines:
@@ -1135,44 +1133,44 @@ class LuaFormatterTokenWriter(LuaASTEchoWriter):
             # Known issues:
             # * unary minus gets a space, shouldn't
             # * no short-if support!
-            space_str = ''.join(t.code for t in space_buffer)
+            space_str = b''.join(t.code for t in space_buffer)
             space_buffer.clear()
-            newline_count = space_str.count('\n')
+            newline_count = space_str.count(b'\n')
             if newline_count:
                 if newline_count > 1:
-                    yield '\n'
-                yield '\n' + ' ' * indent_level * self._indent_mult
+                    yield b'\n'
+                yield b'\n' + b' ' * indent_level * self._indent_mult
             elif token.matches(lexer.TokComment):
-                yield '  '
+                yield b'  '
             elif (any(token.matches(lexer.TokSymbol(s))
-                      for s in (',', ';', ')', ']', '}', '..')) or
+                      for s in (b',', b';', b')', b']', b'}', b'..')) or
                   (previous_nonspace is not None and
                    any(previous_nonspace.matches(lexer.TokSymbol(s))
-                       for s in ('(', '[', '{', '..'))) or
+                       for s in (b'(', b'[', b'{', b'..'))) or
                   (previous_nonspace is not None and
-                   previous_nonspace.matches(lexer.TokKeyword('function')) and
-                   token.matches(lexer.TokSymbol('('))) or
+                   previous_nonspace.matches(lexer.TokKeyword(b'function')) and
+                   token.matches(lexer.TokSymbol(b'('))) or
                   previous_nonspace is None):
                 # No space before or after certain symbols.
                 pass
             else:
-                yield ' '
+                yield b' '
 
             # Write the nonspace token.
             previous_nonspace = token
             yield token.code
 
             # Increase the indentation level.
-            if in_function and token.matches(lexer.TokSymbol(')')):
+            if in_function and token.matches(lexer.TokSymbol(b')')):
                 in_function = False
                 indent_level += 1  # matched by "end"
-            if token.matches(lexer.TokKeyword('function')):
+            if token.matches(lexer.TokKeyword(b'function')):
                 in_function = True
 
             if (any(token.matches(lexer.TokSymbol(s))
-                    for s in ('(', '{', '[')) or
+                    for s in (b'(', b'{', b'[')) or
                 any(token.matches(lexer.TokKeyword(k))
-                    for k in ('do', 'repeat', 'then', 'else'))):
+                    for k in (b'do', b'repeat', b'then', b'else'))):
                 indent_level += 1
 
-        yield '\n'
+        yield b'\n'

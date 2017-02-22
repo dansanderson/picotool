@@ -168,10 +168,10 @@ class TestP8PNGGame(unittest.TestCase):
         first_stat = pnggame.lua.root.stats[0]
         self.assertTrue(isinstance(first_stat, parser.StatFunctionCall))
         tokens = pnggame.lua.tokens
-        self.assertEqual(lexer.TokComment('-- memory dump'), tokens[0])
-        self.assertEqual(lexer.TokNewline('\n'), tokens[1])
-        self.assertEqual(lexer.TokComment('-- by dddaaannn'), tokens[2])
-        self.assertEqual(lexer.TokNewline('\n'), tokens[3])
+        self.assertEqual(lexer.TokComment(b'-- memory dump'), tokens[0])
+        self.assertEqual(lexer.TokNewline(b'\n'), tokens[1])
+        self.assertEqual(lexer.TokComment(b'-- by dddaaannn'), tokens[2])
+        self.assertEqual(lexer.TokNewline(b'\n'), tokens[3])
 
     def testFromP8PNGFile(self):
         pngpath = os.path.join(self.testdata_path, 'test_gol.p8.png')
