@@ -365,12 +365,12 @@ Aspects of the game are accessible as attributes of the `Game` object:
 * `sfx`
 * `music`
 
+Lua code is treated as bytestrings throughout the API. This is because Pico-8 uses a custom text encoding equivalent to lower ASCII plus arbitrary high characters for the glyph set. Take care to use b'bytestring literals' when creating or comparing values.
+
 
 ### API under construction!
 
 While the library in its current state is featureful enough for building simple tools, it is not yet ready to promise backwards compatibility in future releases. Feel free to mess with it, but please be patient if I change things.
-
-See "Known issues" and "Future plans."
 
 
 ## Developing picotool
@@ -398,24 +398,6 @@ By default, this produces an HTML coverage report in the `cover` subdirectory. O
   * helloworld.p8.png: The 2nd sfx pattern is has four note volumes in the PNG data that do not match Pico-8's RAM data when the cart is loaded.
   * Tower of Archeos: An old short-if syntax bug allowed this cart at .p8 version 0, but is a syntax error at .p8 version 5.
 
-* Pico-8 has implicit support for a non-ASCII character encoding, but it isn't UTF-8, and I'm not sure what it is. This is almost never an issue because you can't enter high chars in the editor nor print them with the Pico-8 font. I found one case (cart 11968) where there's a high char in a string, and Pico-8 treats it as a similar low char. For now, picotool replaces non-ASCII chars in Lua code with underscores.
-
 * A few old carts use an invalid form of the `if` statement that looks like this: `if (cond) do \n ... end`. This should be `if (cond) then \n ... end`. picotool rejects the invalid form, but Pico-8 allows it accidentally due to a bug in how the short-form `if` is implemented. Pico-8 implements this as a preprocessor pass, converting it to `if (cond) then do end \n ... end`. picotool implements short-if as an extension of the language grammar. Because very few carts are affected, I'm disinclined to fix this, but for undiscovered reasons it may be necessary in the future for picotool to use a preprocessor approach for this feature.
 
-
-## Future plans
-
-picotool began as a simple project to build a code formatter for Pico-8, and eventually became a general purpose library for manipulating Pico-8 cart data. The goal is to make it easy to build new tools and experiments for analyzing and transforming carts, as well as to make new and interesting tools for Pico-8 developers.
-
-TODO:
-
-* Semantic APIs for the non-Lua sections
-* Find and fix token counting discrepancies
-* luamin: eliminate space between symbols and words
-* luamin: eliminate space left behind by removing semicolons
-* luafmt: adjust spacing between things
-* stats: report info about other regions, e.g. color histograms
-* stats: report on compressed code size for .p8 carts
-* Rewrite expression AST to represent operator precedence
-* Improved API docs, especially the AST API
-* Improved reporting of parser errors
+For more known issues, see the issues list in the Github project: https://github.com/dansanderson/picotool/issues
