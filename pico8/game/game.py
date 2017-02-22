@@ -410,7 +410,7 @@ class Game():
                 out_i += length
             in_i += 1
 
-        code = bytes(out)
+        code = bytes(out).strip(b'\x00')
         if code.endswith(PICO8_FUTURE_CODE2):
             code = code[:-len(PICO8_FUTURE_CODE2)]
             if code[-1] == b'\n':
@@ -471,7 +471,7 @@ class Game():
                                    compressed_bytes])
         else:
             # Use uncompressed.
-            code_bytes = bytes(code, 'utf-8')
+            code_bytes = bytes(code, 'ascii')
 
         byte_array = bytearray(0x8000-0x4300)
         byte_array[:len(code_bytes)] = code_bytes
@@ -647,7 +647,7 @@ class Game():
 
         cart_lua = self.lua.to_lines(writer_cls=lua_writer_cls,
                                      writer_args=lua_writer_args)
-        code_bytes = self.get_bytes_from_code(''.join(cart_lua))
+        code_bytes = self.get_bytes_from_code(b''.join(cart_lua))
 
         picodata = b''.join((self.gfx.to_bytes(),
                          self.map.to_bytes(),

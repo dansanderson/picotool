@@ -158,7 +158,7 @@ def listlua(args):
             util.write('=== {} ===\n'.format(g.filename))
         for l in g.lua.to_lines():
             try:
-                util.write(l)
+                util.write(_as_friendly_string(l))
             except UnicodeEncodeError as e:
                 new_l = ''.join(c if ord(c) < 128 else '_' for c in l)
                 util.write(new_l)
@@ -351,11 +351,7 @@ def luafind(args):
             if args.listfiles:
                 util.write(fname + '\n')
                 break
-            try:
-                util.write('{}:{}:{}'.format(fname, line_count, l))
-            except UnicodeEncodeError as e:
-                new_l = ''.join(c if ord(c) < 128 else '_' for c in l)
-                util.write('{}:{}:{}'.format(fname, line_count, new_l))
+            util.write('{}:{}:{}'.format(fname, line_count, _as_friendly_string(l)))
 
     return 0
 

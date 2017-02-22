@@ -32,6 +32,7 @@ PICO8_BUILTINS = {
     b'peek', b'poke', b'memcpy', b'reload', b'cstore', b'memset', b'max', b'min', b'mid',
     b'flr', b'cos', b'sin', b'atan2', b'sqrt', b'abs', b'rnd', b'srand', b'band', b'bor',
     b'bxor', b'bnot', b'shl', b'shr', b'cartdata', b'dget', b'dset', b'sub', b'sgn',
+    b'stop',
     b'_update_buttons',  # announced for 30/60 fps compatibility but not yet used?
     b'count',  # deprecated function
     b'mapdraw',  # deprecated function
