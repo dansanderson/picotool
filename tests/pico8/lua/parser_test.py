@@ -256,7 +256,7 @@ class TestParser(unittest.TestCase):
         self.assertEqual(5, p._pos)
         
     def testExpBinOpChain(self):
-        p = get_parser(b'1 + 2 * 3 - 4 / 5..6^7 > 8 != foo')
+        p = get_parser(b'1 + 2 * 3 - 4 / a..b^7 > 8 != foo')
         node = p._exp()
         self.assertIsNotNone(node)
         self.assertEqual(29, p._pos)
@@ -266,9 +266,9 @@ class TestParser(unittest.TestCase):
         self.assertEqual(b'>', node.exp1.binop.value)
         self.assertTrue(node.exp1.exp1.exp2.value.matches(lexer.TokNumber(b'7')))
         self.assertEqual(b'^', node.exp1.exp1.binop.value)
-        self.assertTrue(node.exp1.exp1.exp1.exp2.value.matches(lexer.TokNumber(b'6')))
+        self.assertEqual(b'b', node.exp1.exp1.exp1.exp2.value.name.value)
         self.assertEqual(b'..', node.exp1.exp1.exp1.binop.value)
-        self.assertTrue(node.exp1.exp1.exp1.exp1.exp2.value.matches(lexer.TokNumber(b'5')))
+        self.assertEqual(b'a', node.exp1.exp1.exp1.exp1.exp2.value.name.value)
         self.assertEqual(b'/', node.exp1.exp1.exp1.exp1.binop.value)
         self.assertTrue(node.exp1.exp1.exp1.exp1.exp1.exp2.value.matches(lexer.TokNumber(b'4')))
         self.assertEqual(b'-', node.exp1.exp1.exp1.exp1.exp1.binop.value)
@@ -279,7 +279,7 @@ class TestParser(unittest.TestCase):
         self.assertTrue(node.exp1.exp1.exp1.exp1.exp1.exp1.exp1.exp1.value.matches(lexer.TokNumber(b'1')))
 
     def testExpList(self):
-        p = get_parser(b'1, 2, 3 - 4, 5..6^7, foo')
+        p = get_parser(b'1, 2, 3 - 4, a..b^7, foo')
         node = p._explist()
         self.assertIsNotNone(node)
         self.assertEqual(21, p._pos)
@@ -289,9 +289,9 @@ class TestParser(unittest.TestCase):
         self.assertTrue(node.exps[2].exp1.value.matches(lexer.TokNumber(b'3')))
         self.assertEqual(b'-', node.exps[2].binop.value)
         self.assertTrue(node.exps[2].exp2.value.matches(lexer.TokNumber(b'4')))
-        self.assertTrue(node.exps[3].exp1.exp1.value.matches(lexer.TokNumber(b'5')))
+        self.assertEqual(b'a', node.exps[3].exp1.exp1.value.name.value)
         self.assertEqual(b'..', node.exps[3].exp1.binop.value)
-        self.assertTrue(node.exps[3].exp1.exp2.value.matches(lexer.TokNumber(b'6')))
+        self.assertEqual(b'b', node.exps[3].exp1.exp2.value.name.value)
         self.assertEqual(b'^', node.exps[3].binop.value)
         self.assertTrue(node.exps[3].exp2.value.matches(lexer.TokNumber(b'7')))
         self.assertEqual(b'foo', node.exps[4].value.name.value)

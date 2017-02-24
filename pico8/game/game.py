@@ -31,6 +31,8 @@ COMPRESSED_LUA_CHAR_TABLE = list(b'#\n 0123456789abcdefghijklmnopqrstuvwxyz!#%()
 # Pico-8 adds this automatically to compressed code and removes it
 # automatically from decompressed code to maintain compatibility with Pico-8
 # 0.1.7.
+PICO8_FUTURE_CODE1 = (b'if(_update60)_update=function()'
+                      b'_update60()_update60()end')
 PICO8_FUTURE_CODE2 = (b'if(_update60)_update=function()'
                       b'_update60()_update_buttons()_update60()end')
 
@@ -134,19 +136,7 @@ class Game():
         return g
 
     @classmethod
-    def from_p8_file(cls, instr, filename=None):
-        """Loads a game from a .p8 file.
-    
-        Args:
-          instr: The binary input stream.
-          filename: The filename, if any, for tool messages.
-    
-        Returns:
-          A Game containing the game data.
-    
-        Raises:
-          InvalidP8HeaderError
-        """
+    def get_raw_data_from_p8_file(cls, instr, filename=None):
         header_title_str = instr.readline()
         if header_title_str != HEADER_TITLE_STR:
             raise InvalidP8HeaderError()
@@ -170,36 +160,60 @@ class Game():
             elif section:
                 section_lines[section].append(line)
 
+        class P8Data(object):
+            pass
+        data = P8Data()
+        data.version = version
+        data.section_lines = section_lines
+
+        return data
+
+    @classmethod
+    def from_p8_file(cls, instr, filename=None):
+        """Loads a game from a .p8 file.
+    
+        Args:
+          instr: The binary input stream.
+          filename: The filename, if any, for tool messages.
+    
+        Returns:
+          A Game containing the game data.
+    
+        Raises:
+          InvalidP8HeaderError
+        """
+        data = cls.get_raw_data_from_p8_file(instr, filename=filename)
+
         new_game = cls.make_empty_game(filename=filename)
         # Discard empty label until one is found in the file.
         new_game.label = None
-        new_game.version = version
-        for section in section_lines:
+        new_game.version = data.version
+        for section in data.section_lines:
             if section == 'lua':
                 new_game.lua = Lua.from_lines(
-                    section_lines[section], version=version)
+                    data.section_lines[section], version=data.version)
             elif section == 'gfx':
                 new_game.gfx = Gfx.from_lines(
-                    section_lines[section], version=version)
+                    data.section_lines[section], version=data.version)
                 my_map = getattr(new_game, 'map')
                 if my_map is not None:
                     my_map._gfx = new_game.gfx
             elif section == 'gff':
                 new_game.gff = Gff.from_lines(
-                    section_lines[section], version=version)
+                    data.section_lines[section], version=data.version)
             elif section == 'map':
                 my_gfx = getattr(new_game, 'gfx')
                 new_game.map = Map.from_lines(
-                    section_lines[section], version=version, gfx=my_gfx)
+                    data.section_lines[section], version=data.version, gfx=my_gfx)
             elif section == 'sfx':
                 new_game.sfx = Sfx.from_lines(
-                    section_lines[section], version=version)
+                    data.section_lines[section], version=data.version)
             elif section == 'music':
                 new_game.music = Music.from_lines(
-                    section_lines[section], version=version)
+                    data.section_lines[section], version=data.version)
             elif section == 'label':
                 new_game.label = Gfx.from_lines(
-                    section_lines[section], version=version)
+                    data.section_lines[section], version=data.version)
             else:
                 raise InvalidP8SectionError(section)
 
@@ -347,7 +361,7 @@ class Game():
 
         if b'_update60' in in_p and len(in_p) < PICO8_CODE_ALLOC_SIZE - (
             len(PICO8_FUTURE_CODE2) + 1):
-            if in_p[-1] != b' ' and in_p[-1] != b'\n':
+            if in_p[-1] != b' '[0] and in_p[-1] != b'\n'[0]:
                 in_p += b'\n'
             in_p += PICO8_FUTURE_CODE2
 
@@ -411,9 +425,13 @@ class Game():
             in_i += 1
 
         code = bytes(out).strip(b'\x00')
+        if code.endswith(PICO8_FUTURE_CODE1):
+            code = code[:-len(PICO8_FUTURE_CODE1)]
+            if code[-1] == b'\n'[0]:
+                code = code[:-1]
         if code.endswith(PICO8_FUTURE_CODE2):
             code = code[:-len(PICO8_FUTURE_CODE2)]
-            if code[-1] == b'\n':
+            if code[-1] == b'\n'[0]:
                 code = code[:-1]
 
         compressed_size = in_i
@@ -479,15 +497,17 @@ class Game():
         return byte_array
 
     @classmethod
-    def from_p8png_file(cls, instr, filename=None):
-        """Loads a game from a .p8.png file.
-    
+    def get_raw_data_from_p8png_file(cls, instr, filename=None):
+        """Read and unpack raw section data from a .p8.png file.
+
         Args:
           instr: The input stream.
           filename: The filename, if any, for tool messages.
-    
+
         Returns:
-          A Game containing the game data.
+          An object with properties of raw data: gfx, p8map, gfx_props,
+                  song, sfx, codedata, version, code_length, code,
+                  compressed_size.
         """
         # To install: python3 -m pip install pypng
         import png
@@ -500,33 +520,52 @@ class Game():
 
         picodata = cls.get_picodata_from_pngdata(width, height, data, attrs)
 
-        gfx = picodata[0x0:0x2000]
-        p8map = picodata[0x2000:0x3000]
-        gfx_props = picodata[0x3000:0x3100]
-        song = picodata[0x3100:0x3200]
-        sfx = picodata[0x3200:0x4300]
-        codedata = picodata[0x4300:0x8000]
-        version = picodata[0x8000]
+        class ParsedData(object):
+            pass
+        data = ParsedData()
+
+        data.gfx = picodata[0x0:0x2000]
+        data.p8map = picodata[0x2000:0x3000]
+        data.gfx_props = picodata[0x3000:0x3100]
+        data.song = picodata[0x3100:0x3200]
+        data.sfx = picodata[0x3200:0x4300]
+        data.codedata = picodata[0x4300:0x8000]
+        data.version = picodata[0x8000]
 
         # TODO: Extract new_game.label from data
 
-        (code_length, code, compressed_size) = cls.get_code_from_bytes(
-            codedata, version)
+        (data.code_length, data.code, data.compressed_size) = \
+            cls.get_code_from_bytes(data.codedata, data.version)
 
-        new_game = cls(filename=filename, compressed_size=compressed_size)
-        new_game.version = version
+        return data
+
+    @classmethod
+    def from_p8png_file(cls, instr, filename=None):
+        """Loads a game from a .p8.png file.
+    
+        Args:
+          instr: The input stream.
+          filename: The filename, if any, for tool messages.
+    
+        Returns:
+          A Game containing the game data.
+        """
+        data = cls.get_raw_data_from_p8png_file(instr, filename=filename)
+
+        new_game = cls(filename=filename, compressed_size=data.compressed_size)
+        new_game.version = data.version
         new_game.lua = Lua.from_lines(
-            [code], version=version)
+            [data.code], version=data.version)
         new_game.gfx = Gfx.from_bytes(
-            gfx, version=version)
+            data.gfx, version=data.version)
         new_game.gff = Gff.from_bytes(
-            gfx_props, version=version)
+            data.gfx_props, version=data.version)
         new_game.map = Map.from_bytes(
-            p8map, version=version, gfx=new_game.gfx)
+            data.p8map, version=data.version, gfx=new_game.gfx)
         new_game.sfx = Sfx.from_bytes(
-            sfx, version=version)
+            data.sfx, version=data.version)
         new_game.music = Music.from_bytes(
-            song, version=version)
+            data.song, version=data.version)
 
         return new_game
 

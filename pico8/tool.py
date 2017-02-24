@@ -110,8 +110,8 @@ def stats(args):
         if args.csv:
             csv_writer.writerow([
                 os.path.basename(fname),
-                g.lua.get_title(),
-                g.lua.get_byline(),
+                _as_friendly_string(g.lua.get_title()),
+                _as_friendly_string(g.lua.get_byline()),
                 g.lua.version,
                 g.lua.get_char_count(),
                 g.lua.get_token_count(),
@@ -157,18 +157,54 @@ def listlua(args):
         if len(args.filename) > 1:
             util.write('=== {} ===\n'.format(g.filename))
         for l in g.lua.to_lines():
-            try:
+            if args.show_line_numbers:
+                util.write('{}: {}'.format(i, _as_friendly_string(l)))
+            else:
                 util.write(_as_friendly_string(l))
-            except UnicodeEncodeError as e:
-                new_l = ''.join(c if ord(c) < 128 else '_' for c in l)
-                util.write(new_l)
         util.write('\n')
         
     return 0
 
 
+def listrawlua(args):
+    """Run the listrawlua tool.
+
+    Args:
+      args: The argparser parsed args object.
+
+    Returns:
+      0 on success, 1 on failure.
+    """
+    for fname in args.filename:
+        if fname.endswith('.p8.png'):
+            with open(fname, 'rb') as fh:
+                data = game.Game.get_raw_data_from_p8png_file(fh, fname)
+                raw_lua = data.code
+        elif fname.endswith('.p8'):
+            with open(fname, 'rb') as fh:
+                data = game.Game.get_raw_data_from_p8_file(fh, fname)
+                raw_lua = data.section_lines['lua']
+        else:
+            util.error('{}: must be .p8 or .p8.png\n'.format(fname))
+            if len(args.filename) == 1:
+                return 1
+            continue
+
+        if len(args.filename) > 1:
+            util.write('=== {} ===\n'.format(g.filename))
+        lua_lines = raw_lua.split(b'\n')
+        for i,l in enumerate(lua_lines):
+            if args.show_line_numbers:
+                util.write('{}: {}\n'.format(i, _as_friendly_string(l)))
+            else:
+                util.write(_as_friendly_string(l) + '\n')
+        util.write('\n')
+
+    return 0
+
+
 def listtokens(args):
-    """Run the listlua tool.
+    """Run the listtokens tool.
 
     Args:
       args: The argparser parsed args object.
@@ -402,7 +438,21 @@ def _get_argparser():
     sp_listlua.add_argument(
         'filename', type=str, nargs='+',
         help='the names of files to process')
+    sp_listlua.add_argument(
+        '--show-line-numbers', action='store_true',
+        help='prepends each line with a line number')
     sp_listlua.set_defaults(func=listlua)
+
+    sp_listrawlua = subparsers.add_parser(
+        'listrawlua',
+        help='lists the Lua code for a cart to the console without parsing it')
+    sp_listrawlua.add_argument(
+        'filename', type=str, nargs='+',
+        help='the names of files to process')
+    sp_listrawlua.add_argument(
+        '--show-line-numbers', action='store_true',
+        help='prepends each line with a line number')
+    sp_listrawlua.set_defaults(func=listrawlua)
 
     sp_writep8 = subparsers.add_parser(
         'writep8',

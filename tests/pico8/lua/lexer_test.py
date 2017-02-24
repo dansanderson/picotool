@@ -289,6 +289,13 @@ class TestLexer(unittest.TestCase):
         self.assertEqual(lexer.TokNumber(b'1.234567890'),
                          lxr._tokens[0])
 
+    def testNumberDecimalNoRightPart(self):
+        lxr = lexer.Lexer(version=4)
+        lxr._process_line(b'1.\n')
+        self.assertEqual(2, len(lxr._tokens))
+        self.assertEqual(lexer.TokNumber(b'1.'),
+                         lxr._tokens[0])
+
     def testNumberDecimalWithExp(self):
         lxr = lexer.Lexer(version=4)
         lxr._process_line(b'1.234567890e-6\n')

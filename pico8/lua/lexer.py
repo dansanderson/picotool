@@ -217,7 +217,7 @@ _TOKEN_MATCHERS.extend([
     (re.compile(br'\r'), TokNewline),
     (re.compile(br'0[xX][0-9a-fA-F]+(\.[0-9a-fA-F]+)?'), TokNumber),
     (re.compile(br'0[xX]\.[0-9a-fA-F]+'), TokNumber),
-    (re.compile(br'[0-9]+(\.[0-9]+)?([eE]-?[0-9]+)?'), TokNumber),
+    (re.compile(br'[0-9]+(\.[0-9]*)?([eE]-?[0-9]+)?'), TokNumber),
     (re.compile(br'\.[0-9]+([eE]-?[0-9]+)?'), TokNumber),
     (re.compile(br'::[a-zA-Z_][a-zA-Z0-9_]*::'), TokLabel),
 ])
@@ -278,6 +278,9 @@ class Lexer():
         # * the pos of the start of the multiline comment
         self._in_multiline_string_lineno = None
         self._in_multiline_string_charno = None
+
+    def _debug_lexer_state(self):
+        return ''.join('{}={}\n'.format(p, getattr(self, p)) for p in dir(self))
 
     def _process_token(self, s):
         """Process a token's worth of chars from a string, if possible.
@@ -402,7 +405,8 @@ class Lexer():
                     break
 
         for c in s[:i]:
-            if c == b'\n':
+            # (b'\n'[0] == 10)
+            if c == b'\n'[0]:
                 self._cur_lineno += 1
                 self._cur_charno = 0
             else:
@@ -430,6 +434,7 @@ class Lexer():
                 break
             line = line[i:]
         if line:
+            util.debug('Lexer state:\n{}'.format(self._debug_lexer_state()))
             raise LexerError('Syntax error (remaining:%r)' % (line,),
                              self._cur_lineno + 1,
                              self._cur_charno + 1)
@@ -455,6 +460,7 @@ class Lexer():
                              self._in_multiline_string_lineno,
                              self._in_multiline_string_charno)
         if self._in_multiline_comment is not None:
+            # TODO: Allow unterminated multiline comments to just be comments.
             raise LexerError('Unterminated multiline comment',
                              self._in_multiline_comment_lineno,
                              self._in_multiline_comment_charno)
