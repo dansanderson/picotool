@@ -384,6 +384,7 @@ class Parser():
 
             then_pos = self._pos
             if (self._accept(lexer.TokKeyword(b'then')) is None and
+                self._accept(lexer.TokKeyword(b'do')) is None and
                 (self._tokens[exp._end_token_pos - 1] == lexer.TokSymbol(b')'))):
                 # Check for Pico-8 short form.
 
@@ -413,9 +414,21 @@ class Parser():
             
             self._pos = then_pos
 
-            # TODO: hack: accept "do" for "then" to support seven carts that
-            # exploit a loophole in short-if.
-            self._expect(lexer.TokKeyword(b'then'))
+            # Hack: accept "do" for "then" to support oddball carts that
+            # exploit an accidental loophole in short-if. Note that this
+            # is not how Pico-8 works: the accident comes from how Pico-8
+            # uses a preprocessing pass to convert short-if syntax to regular
+            # if syntax. The erroneous
+            #   if (cond) do
+            #     ...
+            #   end
+            # becomes
+            #   if (cond) then do end
+            #     ...
+            #   end
+            # Here, we pretend it's part of the grammar.
+            if self._accept(lexer.TokKeyword(b'do')) is None:
+                self._expect(lexer.TokKeyword(b'then'))
             block = self._chunk()
             self._assert(block, 'Expected block in if')
             exp_block_pairs.append((exp, block))
