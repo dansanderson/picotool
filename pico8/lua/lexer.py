@@ -211,6 +211,7 @@ del _STRING_REVERSE_ESCAPES[b'"']
 _TOKEN_MATCHERS = []
 _TOKEN_MATCHERS.extend([
     (re.compile(br'--.*'), TokComment),
+    (re.compile(br'//.*'), TokComment),
     (re.compile(br'[ \t]+'), TokSpace),
     (re.compile(br'\r\n'), TokNewline),
     (re.compile(br'\n'), TokNewline),

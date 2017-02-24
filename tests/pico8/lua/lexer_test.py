@@ -249,6 +249,13 @@ class TestLexer(unittest.TestCase):
         self.assertEqual(lexer.TokComment(b'-- comment text and stuff'),
                          lxr._tokens[0])
 
+    def testCommentUnofficialDoubleSlash(self):
+        lxr = lexer.Lexer(version=4)
+        lxr._process_line(b'// comment text and stuff\n')
+        self.assertEqual(2, len(lxr._tokens))
+        self.assertEqual(lexer.TokComment(b'// comment text and stuff'),
+                         lxr._tokens[0])
+
     def testMultilineComment(self):
         lxr = lexer.Lexer(version=8)
         lxr._process_line(b'--[[comment text\nand "stuff\n]]\n')
