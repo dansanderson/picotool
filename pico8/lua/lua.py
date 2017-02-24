@@ -37,6 +37,7 @@ PICO8_BUILTINS = {
     b'count',  # deprecated function
     b'mapdraw',  # deprecated function
     b'self',   # a special name in Lua OO
+    b'?',   # alias for "print"
 }
 
 

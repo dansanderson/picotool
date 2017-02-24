@@ -185,6 +185,12 @@ class TestLexer(unittest.TestCase):
         self.assertEqual(2, len(lxr._tokens))
         self.assertEqual(lexer.TokName(b'android'), lxr._tokens[0])
 
+    def testQuestionMarkPrint(self):
+        lxr = lexer.Lexer(version=4)
+        lxr._process_line(b'?\n')
+        self.assertEqual(2, len(lxr._tokens))
+        self.assertEqual(lexer.TokName(b'?'), lxr._tokens[0])
+
     def testOneLabel(self):
         lxr = lexer.Lexer(version=4)
         lxr._process_line(b'::foobar::\n')
