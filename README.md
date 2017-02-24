@@ -393,11 +393,7 @@ By default, this produces an HTML coverage report in the `cover` subdirectory. O
 ## Known issues
 
 * picotool and Pico-8 count tokens in slightly different ways, resulting in different counts. More refinement is needed so that picotool matches Pico-8. As far as I can tell, with picotool making some concessions to match Pico-8 in known cases, Pico-8's counts are consistently higher. So I'm missing a few cases where Pico-8 over-counts (or picotool under-counts). In most cases, the difference is only by a few tokens, even for large carts.
-
-* There may be obscure issues with old carts that cause the picotool's .p8 output to differ slightly from Pico-8's .p8 output for the same .p8.png input. In general, it appears Pico-8 manages some legacy format bugs internally. It is unlikely picotool can ever hope (or should ever try) to recreate the entire internal upgrade path.
-  * helloworld.p8.png: The 2nd sfx pattern is has four note volumes in the PNG data that do not match Pico-8's RAM data when the cart is loaded.
-  * Tower of Archeos: An old short-if syntax bug allowed this cart at .p8 version 0, but is a syntax error at .p8 version 5.
-
-* A few old carts use an invalid form of the `if` statement that looks like this: `if (cond) do \n ... end`. This should be `if (cond) then \n ... end`. picotool rejects the invalid form, but Pico-8 allows it accidentally due to a bug in how the short-form `if` is implemented. Pico-8 implements this as a preprocessor pass, converting it to `if (cond) then do end \n ... end`. picotool implements short-if as an extension of the language grammar. Because very few carts are affected, I'm disinclined to fix this, but for undiscovered reasons it may be necessary in the future for picotool to use a preprocessor approach for this feature.
+* Lua allows parentheses to be omitted from a function call if there is exactly one argument and the argument is a string or table literal. picotool does not yet support this case. Pico-8 supports it and offers a one-token discount compared to a similar call with parentheses.
+* I've found a few very obscure cases where picotool rejects a cart with a syntax error but Pico-8 accepts it (13757, 16983, 18012, 18556). I evaluate these based on their rarity, usefulness, and intrusiveness to support, and for now I'm leaving this as is.
 
 For more known issues, see the issues list in the Github project: https://github.com/dansanderson/picotool/issues
