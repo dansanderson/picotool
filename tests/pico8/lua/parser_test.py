@@ -256,7 +256,7 @@ class TestParser(unittest.TestCase):
         self.assertEqual(5, p._pos)
         
     def testExpBinOpChain(self):
-        p = get_parser(b'1 + 2 * 3 - 4 / a..b^7 > 8 != foo')
+        p = get_parser(b'1 + 2 * 3 - 4 / 5..b^7 > 8 != foo')
         node = p._exp()
         self.assertIsNotNone(node)
         self.assertEqual(29, p._pos)
@@ -268,7 +268,7 @@ class TestParser(unittest.TestCase):
         self.assertEqual(b'^', node.exp1.exp1.binop.value)
         self.assertEqual(b'b', node.exp1.exp1.exp1.exp2.value.name.value)
         self.assertEqual(b'..', node.exp1.exp1.exp1.binop.value)
-        self.assertEqual(b'a', node.exp1.exp1.exp1.exp1.exp2.value.name.value)
+        self.assertTrue(node.exp1.exp1.exp1.exp1.exp2.value.matches(lexer.TokNumber(b'5')))
         self.assertEqual(b'/', node.exp1.exp1.exp1.exp1.binop.value)
         self.assertTrue(node.exp1.exp1.exp1.exp1.exp1.exp2.value.matches(lexer.TokNumber(b'4')))
         self.assertEqual(b'-', node.exp1.exp1.exp1.exp1.exp1.binop.value)
