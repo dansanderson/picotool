@@ -1075,7 +1075,7 @@ class LuaMinifyTokenWriter(BaseLuaWriter):
                 self._last_was_name_keyword_number = True
                 yield token.code
             else:
-                self._last_was_name_keyword_number = False
+                self._last_was_name_keyword_number = token.code in b'])}'
                 yield token.code
 
 
