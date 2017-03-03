@@ -8,7 +8,7 @@ from ..lua import lexer
 
 
 # The default Lua load path if neither PICO8_LUA_PATH nor --lua-path are set.
-DEFAULT_LUA_PATH = '?;?.lua;?.p8;?.p8.png'
+DEFAULT_LUA_PATH = '?;?.lua'
 
 # Names of the Pico-8 game loop functions stripped from require()'d files
 # (unless told not to).
@@ -47,7 +47,9 @@ def _locate_require_file(p, file_path, lua_path=None):
     """
     rel_path_base = os.path.dirname(file_path)
     if lua_path is None:
-        lua_path = DEFAULT_LUA_PATH
+        lua_path = os.getenv('PICO8_LUA_PATH')
+        if lua_path is None:
+            lua_path = DEFAULT_LUA_PATH
     for lookup_p in lua_path.split(';'):
         candidate = lookup_p.replace('?', p)
         if not candidate.startswith(os.path.sep):
@@ -106,117 +108,10 @@ class RequireWalker(lua.BaseASTWalker):
             yield (require_path, use_game_loop, self._tokens[node.start_pos])
 
 
-def evaluate_require(ast, file_path, package_lua, lua_path=None):
+def _evaluate_require(ast, file_path, package_lua, lua_path=None):
     """Evaluate require() statements in a Lua AST.
 
-    This crawls an AST looking for calls to a function named "require".
-    It parses the arguments and prepares a package table with the contents
-    of each require()'d source file in function values. This table along
-    with a definition for require() are inserted at the top of the final
-    cart source.
-
-    The require() function call can take two arguments:
-
-      require(libname, options)
-
-    libname is a string literal. It is required. It must be a single string
-    literal, and cannot be a Lua expression.
-
-    options is a table of key-value pairs. It is optional. See below for
-    an explanation of options.
-
-    For example:
-
-      require("3dlib")
-
-    The string refers to a file in one of possibly several library lookup
-    paths. The user sets these paths with the PICO8_LUA_PATH environment
-    variable or the --lua-path command line argument. This is similar to
-    Lua's LUA_PATH environment variable: https://www.lua.org/pil/8.1.html.
-
-    If set, PICO8_LUA_PATH's value must be one or more lookup paths,
-    delimited by semicolons (;), using question marks (?) where the
-    require() string should be substituted to result in the name of a file.
-
-    For example, with this environment variable set:
-
-      PICO8_LUA_PATH=?;?.lua;/home/dan/p8libs/?/?.p8
-
-    The require("3dlib") statement would look for these files, in this order,
-    with paths relative to the file containing the require() statement:
-
-      3dlib
-      3dlib.lua
-      /home/dan/p8libs/3dlib/3dlib.p8
-
-    The file can be a .lua source file or a .p8 or .p8.png cartridge file.
-    If a cartridge is required, only the Lua code region is used.
-
-    If PICO8_LUA_PATH is not set, this default value is used:
-
-      PICO8_LUA_PATH=?;?.lua;?.p8;?.p8.png
-
-    The require() string cannot contain "./" or "../".
-
-    By default, a require()'d file has its game loop callback functions removed
-    before being inserted into the AST. This allows libraries to define test
-    methods that can be run by Pico-8 as a cart without interfering with a
-    game that require()'s the cart. Global function definitions for _init,
-    _update, _update60, and _draw are removed from require()'d files.
-
-    The game source can disable stripping of game loop callback functions
-    (such as to use a game loop provided by a library) with an option:
-
-      require("3dlib", {use_game_loop=true})
-
-    (The use_game_loop option is parsed at build time and is removed from the
-    cart source.)
-
-    The code inserted in the cart defines a Lua table named "package". This
-    table stores one copy of each library mentioned in a require()
-    call, keyed by the string literal. The require() function itself checks to
-    see if the library has been evaluated yet, and calls its wrapper function
-    if so. If the function returns a value, require() returns this value. This
-    value is remembered in package[path], and subsequent require()s of the same
-    path just return the value and do not re-evaluate the library code.
-
-    For example, given mylib.lua:
-
-      local MyLib = {
-        myfunc = function() print('lib func') end
-      }
-
-      function globalfunc() print('lib global') end
-
-      return MyLib
-
-    This could be used like this:
-
-      -- Sets global globalfunc, returns MyLib (FooLib = MyLib)
-      FooLib = require("mylib")
-      globalfunc()     -- "lib global"
-      FooLib.myfunc()  -- "lib func"
-
-      function globalfunc() print('main global') end
-      globalfunc()     -- "main global"
-
-      -- Returns MyLib (BarLib = MyLib) but does not redefine globalfunc
-      BarLib = require("mylib")
-      globalfunc()     -- "main global"
-      BarLib.myfunc()  -- "lib func"
-
-    As Lua does, the require() remembers what has been required before via its
-    string name, not the actual file name, such that require("foo") followed
-    by require("foo.lua") with a lookup path of ?;?.lua will include foo.lua
-    twice.
-
-    Unlike Lua, PICO8_LUA_PATH cannot be set from Lua code. It must be provided by
-    the environment variable or command line option.
-
-    - - -
-
-    All AST transformations occur in place on the provided AST. No value is
-    returned.
+    See the picotool README.md for a complete description of the intended behavior of require().
 
     This function is called recursively on require()'d files.
 
@@ -243,6 +138,7 @@ def evaluate_require(ast, file_path, package_lua, lua_path=None):
                 raise LuaBuildError('require() file {} not found; used load path {}'.format(require_path_str, lua_path),
                                     require_token)
 
+            # TODO: support loading required code from .p8 and .p8.png files.
             with open(reqd_filepath, 'rb') as infh:
                 reqd_lua = lua.Lua.from_lines(infh, version=game.DEFAULT_VERSION)
 
@@ -259,7 +155,7 @@ def evaluate_require(ast, file_path, package_lua, lua_path=None):
                 reqd_lua.reparse(writer_cls=lua.LuaASTEchoWriter)
 
             package_lua[require_path] = reqd_lua
-            evaluate_require(reqd_lua, reqd_filepath, package_lua, lua_path=lua_path)
+            _evaluate_require(reqd_lua, reqd_filepath, package_lua, lua_path=lua_path)
 
 
 def _prepend_package_lua(orig_ast, package_lua):
@@ -337,7 +233,7 @@ def do_build(args):
                     result.lua = lua.Lua.from_lines(
                         infh, version=game.DEFAULT_VERSION)
                     package_lua = {}
-                    evaluate_require(result.lua, file_path=fn, package_lua=package_lua,
+                    _evaluate_require(result.lua, file_path=fn, package_lua=package_lua,
                                      lua_path=getattr(args, 'lua_path', None))
 
                     if getattr(args, 'optimize_tokens', False):

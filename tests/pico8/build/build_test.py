@@ -266,14 +266,14 @@ class TestEvaluateRequire(unittest.TestCase):
     def testRequiresFile(self):
         ast = lua.Lua.from_lines([b'require("lib1")\n'], 8)
         package_lua = {}
-        build.evaluate_require(ast, file_path=self.file_path, package_lua=package_lua)
+        build._evaluate_require(ast, file_path=self.file_path, package_lua=package_lua)
         self.assertIn(b'lib1', package_lua)
         self.assertIn(b'x=1', b'\n'.join(package_lua[b'lib1'].to_lines()))
 
     def testRequiresInnerFile(self):
         ast = lua.Lua.from_lines([b'require("lib2")\n'], 8)
         package_lua = {}
-        build.evaluate_require(ast, file_path=self.file_path, package_lua=package_lua)
+        build._evaluate_require(ast, file_path=self.file_path, package_lua=package_lua)
         self.assertIn(b'lib1', package_lua)
         self.assertIn(b'x=1', b'\n'.join(package_lua[b'lib1'].to_lines()))
         self.assertIn(b'lib2', package_lua)
@@ -282,7 +282,7 @@ class TestEvaluateRequire(unittest.TestCase):
     def testStripsGameLoop(self):
         ast = lua.Lua.from_lines([b'require("lib3")\n'], 8)
         package_lua = {}
-        build.evaluate_require(ast, file_path=self.file_path, package_lua=package_lua)
+        build._evaluate_require(ast, file_path=self.file_path, package_lua=package_lua)
         self.assertIn(b'lib3', package_lua)
         self.assertIn(b'x=3', b'\n'.join(package_lua[b'lib3'].to_lines()))
         self.assertNotIn(b'_update60', b'\n'.join(package_lua[b'lib3'].to_lines()))
@@ -290,7 +290,7 @@ class TestEvaluateRequire(unittest.TestCase):
     def testDoesntStripGameLoopOption(self):
         ast = lua.Lua.from_lines([b'require("lib3", {use_game_loop=true})\n'], 8)
         package_lua = {}
-        build.evaluate_require(ast, file_path=self.file_path, package_lua=package_lua)
+        build._evaluate_require(ast, file_path=self.file_path, package_lua=package_lua)
         self.assertIn(b'lib3', package_lua)
         self.assertIn(b'x=3', b'\n'.join(package_lua[b'lib3'].to_lines()))
         self.assertIn(b'_update60', b'\n'.join(package_lua[b'lib3'].to_lines()))
@@ -300,7 +300,7 @@ class TestEvaluateRequire(unittest.TestCase):
         package_lua = {}
         self.assertRaises(
             build.LuaBuildError,
-            build.evaluate_require,
+            build._evaluate_require,
             ast, file_path=self.file_path, package_lua=package_lua)
 
     def testErrorRelativePathChars(self):
@@ -308,7 +308,7 @@ class TestEvaluateRequire(unittest.TestCase):
         package_lua = {}
         self.assertRaises(
             build.LuaBuildError,
-            build.evaluate_require,
+            build._evaluate_require,
             ast, file_path=self.file_path, package_lua=package_lua)
 
 
