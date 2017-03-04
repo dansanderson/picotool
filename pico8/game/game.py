@@ -607,16 +607,16 @@ class Game():
             if filename is not None:
                 util.error('{}: '.format(filename))
             util.error('warning: character count {} exceeds the Pico-8 '
-                       'limit of {}'.format(
+                       'limit of {}\n'.format(
                 transformed_lua.get_char_count(),
                 PICO8_LUA_CHAR_LIMIT))
         if transformed_lua.get_token_count() > PICO8_LUA_TOKEN_LIMIT:
             if filename is not None:
                 util.error('{}: '.format(filename))
             util.error('warning: token count {} exceeds the Pico-8 '
-                       'limit of {}'.format(
-                transformed_lua.get_char_count(),
-                PICO8_LUA_CHAR_LIMIT))
+                       'limit of {}\n'.format(
+                transformed_lua.get_token_count(),
+                PICO8_LUA_TOKEN_LIMIT))
 
         outstr.write(b'__lua__\n')
         ended_in_newline = None

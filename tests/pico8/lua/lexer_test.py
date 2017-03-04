@@ -339,6 +339,31 @@ class TestLexer(unittest.TestCase):
         self.assertEqual(lexer.TokNumber(b'0x1234567890abcdef.1bbf'),
                          lxr._tokens[0])
 
+    def testNumberValueDecimal(self):
+        lxr = lexer.Lexer(version=4)
+        lxr._process_line(b'123.456\n')
+        self.assertEqual(123.456, lxr._tokens[0].value)
+
+    def testNumberValueDecimalNoRightPart(self):
+        lxr = lexer.Lexer(version=4)
+        lxr._process_line(b'123.\n')
+        self.assertEqual(123, lxr._tokens[0].value)
+
+    def testNumberValueDecimalWithE(self):
+        lxr = lexer.Lexer(version=4)
+        lxr._process_line(b'1.234567890e-6\n')
+        self.assertEqual(1.23456789e-6, lxr._tokens[0].value)
+
+    def testNumberValueHexInteger(self):
+        lxr = lexer.Lexer(version=4)
+        lxr._process_line(b'0xae\n')
+        self.assertEqual(174, lxr._tokens[0].value)
+
+    def testNumberValueHexFraction(self):
+        lxr = lexer.Lexer(version=4)
+        lxr._process_line(b'0xae.bc\n')
+        self.assertAlmostEqual(174.734, lxr._tokens[0].value, 3)
+
     def testMultilineString(self):
         lxr = lexer.Lexer(version=4)
         lxr._process_line(b'[[one\n')

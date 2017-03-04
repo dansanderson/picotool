@@ -164,6 +164,10 @@ class TokNumber(Token):
     Negative number literals are tokenized as two tokens: a
     TokSymbol('-'), and a TokNumber(...) representing the non-negative
     number part.
+
+    The value() method converts the number to a Python number. Keep in mind
+    that Python numbers are not fixed point as Pico-8's are, so the result
+    may not exactly match Pico-8.
     """
     name = 'number'
 
@@ -171,6 +175,11 @@ class TokNumber(Token):
     # so we don't have to jump through hoops to recreate it later.
     @property
     def value(self):
+        if b'x' in self._data:
+            if b'.' in self._data:
+                integer, frac = self._data.split(b'.')
+                return float(int(integer, 16)) + float(int(frac, 16))/(16**len(frac))
+            return float(int(self._data, 16))
         return float(self._data)
     
 
