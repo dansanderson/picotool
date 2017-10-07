@@ -185,6 +185,27 @@ def _prepend_package_lua(orig_ast, package_lua):
     return lua.Lua.from_lines(new_code, version=game.DEFAULT_VERSION)
 
 
+def _remove_global_return(ast):
+    """Remove return statements from the root level of an AST.
+
+    Pico-8 never allows a return statement at the root level of cart code. To
+    support a library development workflow where the library code contains a
+    game loop that tests the library as well as a Lua module return statement,
+    return statements are removed silently from the root of a built cart's
+    main code. (They are not removed from require()'d carts.)
+
+    This removal occurs in place on the given AST object.
+
+    Args:
+        ast: The lua.Lua object.
+    """
+    #ast.root.stats[:] = [
+    #    s for s in ast.root.stats
+    #    if not isinstance(s, parser.StatReturn)]
+    #ast.reparse(writer_cls=lua.LuaASTEchoWriter)
+    pass
+
+
 def do_build(args):
     """Executor for the p8tool build command.
 
@@ -241,7 +262,7 @@ def do_build(args):
                         raise NotImplementedError('--optimize_tokens not yet implemented, sorry')
 
                     result.lua = _prepend_package_lua(result.lua, package_lua)
-
+                    _remove_global_return(result.lua)
             else:
                 source = game.Game.from_filename(fn)
                 setattr(result, section, getattr(source, section))

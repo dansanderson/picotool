@@ -71,6 +71,72 @@ class Node():
     def end_pos(self):
         return self._end_token_pos
 
+    def _add_token_group(self, fieldname, fieldvalue, tokenlist, pos):
+        if isinstance(fieldvalue, Node):
+            self._token_groups.append((fieldname, tokenlist[pos:fieldvalue.start_pos]))
+            fieldvalue.store_token_groups(tokenlist)
+            pos = fieldvalue.end_pos
+        elif fieldname == 'exp_block_pairs':
+            for block_pairs_i, pair in enumerate(fieldvalue):
+                if pair[0] is not None:
+                    pos = self._add_token_group((fieldname, block_pairs_i, 0), pair[0], tokenlist, pos)
+                pos = self._add_token_group((fieldname, block_pairs_i, 1), pair[1], tokenlist, pos)
+        elif hasattr(fieldvalue, '__getitem__'):
+            for inner_i, inner in enumerate(fieldvalue):
+                pos = self._add_token_group((fieldname, inner_i), inner, tokenlist, pos)
+        else:
+            self._token_groups.append(tokenlist[pos:pos+1])
+            pos += 1
+        return pos
+
+    def store_token_groups(self, tokenlist):
+        """Store the tokens for this node inside the node.
+
+        This post-parsing pass stores tokens on AST nodes directly so that the AST can be the source of truth for
+        tokens and it preserves whitespace and comments even after the AST has been transformed.
+
+        Args:
+            tokenlist: The entire list of tokens for the parsed program.
+        """
+        pos = self.start_pos
+
+        # Each token group is either a tuple (fieldname, tokens) or a simple list a tokens (literal values).
+        # fieldname is:
+        # - a string, the name of the field that follows these tokens
+        # - a tuple of two elements: the name and the index in a field with a list value
+        # - a tuple of three elements: 'exp_block_pairs', the index of the pair, the index of the pair member (0,1)
+        self._token_groups = []
+
+        for fieldname in self._fields:
+            fieldvalue = getattr(self, fieldname)
+            pos = self._add_token_group(fieldname, fieldvalue, tokenlist, pos)
+        self._token_groups.append(tokenlist[pos:self.end_pos])
+
+    @property
+    def tokens(self):
+        """Generate the tokens for this AST node and all child nodes.
+
+        Yields:
+            Tokens.
+        """
+        for token_group in self._token_groups:
+            if type(token_group) == list:
+                for t in token_group:
+                    yield t
+                continue
+            (fieldspec, tokens) = token_group
+            for t in tokens:
+                yield t
+            if type(fieldspec) == str:
+                for t in getattr(self, fieldspec).tokens:
+                    yield t
+            elif len(fieldspec) == 2:
+                for t in getattr(self, fieldspec[0])[fieldspec[1]].tokens:
+                    yield t
+            else:
+                for t in getattr(self, fieldspec[0])[fieldspec[1]][fieldspec[2]].tokens:
+                    yield t
+
 
 # These are all Node subclasses that initialize members with
 # (required) positional arguments. They are created and added to the
@@ -142,8 +208,10 @@ for (name, fields) in _ast_node_types:
             setattr(self, self._fields[i], args[i])
         for k in kwargs:
             setattr(self, k, kwargs[k])
+
     cls = type(name, (Node,), {'__init__': node_init,
-                               '_name': name, '_fields': fields})
+                               '_name': name, '_fields': fields,
+                               '_children': None})
     globals()[name] = cls
 
 
@@ -152,8 +220,7 @@ BINOP_PATS = ([lexer.TokSymbol(sym) for sym in [
     b'<', b'>', b'<=', b'>=', b'~=', b'!=', b'==', b'..', b'+', b'-', b'*', b'/', b'%', b'^'
 ]] + [lexer.TokKeyword(b'and'), lexer.TokKeyword(b'or')])
 
-    
-    
+
 class Parser():
     """The parser."""
 
@@ -984,8 +1051,19 @@ class Parser():
         self._tokens = list(tokens)
         self._pos = 0
         self._ast = self._assert(self._chunk(), 'input to be a program')
+        self._ast.store_token_groups(self._tokens)
 
     @property
     def root(self):
         """The root of the AST produced by process_tokens()."""
         return self._ast
+
+    @property
+    def tokens(self):
+        """Generate the tokens for this AST node and all child nodes.
+
+        Yields:
+            Tokens.
+        """
+        for t in self._ast.tokens:
+            yield t

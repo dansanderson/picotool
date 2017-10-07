@@ -208,8 +208,8 @@ end
         lines = list(result.to_lines(writer_cls=lua.LuaMinifyTokenWriter))
         txt = b''.join(lines)
         self.assertNotIn(b'-- the code with the nodes', txt)
-        self.assertIn(b'while f<10 do f+=1 if f%2==0 then\na(f) elseif f>5 then a(f,5) else a(f,1) g*=2 end end', txt)
-        self.assertIn(b'for g in i() do a(g) end', txt)
+        self.assertIn(b'while f<10 do\nf+=1\nif f%2==0 then\na(f)\nelseif f>5 then\na(f,5)\nelse\na(f,1)\ng*=2\nend\nend', txt)
+        self.assertIn(b'for g in i() do\na(g)\nend', txt)
         self.assertIn(b'f=1;n=2;o=3', txt)
 
 

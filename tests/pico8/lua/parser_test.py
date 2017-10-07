@@ -1044,7 +1044,15 @@ player =
         p.process_tokens(tokens)
         self.assertIsNotNone(p.root)
         self.assertEqual(14, len(p.root.stats))
-        
+
+    # TODO: Poor newline handling means the parser tokens aren't identical to the input tokens! Fix?
+    #def testTokensOnAST(self):
+    #    tokens = get_tokens(b' return')
+    #    p = parser.Parser(version=4)
+    #    p.process_tokens(tokens)
+    #    parser_tokens = list(p.tokens)
+    #    self.assertEqual(parser_tokens, tokens)
+
 
 if __name__ == '__main__':
     unittest.main()

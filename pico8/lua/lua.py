@@ -1039,7 +1039,7 @@ class LuaMinifyTokenWriter(BaseLuaWriter):
         super().__init__(*args, **kwargs)
         self._name_factory = MinifyNameFactory()
         self._last_was_name_keyword_number = False
-        self._saw_if = False
+        self._last_was_newline = True
 
     def to_lines(self):
         """
@@ -1051,31 +1051,33 @@ class LuaMinifyTokenWriter(BaseLuaWriter):
                 token.matches(lexer.TokSpace)):
                 continue
             elif token.matches(lexer.TokNewline):
-                # Hack for short-if: after seeing "if" (even if not short-if), keep the next newline.
-                if self._saw_if:
-                    self._saw_if = False
-                    self._last_was_name_keyword_number = False
+                # Preserve non-consecutive newlines. This is the easiest way to handle Pico-8's newline-dependent
+                # language extensions, especially short-ifs.
+                self._last_was_name_keyword_number = False
+                if not self._last_was_newline:
                     yield b'\n'
-                continue
+                self._last_was_newline = True
             elif token.matches(lexer.TokName):
                 if self._last_was_name_keyword_number:
                     yield b' '
                 self._last_was_name_keyword_number = True
+                self._last_was_newline = False
                 yield self._name_factory.get_short_name(token.code)
             elif token.matches(lexer.TokKeyword):
-                if token.code == b'if':
-                    self._saw_if = True
                 if self._last_was_name_keyword_number:
                     yield b' '
                 self._last_was_name_keyword_number = True
+                self._last_was_newline = False
                 yield token.code
             elif token.matches(lexer.TokNumber):
                 if self._last_was_name_keyword_number:
                     yield b' '
                 self._last_was_name_keyword_number = True
+                self._last_was_newline = False
                 yield token.code
             else:
                 self._last_was_name_keyword_number = token.code in b'])}'
+                self._last_was_newline = False
                 yield token.code
 
 
