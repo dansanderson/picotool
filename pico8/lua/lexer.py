@@ -180,6 +180,11 @@ class TokNumber(Token):
                 integer, frac = self._data.split(b'.')
                 return float(int(integer, 16)) + float(int(frac, 16))/(16**len(frac))
             return float(int(self._data, 16))
+        if b'b' in self._data:
+            if b'.' in self._data:
+                integer, frac = self._data.split(b'.')
+                return float(int(integer, 2)) + float(int(frac, 2))/(2**len(frac))
+            return float(int(self._data, 2))
         return float(self._data)
     
 
@@ -227,6 +232,8 @@ _TOKEN_MATCHERS.extend([
     (re.compile(br'\r'), TokNewline),
     (re.compile(br'0[xX][0-9a-fA-F]+(\.[0-9a-fA-F]+)?'), TokNumber),
     (re.compile(br'0[xX]\.[0-9a-fA-F]+'), TokNumber),
+    (re.compile(br'0[bB][01]+(\.[01]+)?'), TokNumber),
+    (re.compile(br'0[bB]\.[01]+'), TokNumber),
     (re.compile(br'[0-9]+(\.(?!\.)[0-9]*)?([eE]-?[0-9]+)?'), TokNumber),
     (re.compile(br'\.[0-9]+([eE]-?[0-9]+)?'), TokNumber),
     (re.compile(br'::[a-zA-Z_][a-zA-Z0-9_]*::'), TokLabel),

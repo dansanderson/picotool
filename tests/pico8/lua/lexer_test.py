@@ -339,6 +339,20 @@ class TestLexer(unittest.TestCase):
         self.assertEqual(lexer.TokNumber(b'0x1234567890abcdef.1bbf'),
                          lxr._tokens[0])
 
+    def testNumberBinary(self):
+        lxr = lexer.Lexer(version=4)
+        lxr._process_line(b'0b01101101\n')
+        self.assertEqual(2, len(lxr._tokens))
+        self.assertEqual(lexer.TokNumber(b'0b01101101'),
+                         lxr._tokens[0])
+
+    def testNumberBinaryWithFrac(self):
+        lxr = lexer.Lexer(version=4)
+        lxr._process_line(b'0b01101101.0011\n')
+        self.assertEqual(2, len(lxr._tokens))
+        self.assertEqual(lexer.TokNumber(b'0b01101101.0011'),
+                         lxr._tokens[0])
+
     def testNumberValueDecimal(self):
         lxr = lexer.Lexer(version=4)
         lxr._process_line(b'123.456\n')
@@ -363,6 +377,16 @@ class TestLexer(unittest.TestCase):
         lxr = lexer.Lexer(version=4)
         lxr._process_line(b'0xae.bc\n')
         self.assertAlmostEqual(174.734, lxr._tokens[0].value, 3)
+
+    def testNumberValueBinaryInteger(self):
+        lxr = lexer.Lexer(version=4)
+        lxr._process_line(b'0b01101101\n')
+        self.assertEqual(109, lxr._tokens[0].value)
+
+    def testNUmberValueBinaryFraction(self):
+        lxr = lexer.Lexer(version=4)
+        lxr._process_line(b'0b01101101.0011\n')
+        self.assertAlmostEqual(109.1875, lxr._tokens[0].value, 3)
 
     def testMultilineString(self):
         lxr = lexer.Lexer(version=4)
