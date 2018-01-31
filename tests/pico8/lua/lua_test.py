@@ -86,6 +86,9 @@ a=1; b=2; c=3
 if ((x < 1) or (x > width) or (y < 1) or (y > height)) then
   return 0
 end
+
+::draw::
+goto draw
 '''.split(b'\n')]
 
 
@@ -171,6 +174,7 @@ class TestLuaMinifyWriter(unittest.TestCase):
         self.assertIn(b'return c', txt)
         self.assertIn(b'local function d(e)', txt)
         self.assertIn(b'print(e)', txt)
+        self.assertIn(b'::t::\ngoto t', txt)
 
     def testMinifiesSpaces(self):
         result = lua.Lua.from_lines(VALID_LUA_SHORT_LINES, 4)
