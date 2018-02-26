@@ -179,7 +179,7 @@ def listrawlua(args):
         if fname.endswith('.p8.png'):
             with open(fname, 'rb') as fh:
                 data = game.Game.get_raw_data_from_p8png_file(fh, fname)
-                raw_lua = data.code
+                raw_lua = data.code.split(b'\n')
         elif fname.endswith('.p8'):
             with open(fname, 'rb') as fh:
                 data = game.Game.get_raw_data_from_p8_file(fh, fname)
@@ -192,8 +192,7 @@ def listrawlua(args):
 
         if len(args.filename) > 1:
             util.write('=== {} ===\n'.format(g.filename))
-        lua_lines = raw_lua.split(b'\n')
-        for i,l in enumerate(lua_lines):
+        for i,l in enumerate(raw_lua):
             if args.show_line_numbers:
                 util.write('{}: {}\n'.format(i, _as_friendly_string(l)))
             else:
