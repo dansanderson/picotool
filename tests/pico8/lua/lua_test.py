@@ -86,9 +86,6 @@ a=1; b=2; c=3
 if ((x < 1) or (x > width) or (y < 1) or (y > height)) then
   return 0
 end
-
-::draw::
-goto draw
 '''.split(b'\n')]
 
 
@@ -174,7 +171,6 @@ class TestLuaMinifyWriter(unittest.TestCase):
         self.assertIn(b'return c', txt)
         self.assertIn(b'local function d(e)', txt)
         self.assertIn(b'print(e)', txt)
-        self.assertIn(b'::t::\ngoto t', txt)
 
     def testMinifiesSpaces(self):
         result = lua.Lua.from_lines(VALID_LUA_SHORT_LINES, 4)
@@ -212,8 +208,8 @@ end
         lines = list(result.to_lines(writer_cls=lua.LuaMinifyTokenWriter))
         txt = b''.join(lines)
         self.assertNotIn(b'-- the code with the nodes', txt)
-        self.assertIn(b'while f<10 do\nf+=1\nif f%2==0 then\na(f)\nelseif f>5 then\na(f,5)\nelse\na(f,1)\ng*=2\nend\nend', txt)
-        self.assertIn(b'for g in i() do\na(g)\nend', txt)
+        self.assertIn(b'while f<10 do f+=1 if f%2==0 then\na(f) elseif f>5 then a(f,5) else a(f,1) g*=2 end end', txt)
+        self.assertIn(b'for g in i() do a(g) end', txt)
         self.assertIn(b'f=1;n=2;o=3', txt)
 
 

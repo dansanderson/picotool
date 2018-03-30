@@ -6,6 +6,9 @@ __all__ = [
     'PICO8_LUA_TOKEN_LIMIT',
     'PICO8_LUA_COMPRESSED_CHAR_LIMIT',
     'PICO8_BUILTINS'
+
+    #pn
+    ,'SCUMM8_API'
 ]
 
 
@@ -23,7 +26,7 @@ PICO8_LUA_COMPRESSED_CHAR_LIMIT = 15360
 
 PICO8_BUILTINS = {
     b'_init', b'_update', b'_update60', b'_draw',
-    b'setmetatable', b'getmetatable', b'cocreate', b'coresume', b'costatus', b'yield',
+    b'setmetatable', b'cocreate', b'coresume', b'costatus', b'yield',
     b'load', b'save', b'folder', b'ls', b'run', b'resume', b'reboot', b'stat', b'info',
     b'flip', b'printh', b'clip', b'pget', b'pset', b'sget', b'sset', b'fget', b'fset',
     b'print', b'cursor', b'color', b'cls', b'camera', b'circ', b'circfill', b'line',
@@ -32,14 +35,67 @@ PICO8_BUILTINS = {
     b'peek', b'poke', b'memcpy', b'reload', b'cstore', b'memset', b'max', b'min', b'mid',
     b'flr', b'cos', b'sin', b'atan2', b'sqrt', b'abs', b'rnd', b'srand', b'band', b'bor',
     b'bxor', b'bnot', b'shl', b'shr', b'cartdata', b'dget', b'dset', b'sub', b'sgn',
-    b'stop', b'menuitem', b'type', b'tostr', b'tonum', b'extcmd', b'ls', b'fillp',
-    b'time', b'assert',
+    b'stop',
     b'_update_buttons',  # announced for 30/60 fps compatibility but not yet used?
     b'count',  # deprecated function
     b'mapdraw',  # deprecated function
     b'self',   # a special name in Lua OO
     b'?',   # alias for "print"
-    b'__index'  # internal function sometimes used by carts
+    b'type',
+}
+
+SCUMM8_API = {
+    # functions
+    b'camera_at', b'camera_follow', b'camera_pan_to', b'wait_for_camera',
+    b'cutscene', b'dialog_add', b'dialog_start', b'dialog_hide',
+    b'dialog_clear', b'dialog_end', b'get_use_pos', b'do_anim',
+    b'open_door', b'close_door', b'come_out_door', b'change_room',
+    b'fades', b'valid_verb', b'pickup_obj', b'owner_of',
+    b'state_of', b'set_state', b'find_object', b'start_script',
+    b'script_running', b'stop_script', b'break_time', b'wait_for_message',
+    b'say_line', b'stop_talking', b'print_line', b'put_at',
+    b'walk_to', b'selected_actor', b'has_flag', b'room_curr',
+    b'shake', b'wait_for_actor', b'proximity', b'dialog_set',
+    b'set_trans_col',b'stop_actor',
+    
+
+    # settings
+    b'show_debuginfo', b'show_collision', b'show_perfinfo', b'enable_mouse',
+
+    # definitions
+    b'verbs', b'verb_default', b'rooms', b'actors', 
+    b'verb_maincol', b'verb_hovcol',
+    b'verb_shadcol', b'verb_defcol', 
+    b'startup_script', b'get_verb',  # b'find_default_verb', b'unsupported_action'
+    # properties
+    b'data', b'col_replace', b'enter',
+    b'exit', b'lighting', b'scripts', b'objects', 
+    b'name', b'state', b'x', b'y', b'z',
+    b'w', b'h', b'dependent_on', b'dependent_on_state', 
+    b'classes', b'states', b'use_pos', 
+    b'use_dir', b'trans_col', b'owner', b'flip_x', 
+    b'repeat_x', b'face_dir', b'idle', b'talk', 
+    b'col', b'walk_speed', b'in_room', b'use_with',
+    b'walk_anim_side', b'walk_anim_front', b'walk_anim_back', 
+    b'init', b'draw', b'frame_delay',b'target_door',
+
+    b'selected_sentence', b'msg', b'num', b'text',
+    b'cam_x',
+    
+
+    # constants
+    b'state_closed', b'state_open', b'state_off', b'state_on',
+    b'state_gone', b'state_here', b'class_untouchable', b'class_pickupable',
+    b'class_talkable', b'class_giveable', b'class_openable', b'class_actor',
+    b'cut_noverbs', b'cut_hidecursor', b'cut_no_follow',
+    b'face_front', b'face_left', b'face_back', b'face_right',
+    b'pos_infront', b'pos_behind', b'pos_left', b'pos_right', b'pos_inside',
+    b'anim_face', b'enable_diag_squeeze',
+    
+
+
+    # helper routines (non-SCUMM)
+    b'outline_text',
 }
 
 
@@ -837,7 +893,7 @@ class LuaASTEchoWriter(BaseLuaWriter):
 class MinifyNameFactory():
     """Maps code names to generated short names."""
     NAME_CHARS = b'abcdefghijklmnopqrstuvwxyz'
-    PRESERVED_NAMES = lexer.LUA_KEYWORDS | PICO8_BUILTINS
+    PRESERVED_NAMES = lexer.LUA_KEYWORDS | PICO8_BUILTINS | SCUMM8_API
 
     def __init__(self):
         self._name_map = {}
@@ -1041,7 +1097,7 @@ class LuaMinifyTokenWriter(BaseLuaWriter):
         super().__init__(*args, **kwargs)
         self._name_factory = MinifyNameFactory()
         self._last_was_name_keyword_number = False
-        self._last_was_newline = True
+        self._saw_if = False
 
     def to_lines(self):
         """
@@ -1053,33 +1109,31 @@ class LuaMinifyTokenWriter(BaseLuaWriter):
                 token.matches(lexer.TokSpace)):
                 continue
             elif token.matches(lexer.TokNewline):
-                # Preserve non-consecutive newlines. This is the easiest way to handle Pico-8's newline-dependent
-                # language extensions, especially short-ifs.
-                self._last_was_name_keyword_number = False
-                if not self._last_was_newline:
+                # Hack for short-if: after seeing "if" (even if not short-if), keep the next newline.
+                if self._saw_if:
+                    self._saw_if = False
+                    self._last_was_name_keyword_number = False
                     yield b'\n'
-                self._last_was_newline = True
+                continue
             elif token.matches(lexer.TokName):
                 if self._last_was_name_keyword_number:
                     yield b' '
                 self._last_was_name_keyword_number = True
-                self._last_was_newline = False
                 yield self._name_factory.get_short_name(token.code)
             elif token.matches(lexer.TokKeyword):
+                if token.code == b'if':
+                    self._saw_if = True
                 if self._last_was_name_keyword_number:
                     yield b' '
                 self._last_was_name_keyword_number = True
-                self._last_was_newline = False
                 yield token.code
             elif token.matches(lexer.TokNumber):
                 if self._last_was_name_keyword_number:
                     yield b' '
                 self._last_was_name_keyword_number = True
-                self._last_was_newline = False
                 yield token.code
             else:
                 self._last_was_name_keyword_number = token.code in b'])}'
-                self._last_was_newline = False
                 yield token.code
 
 

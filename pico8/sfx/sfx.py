@@ -10,10 +10,9 @@ Each line represents one sound effect/music pattern. The values are as follows:
  3    Loop range end, as a note number (0-63).
 4-84  32 notes:
         0: pitch (0-63): c-0 to d#-5, chromatic scale
-        1-high: waveform (0-F):
+        1-high: waveform (0-7):
           0 sine, 1 triangle, 2 sawtooth, 3 long square, 4 short square,
-          5 ringing, 6 noise, 7 ringing sine; 8-F are the custom instruments
-          corresponding to sfx 0-7
+          5 ringing, 6 noise, 7 ringing sine
         1-low: volume (0-7)
         2-high: effect (0-7):
           0 none, 1 slide, 2 vibrato, 3 drop, 4 fade_in, 5 fade_out,
@@ -26,16 +25,15 @@ two bytes for each of 32 notes, one byte for the editor mode, one byte
 for the speed, and two bytes for the loop range (start, end). Each
 note is encoded in 16 bits, LSB first, like so:
 
-  w2-w1-pppppp c-eee-vvv-w3
+  w2-w1-pppppp ?-eee-vvv-w3
 
   eee: effect (0-7)
   vvv: volume (0-7)
   w3w2w1: waveform (0-7)
   pppppp: pitch (0-63) 
-  c: if 1, waveform is a custom instrument corresponding to sfx 0-7;
-    otherwise it's one of the eight built-in waveforms
 
-(Considering waveform as a value from 0-15, c is w4.)
+The highest bit appears to be unused. In RAM, Pico-8 sets it for the 2nd
+note in the pattern for some reason, but this is not written to the PNG.
 """
 
 __all__ = ['Sfx']
@@ -51,15 +49,7 @@ WAVEFORM_SHORT_SQUARE = 4
 WAVEFORM_RINGING = 5
 WAVEFORM_NOISE = 6
 WAVEFORM_RINGING_SINE = 7
-WAVEFORM_CUSTOM_0 = 8
-WAVEFORM_CUSTOM_1 = 9
-WAVEFORM_CUSTOM_2 = 10
-WAVEFORM_CUSTOM_3 = 11
-WAVEFORM_CUSTOM_4 = 12
-WAVEFORM_CUSTOM_5 = 13
-WAVEFORM_CUSTOM_6 = 14
-WAVEFORM_CUSTOM_7 = 15
-EFFECT_NONE = 0
+EFFECT_NONE = 0 
 EFFECT_SLIDE = 1
 EFFECT_VIBRATO = 2 
 EFFECT_DROP = 3
@@ -152,7 +142,7 @@ class Sfx(util.BaseSection):
         pitch is a value (0-63), representing the notes on a chromatic scale
         from c-0 to d#-5.
 
-        waveform is one of the WAVEFORM_* constants (0-15).
+        waveform is one fo the WAVEFORM_* constants (0-7).
 
         volume is 0-7: 0 is off, 7 is loudest.
 
@@ -168,10 +158,10 @@ class Sfx(util.BaseSection):
         lsb = self._data[id * 68 + note * 2]
         msb = self._data[id * 68 + note * 2 + 1]
         pitch = lsb & 0x3f
-        waveform = ((msb & 0x80) >> 4) | ((msb & 0x01) << 2) | ((lsb & 0xc0) >> 6)
+        waveform = ((msb & 0x01) << 2) | ((lsb & 0xc0) >> 6)
         volume = (msb & 0x0e) >> 1
         effect = (msb & 0x70) >> 4
-        return pitch, waveform, volume, effect
+        return (pitch, waveform, volume, effect)
 
     def set_note(self, id, note, pitch=None, waveform=None, volume=None,
                  effect=None):
@@ -183,7 +173,7 @@ class Sfx(util.BaseSection):
           id: The pattern ID. (0-63)
           note: The note number. (0-31)
           pitch: The pitch value, or None to leave unchanged. (0-63)
-          waveform: The waveform type, or None to leave unchanged. (0-15)
+          waveform: The waveform type, or None to leave unchanged. (0-7)
           volume: The volume level, or None to leave unchanged. (0-7)
           effect: The effect type, or None to leave unchanged. (0-7)
         """
@@ -194,14 +184,14 @@ class Sfx(util.BaseSection):
             assert 0 <= pitch <= 63
             lsb = (lsb & 0xc0) | pitch
         if waveform is not None:
-            assert 0 <= waveform <= 15
+            assert 0 <= waveform <= 7
             lsb = (lsb & 0x3f) | ((waveform & 3) << 6)
-            msb = (msb & 0x7e) | ((waveform & 4) >> 2) | ((waveform & 8) << 4)
+            msb = (msb & 0xfe) | ((waveform & 4) >> 2) 
         if volume is not None:
             assert 0 <= volume <= 7
             msb = (msb & 0xf1) | (volume << 1)
         if effect is not None:
-            assert 0 <= effect <= 7
+  #          assert 0 <= effect <= 7
             msb = (msb & 0x8f) | (effect << 4)
         
         self._data[id * 68 + note * 2] = lsb

@@ -526,19 +526,6 @@ def _get_argparser():
         '--empty-lua', action='store_true',
         help='use an empty lua region (overrides default)')
     sp_build.add_argument(
-        '--lua-path', type=str,
-        help='the load path to use with require() statements')
-    sp_build.add_argument(
-        '--optimize-tokens', action='store_true',
-        help='attempt to reduce the number of Lua tokens in the final cart')
-    sp_build.add_argument(
-        '--lua-format', action='store_true',
-        help='clean up Lua formatting in the final cart')
-    sp_build.add_argument(
-        '--lua-minify', action='store_true',
-        help='minify the number of Lua characters in the final cart '
-             '(opposite of --lua-format)')
-    sp_build.add_argument(
         '--gfx', type=str,
         help='filename for the cart whose gfx region to use')
     sp_build.add_argument(
