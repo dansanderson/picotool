@@ -359,3 +359,5 @@ def do_watch(args):
     except KeyboardInterrupt:
         watcher.stop()
     watcher.join()
+
+    return 0
