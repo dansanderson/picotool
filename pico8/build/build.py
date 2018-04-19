@@ -124,7 +124,8 @@ class DirWatcher:
         # Watch has done its job, strip it
         args.watch = None
         handler = BuildEventHandler(callback, args,
-            patterns=args.watch_glob.split(',')
+            patterns=args.watch_glob.split(','),
+            ignore_patterns=['*/' + args.filename]
         )
 
         self.observer = Observer()
