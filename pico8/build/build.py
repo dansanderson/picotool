@@ -121,7 +121,9 @@ class RequireWalker(lua.BaseASTWalker):
 
 class DirWatcher:
     def __init__(self, watchdir, callback, args):
-        handler = BuildEventHandler( callback, args,
+        # Watch has done its job, strip it
+        args.watch = None
+        handler = BuildEventHandler(callback, args,
             patterns=args.watch_glob.split(',')
         )
 
