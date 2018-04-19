@@ -336,20 +336,22 @@ def do_build(args):
 
 def do_watch(args):
     if not HAVE_WATCHDOG:
-        util.error("required watchdog library not installed")
+        util.error("optional python library \"watchdog\" not installed\n"
+        "to use --watch, install watchdog however you see fit\n"
+        "using pip, that would be \"pip install watchdog\"\n")
         return 1
 
     # Check for valid directory
     if args.watch:
         if not os.path.exists(args.watch):
-            util.error("Watch directory doesn't exist!")
+            util.error("watch directory doesn't exist!\n")
             return 1
         if not os.path.isdir(args.watch):
-            util.error("Watch directory isn't a directory!")
+            util.error("watch directory isn't a directory!\n")
             return 1
         watchdir = args.filename
     else:
-        util.write("No directory specified, defaulting to current directory\n")
+        util.write("no directory specified, defaulting to current directory\n")
         watchdir = "."
 
     watcher = DirWatcher(watchdir, do_build, args)
