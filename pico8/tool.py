@@ -570,10 +570,10 @@ def _get_argparser():
         '--empty-music', action='store_true',
         help='use an empty music region (overrides default)')
     sp_build.add_argument(
-        '--watch', type=str, nargs="?", const="",
+        '--watch', type=str, nargs='?', const='',
         help='specify a directory to watch and automatically build on changes')
     sp_build.add_argument(
-        '--watch-glob', type=str, default="*.p8,*.png,*.lua",
+        '--watch-glob', type=str, default='*.p8,*.png,*.lua',
         help='comma-separated list of globs to watch for')
     sp_build.add_argument(
         'filename', type=str,

@@ -132,7 +132,7 @@ class DirWatcher:
         self.observer.schedule(handler, watchdir, recursive=True)
         self.observer.start()
 
-        util.write("Watching for changes in \"{}\"...\n".format(watchdir))
+        util.write('Watching for changes in "{}"...\n'.format(watchdir))
 
     def stop(self):
         self.observer.stop()
@@ -150,7 +150,7 @@ class BuildEventHandler(PatternMatchingEventHandler):
         super().__init__(**kwargs)
 
     def on_any_event(self, evt):
-        util.write("Change detected to {}, building...\n".format(evt.src_path))
+        util.write('Change detected to {}, building...\n'.format(evt.src_path))
         self.callback(self.args)
 
 def _evaluate_require(ast, file_path, package_lua, lua_path=None):
@@ -336,23 +336,23 @@ def do_build(args):
 
 def do_watch(args):
     if not HAVE_WATCHDOG:
-        util.error("optional python library \"watchdog\" not installed\n"
-        "to use --watch, install watchdog however you see fit\n"
-        "using pip, that would be \"pip install watchdog\"\n")
+        util.error('optional python library "watchdog" not installed\n'
+        'to use --watch, install watchdog however you see fit\n'
+        'using pip, that would be "pip install watchdog"\n')
         return 1
 
     # Check for valid directory
     if args.watch:
         if not os.path.exists(args.watch):
-            util.error("watch directory doesn't exist!\n")
+            util.error('watch directory doesn't exist!\n')
             return 1
         if not os.path.isdir(args.watch):
-            util.error("watch directory isn't a directory!\n")
+            util.error('watch directory isn't a directory!\n')
             return 1
         watchdir = args.filename
     else:
-        util.write("no directory specified, defaulting to current directory\n")
-        watchdir = "."
+        util.write('no directory specified, defaulting to current directory\n')
+        watchdir = '.'
 
     watcher = DirWatcher(watchdir, do_build, args)
     try:
