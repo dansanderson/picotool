@@ -344,10 +344,10 @@ def do_watch(args):
     # Check for valid directory
     if args.watch:
         if not os.path.exists(args.watch):
-            util.error('watch directory doesn't exist!\n')
+            util.error('watch directory doesn\'t exist!\n')
             return 1
         if not os.path.isdir(args.watch):
-            util.error('watch directory isn't a directory!\n')
+            util.error('watch directory isn\'t a directory!\n')
             return 1
         watchdir = args.filename
     else:
