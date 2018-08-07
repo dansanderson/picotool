@@ -42,6 +42,8 @@ PICO8_BUILTINS = {
     b'self',   # a special name in Lua OO
     b'?',   # alias for "print"
     b'type',
+
+    b'time', b'cd'
 }
 
 SCUMM8_API = {
@@ -60,13 +62,14 @@ SCUMM8_API = {
     
 
     # settings
-    b'show_debuginfo', b'show_collision', b'show_perfinfo', b'enable_mouse',
+    b'show_debuginfo', b'show_collision', b'show_pathfinding', b'show_depth',
 
     # definitions
     b'verbs', b'verb_default', b'rooms', b'actors', 
     b'verb_maincol', b'verb_hovcol',
     b'verb_shadcol', b'verb_defcol', 
-    b'startup_script', b'get_verb',  # b'find_default_verb', b'unsupported_action'
+    b'startup_script', b'get_verb',  
+    b'ui_cursorspr', b'ui_uparrowspr', b'ui_dnarrowspr', b'ui_cursor_cols',
     # properties
     b'data', b'col_replace', b'enter',
     b'exit', b'lighting', b'scripts', b'objects', 
@@ -75,13 +78,17 @@ SCUMM8_API = {
     b'classes', b'states', b'use_pos', 
     b'use_dir', b'trans_col', b'owner', b'flip_x', 
     b'repeat_x', b'face_dir', b'idle', b'talk', 
-    b'col', b'walk_speed', b'in_room', b'use_with',
-    b'walk_anim_side', b'walk_anim_front', b'walk_anim_back', 
     b'init', b'draw', b'frame_delay',b'target_door',
-
-    b'selected_sentence', b'msg', b'num', b'text',
-    b'cam_x',
+    b'col', b'in_room', b'use_with', b'walk_speed',
+    b'walk_anim_side', b'walk_anim_front', b'walk_anim_back', 
+    b'scale', b'autodepth_pos', b'autodepth_scale',
+    b'verb_default_inventory_index',
     
+    #system variables
+    b'selected_sentence', b'msg', b'num', b'text',
+    
+    #useful internal properties
+    b'cam_x', b'stage_top'
 
     # constants
     b'state_closed', b'state_open', b'state_off', b'state_on',
@@ -90,7 +97,7 @@ SCUMM8_API = {
     b'cut_noverbs', b'cut_hidecursor', b'cut_no_follow',
     b'face_front', b'face_left', b'face_back', b'face_right',
     b'pos_infront', b'pos_behind', b'pos_left', b'pos_right', b'pos_inside',
-    b'anim_face', b'enable_diag_squeeze',
+    b'face_towards', b'enable_diag_squeeze',
     
 
 

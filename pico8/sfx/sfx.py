@@ -180,15 +180,16 @@ class Sfx(util.BaseSection):
         lsb = self._data[id * 68 + note * 2]
         msb = self._data[id * 68 + note * 2 + 1]
 
+# disabling asserts - as using sfx memory to store other data
         if pitch is not None:
-            assert 0 <= pitch <= 63
+            #assert 0 <= pitch <= 63
             lsb = (lsb & 0xc0) | pitch
         if waveform is not None:
-            assert 0 <= waveform <= 7
+            #assert 0 <= waveform <= 7
             lsb = (lsb & 0x3f) | ((waveform & 3) << 6)
             msb = (msb & 0xfe) | ((waveform & 4) >> 2) 
         if volume is not None:
-            assert 0 <= volume <= 7
+            #assert 0 <= volume <= 7
             msb = (msb & 0xf1) | (volume << 1)
         if effect is not None:
   #          assert 0 <= effect <= 7
