@@ -20,25 +20,54 @@ PICO8_LUA_CHAR_LIMIT = 32768
 PICO8_LUA_TOKEN_LIMIT = 8192
 PICO8_LUA_COMPRESSED_CHAR_LIMIT = 15360
 
-
+# These are in the same order as they are found in the PICO-8 manual.
 PICO8_BUILTINS = {
-    b'_init', b'_update', b'_update60', b'_draw',
-    b'setmetatable', b'getmetatable', b'cocreate', b'coresume', b'costatus', b'yield',
-    b'load', b'save', b'folder', b'ls', b'run', b'resume', b'reboot', b'stat', b'info',
-    b'flip', b'printh', b'clip', b'pget', b'pset', b'sget', b'sset', b'fget', b'fset',
-    b'print', b'cursor', b'color', b'cls', b'camera', b'circ', b'circfill', b'line',
-    b'rect', b'rectfill', b'pal', b'palt', b'spr', b'sspr', b'add', b'del', b'all',
-    b'foreach', b'pairs', b'btn', b'btnp', b'sfx', b'music', b'mget', b'mset', b'map',
-    b'peek', b'poke', b'memcpy', b'reload', b'cstore', b'memset', b'max', b'min', b'mid',
-    b'flr', b'cos', b'sin', b'atan2', b'sqrt', b'abs', b'rnd', b'srand', b'band', b'bor',
-    b'bxor', b'bnot', b'shl', b'shr', b'cartdata', b'dget', b'dset', b'sub', b'sgn',
-    b'stop', b'menuitem', b'type', b'tostr', b'tonum', b'extcmd', b'ls', b'fillp',
-    b'time', b'assert',
-    b'_update_buttons',  # announced for 30/60 fps compatibility but not yet used?
+    # System
+    b'load', b'save', b'folder', b'dir', b'ls', b'run', b'stop', b'resume',
+    b'reboot', b'info', b'flip', b'printh', b'stat', b'extcmd',
+    # Program Structure
+    b'_update', b'_draw', b'_init', b'_update60',
+    # Graphics
+    b'clip', b'pget', b'pset', b'sget', b'sset', b'fget', b'fset', b'print', b'cursor',
+    b'color', b'cls', b'camera', b'circ', b'circfill', b'line', b'rect', b'rectfill',
+    b'pal', b'palt', b'spr', b'sspr', b'fillp',
+    # Tables
+    b'add', b'del', b'all', b'foreach', b'pairs',
+    # Input
+    b'btn', b'btnp',
+    # Audio
+    b'sfx', b'music',
+    # Map
+    b'mget', b'mset', b'map',
+    # Memory
+    b'peek', b'poke', b'peek4', b'poke4', b'memcpy', b'reload', b'cstore', b'memset',
+    # Math
+    b'max', b'min', b'mid', b'flr', b'ceil', b'cos', b'sin', b'atan2', b'sqrt', b'abs',
+    b'rnd', b'srand', b'band', b'bor', b'bxor', b'bnot', b'rotl', b'rotr', b'shl',
+    b'shr', b'lshr',
+    # Custom Menu Items
+    b'menuitem',
+    # Strings
+    b'sub',
+    # Types
+    b'type', b'tostr', b'tonum',
+    # Cartridge Data
+    b'cartdata', b'dget', b'dset',
+    # Additional Lua Features
+    b'setmetatable', b'getmetatable',
+    b'cocreate', b'coresume', b'costatus', b'yield',
+    # Mentioned In Manual (but not fully documented)
+    b'assert', b'sgn',
+    b'?',   # alias for "print"
+    # Deprecated
     b'count',  # deprecated function
     b'mapdraw',  # deprecated function
+    b'time',
+    # Announced
+    b'_update_buttons',  # announced for 30/60 fps compatibility but not yet used?
+    # Lua
     b'self',   # a special name in Lua OO
-    b'?',   # alias for "print"
+    # Internal
     b'__index'  # internal function sometimes used by carts
 }
 
