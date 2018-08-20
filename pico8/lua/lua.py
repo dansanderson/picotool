@@ -1071,6 +1071,7 @@ class LuaMinifyTokenWriter(BaseLuaWriter):
         self._name_factory = MinifyNameFactory()
         self._last_was_name_keyword_number = False
         self._last_was_newline = True
+        self._approx_count = 0
 
     def to_lines(self):
         """
@@ -1079,7 +1080,9 @@ class LuaMinifyTokenWriter(BaseLuaWriter):
         """
         for token in self._tokens:
             if (token.matches(lexer.TokComment) or
-                token.matches(lexer.TokSpace)):
+                token.matches(lexer.TokSpace)) and self._approx_count > 2:
+                # Strip out comments except for the first two which are significant
+                # to PICO-8's cartridge creation system.
                 continue
             elif token.matches(lexer.TokNewline):
                 # Preserve non-consecutive newlines. This is the easiest way to handle Pico-8's newline-dependent
@@ -1110,6 +1113,7 @@ class LuaMinifyTokenWriter(BaseLuaWriter):
                 self._last_was_name_keyword_number = token.code in b'])}'
                 self._last_was_newline = False
                 yield token.code
+            self._approx_count += 1
 
 
 class LuaFormatterTokenWriter(LuaASTEchoWriter):
