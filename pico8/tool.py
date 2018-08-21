@@ -299,6 +299,21 @@ def luamin(g, out_fname, args=None):
               lua_writer_cls=lua.LuaMinifyTokenWriter)
             
 
+def luamin2(g, out_fname, args=None):
+    """Conservatively reduces the Lua code for a cart to reduce character count.
+
+    This is very similar to luamin, but is more conservative about renaming
+    table fields.
+
+    Args:
+      g: The Game.
+      out_fname: The output filename, for error messages.
+      args: The argparse parsed args object, or None.
+    """
+    g.to_file(filename=out_fname,
+              lua_writer_cls=lua.LuaMinifyWriter)
+            
+
 def luafmt(g, out_fname, args=None):
     """Rewrite the Lua code for a cart to use regular formatting.
 
@@ -402,6 +417,11 @@ def do_luamin(args):
     return process_game_files(args.filename, luamin, args=args)
 
 
+def do_luamin2(args):
+    """Executor for the luamin2 command."""
+    return process_game_files(args.filename, luamin2, args=args)
+
+
 def do_luafmt(args):
     """Executor for the luafmt command."""
     return process_game_files(args.filename, luafmt,
@@ -469,6 +489,14 @@ def _get_argparser():
         'filename', type=str, nargs='+',
         help='the names of files to process')
     sp_luamin.set_defaults(func=do_luamin)
+
+    sp_luamin2 = subparsers.add_parser(
+        'luamin2',
+        help='minifies the Lua code for a cart (using the parser), reducing the character count')
+    sp_luamin2.add_argument(
+        'filename', type=str, nargs='+',
+        help='the names of files to process')
+    sp_luamin2.set_defaults(func=do_luamin2)
 
     sp_luafmt = subparsers.add_parser(
         'luafmt',

@@ -879,10 +879,13 @@ class MinifyNameFactory():
             first = cls._name_for_id(int(id / len(MinifyNameFactory.NAME_CHARS)))
         return first + bytes([MinifyNameFactory.NAME_CHARS[id % len(MinifyNameFactory.NAME_CHARS)]])
 
-    def get_short_name(self, name):
+    def get_short_name(self, name, leave_it_be=False):
         if name in MinifyNameFactory.PRESERVED_NAMES:
             return name
         if name not in self._name_map:
+            if leave_it_be:
+                self._name_map[name] = name
+                return name
             new_name = None
             while True:
                 new_name = self._name_for_id(self._next_name_id)
@@ -902,7 +905,7 @@ class LuaMinifyWriter(LuaASTEchoWriter):
         super().__init__(*args, **kwargs)
         self._name_factory = MinifyNameFactory()
 
-    def _get_name(self, node, tok):
+    def _get_name(self, node, tok, leave_it_be=False):
         """Gets the minified name for a TokName.
 
         Args:
@@ -915,7 +918,7 @@ class LuaMinifyWriter(LuaASTEchoWriter):
         spaces = self._get_code_for_spaces(node)
         assert tok.matches(lexer.TokName)
         self._pos += 1
-        return spaces + self._name_factory.get_short_name(tok.code)
+        return spaces + self._name_factory.get_short_name(tok.code, leave_it_be)
 
     def _get_code_for_spaces(self, node):
         """Calculates the minified text for the space and comment tokens that
@@ -978,6 +981,12 @@ class LuaMinifyWriter(LuaASTEchoWriter):
                 spaces_without_semis.append(spaces)
                 break
         return b''.join(spaces_without_semis)
+
+    def _walk_FieldNamedKey(self, node):
+        yield self._get_name(node, node.key_name, True)
+        yield self._get_text(node, b'=')
+        for t in self._walk(node.exp):
+            yield t
 
 
 class LuaFormatterWriter(LuaASTEchoWriter):
