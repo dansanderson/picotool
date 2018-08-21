@@ -416,6 +416,12 @@ cls()
 ...
 ```
 
+### p8tool luamin2
+
+The `luamin2` tool works almost identically to the `luamin` tool but uses a moreLua-savvy parser and performs fewer code changes. It is less aggressive than `luamin` and so does not compress as well, but will sometimes result in working code when `luamin` will not.
+
+The same sorts of warnings apply to `luamin2` as apply to `luamin`. Generally it is better if you do not run this tool as keeping PICO-8 code understandable is a worthwhile goal in itself. That being said there will occasionally be times where the original source cannot be saved as a cartridge while the minified one can. For these rare situations the tool can be handy.
+
 
 ### p8tool listtokens
 
