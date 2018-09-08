@@ -982,6 +982,12 @@ class LuaMinifyWriter(LuaASTEchoWriter):
                 break
         return b''.join(spaces_without_semis)
 
+    def _walk_VarAttribute(self, node):
+        for t in self._walk(node.exp_prefix):
+            yield t
+        yield self._get_text(node, b'.')
+        yield self._get_name(node, node.attr_name, True)
+
     def _walk_FieldNamedKey(self, node):
         yield self._get_name(node, node.key_name, True)
         yield self._get_text(node, b'=')
