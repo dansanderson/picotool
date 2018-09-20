@@ -151,7 +151,7 @@ class TokString(Token):
                 c = bytes([c])
                 if c in _STRING_REVERSE_ESCAPES:
                     escaped_chrs.append(b'\\' + _STRING_REVERSE_ESCAPES[c])
-                elif (c[0] > 125 and c[0] < 154) or (c[0] >= 65 and c[0] <= 90):
+                elif (c[0] > 125 and c[0] < 154) or (c[0] >= 65 and c[0] <= 90) or (c[0] in (34, 39)):
                     # Special PICO-8 graphics characters and small letters
                     # should be left alone
                     escaped_chrs.append(b'\\' + bytes(str(ord(c)), 'utf-8'))

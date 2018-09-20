@@ -904,6 +904,8 @@ class LuaMinifyWriter(LuaASTEchoWriter):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._name_factory = MinifyNameFactory()
+        # We want to preserve the first two comments as they are significant to PICO-8.
+        self.comment_count = 0
 
     def _get_name(self, node, tok, leave_it_be=False):
         """Gets the minified name for a TokName.
@@ -940,9 +942,13 @@ class LuaMinifyWriter(LuaASTEchoWriter):
                 isinstance(self._tokens[self._pos], lexer.TokComment))):
             if not isinstance(self._tokens[self._pos], lexer.TokComment):
                 strs.append(self._tokens[self._pos].code)
+            elif self.comment_count < 2:
+                # This condition keeps the first two comments.
+                strs.append(self._tokens[self._pos].code)
+                self.comment_count += 1
             self._pos += 1
 
-        if (start_pos == 0) or (self._pos == len(self._tokens)):
+        if (start_pos == 0 and self.comment_count == 0) or (self._pos == len(self._tokens)):
             # Eliminate all spaces at beginning and end of code.
             return b''
 
