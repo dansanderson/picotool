@@ -291,6 +291,24 @@ for cname in dir(parser):
         setattr(BaseASTWalker, '_walk_' + cls.__name__, _default_node_handler)
 
 
+class ConstantNameExtractor(BaseASTWalker):
+    """A walker that identifies names that ought not be changed."""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # We want to track names so we can be smart about necessary preservation.
+        self.unchangeable_names = set()
+
+    def _walk_VarAttribute(self, node):
+        for t in self._walk(node.exp_prefix):
+            yield t
+        self.unchangeable_names.add(node.attr_name.code)
+
+    def _walk_FieldNamedKey(self, node):
+        self.unchangeable_names.add(node.key_name.code)
+        for t in self._walk(node.exp):
+            yield t
+
+
 class BaseLuaWriter(BaseASTWalker):
     """A base class for Lua writers."""
     def to_lines(self):
@@ -906,6 +924,11 @@ class LuaMinifyWriter(LuaASTEchoWriter):
         self._name_factory = MinifyNameFactory()
         # We want to preserve the first two comments as they are significant to PICO-8.
         self.comment_count = 0
+        # We also want to track names so we can be smart about necessary preservation.
+        name_parser = ConstantNameExtractor(self._tokens, self._root)
+        for t in name_parser.walk():
+            pass
+        self.unchangeable_names = name_parser.unchangeable_names
 
     def _get_name(self, node, tok, leave_it_be=False):
         """Gets the minified name for a TokName.
@@ -920,6 +943,8 @@ class LuaMinifyWriter(LuaASTEchoWriter):
         spaces = self._get_code_for_spaces(node)
         assert tok.matches(lexer.TokName)
         self._pos += 1
+        if tok.code in self.unchangeable_names and len(tok.code):
+            leave_it_be = True
         return spaces + self._name_factory.get_short_name(tok.code, leave_it_be)
 
     def _get_code_for_spaces(self, node):
