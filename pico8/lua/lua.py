@@ -368,8 +368,21 @@ class LuaASTEchoWriter(BaseLuaWriter):
             return b' ' + keyword
 
         spaces = self._get_code_for_spaces(node)
-        assert (self._tokens[self._pos].matches(lexer.TokKeyword(keyword)) or
+        try:
+            assert (self._tokens[self._pos].matches(lexer.TokKeyword(keyword)) or
                 self._tokens[self._pos].matches(lexer.TokSymbol(keyword)))
+        except AssertionError as e:
+            # The validator failed. Explain to the user why their code won't run.
+            # The picotool validator is slightly more strict than pico8.
+            import traceback
+            traceback.print_exc()
+            print("Invalid token at line {}. Scanner read {}, expected {}.".format(
+                self._tokens[self._pos]._lineno, 
+                self._tokens[self._pos].code, 
+                lexer.TokSymbol(keyword))
+            )
+            from os import abort
+            abort()
         self._pos += 1
         return spaces + keyword
 
