@@ -156,13 +156,15 @@ def listlua(args):
             continue
         if len(args.filename) > 1:
             util.write('=== {} ===\n'.format(g.filename))
-        for l in g.lua.to_lines():
+
+        for l in g.lua.to_lines(
+                writer_cls=(lua.PureLuaWriter if args.pure_lua else None)):
             if args.show_line_numbers:
                 util.write('{}: {}'.format(i, _as_friendly_string(l)))
             else:
                 util.write(_as_friendly_string(l))
         util.write('\n')
-        
+
     return 0
 
 
@@ -253,7 +255,7 @@ def process_game_files(filenames, procfunc, overwrite=False, args=None):
         if g is None:
             has_errors = True
             continue
-        
+
         if overwrite and fname.endswith('.p8'):
             out_fname = fname
         else:
@@ -296,7 +298,7 @@ def luamin(g, out_fname, args=None):
     """
     g.to_file(filename=out_fname,
               lua_writer_cls=lua.LuaMinifyTokenWriter)
-            
+
 
 def luafmt(g, out_fname, args=None):
     """Rewrite the Lua code for a cart to use regular formatting.
@@ -336,7 +338,7 @@ def _printast_node(value, indent=0, prefix=''):
     else:
         util.write('{}{}{}\n'.format(' ' * indent, prefix, value))
 
-        
+
 def printast(args):
     """Prints the parser's internal representation of Lua code.
 
@@ -440,6 +442,9 @@ def _get_argparser():
     sp_listlua.add_argument(
         '--show-line-numbers', action='store_true',
         help='prepends each line with a line number')
+    sp_listlua.add_argument(
+        '--pure-lua', action='store_true',
+        help='converts PICO-8 syntax extensions to pure Lua')
     sp_listlua.set_defaults(func=listlua)
 
     sp_listrawlua = subparsers.add_parser(

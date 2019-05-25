@@ -34,7 +34,7 @@ class LexerError(util.InvalidP8DataError):
         self.msg = msg
         self.lineno = lineno
         self.charno = charno
-        
+
     def __str__(self):
         return '{} at line {} char {}'.format(
             self.msg, self.lineno, self.charno)
@@ -42,10 +42,10 @@ class LexerError(util.InvalidP8DataError):
 
 class Token():
     """A base class for all tokens."""
-    
+
     def __init__(self, data, lineno=None, charno=None):
         """Initializer.
-        
+
         Args:
           data: The code data for the token.
           lineno: The source file line number of the first character.
@@ -54,11 +54,11 @@ class Token():
         self._data = data
         self._lineno = lineno
         self._charno = charno
-        
+
     def __len__(self):
         """The length of the code string for the token."""
         return len(self.code)
-    
+
     def __repr__(self):
         """A textual representation for debugging."""
         return '{}<{}, line {} char {}>'.format(
@@ -81,7 +81,7 @@ class Token():
             isinstance(other, TokKeyword)):
             return self._data.lower() == other._data.lower()
         return self._data == other._data
-            
+
     def matches(self, other):
         """Matches the token against either a token class or token data.
 
@@ -94,17 +94,27 @@ class Token():
         """
         if isinstance(other, type):
             return isinstance(self, other)
+
         return self == other
 
     @property
     def value(self):
         """The parsed value of the token."""
         return self._data
-    
+
     @property
     def code(self):
         """The original code of the token."""
         return self._data
+
+    @code.setter
+    def code(self, value):
+        """Setter for code.
+
+        Use this wisely! This does not validate that your updated token
+        matches the token type.
+        """
+        self._data = value
 
 
 class TokSpace(Token):
@@ -186,7 +196,7 @@ class TokNumber(Token):
                 return float(int(integer, 2)) + float(int(frac, 2))/(2**len(frac))
             return float(int(self._data, 2))
         return float(self._data)
-    
+
 
 class TokName(Token):
     """A variable or function name."""
@@ -260,7 +270,7 @@ class Lexer():
     A lexer object maintains state between calls to process_line() to
     manage tokens that span multiple lines.
     """
-    
+
     def __init__(self, version):
         """Initializer.
 
@@ -334,7 +344,7 @@ class Lexer():
                     self._in_string = None
                     i += 1
                     break
-                
+
                 if c == b'\\':
                     # Escape character.
                     num_m = re.match(br'\d{1,3}', s[i+1:])
@@ -346,7 +356,7 @@ class Lexer():
                         if next_c in _STRING_ESCAPES:
                             c = _STRING_ESCAPES[next_c]
                             i += 1
-                            
+
                 self._in_string.append(c)
                 i += 1
 

@@ -218,7 +218,7 @@ class BaseASTWalker():
 
     def _walk(self, node):
         """Walk a node by calling its handler.
-        
+
         Yields:
           Items returned or yielded by the handler.
         """
@@ -293,6 +293,134 @@ class LuaEchoWriter(BaseLuaWriter):
                 strs.clear()
         if strs:
             yield b''.join(strs)
+
+
+class PureLuaWriter(BaseLuaWriter):
+    """Writes the Lua code, transforming PICO-8 shortcuts to pure Lua syntax.
+    """
+    def to_lines(self):
+        """
+        Yields:
+          Lines of Lua code, with PICO-8 shortcuts transformed to Lua.
+        """
+        toks = []
+        for token in self._tokens:
+            toks.append(token)
+            if token.matches(lexer.TokNewline):
+                yield self.line_to_pure_lua(toks)
+                toks.clear()
+        if toks:
+            yield self.line_to_pure_lua(toks)
+
+    def _find_tok(self, toks, match, start=0, check=False):
+        i = start
+        while i < len(toks) and not toks[i].matches(match):
+            i += 1
+        if i == len(toks):
+            if check:
+                raise ValueError()
+            return -1
+        return i
+
+    def _next_nonspace_tok(self, toks, start=0, check=False):
+        i = start
+        while i < len(toks) and toks[i].matches(lexer.TokSpace):
+            i += 1
+        if i == len(toks):
+            if check:
+                raise ValueError()
+            return -1
+        return i
+
+    def line_to_pure_lua(self, line_toks):
+        """Transforms a line of PICO-8 Lua to pure Lua.
+
+        This relies heavily on the fact that PICO-8 Lua shortcut syntax
+        operates on a single line. It uses the token stream to handle strings
+        and multiline comments correctly.
+
+        This assumes that the code parses correctly. If the input doesn't
+        parse, the output will be worse.
+
+        Args:
+            An iterable of lexer.Token instances representing a single line up
+            to and including an optional TokNewLine.
+
+        Returns:
+            A bytestring of Lua code.
+        """
+        if not line_toks:
+            return b''
+
+        # Drop newline
+        if line_toks[-1].matches(lexer.TokNewline):
+            line_toks = line_toks[:-1]
+
+        if not line_toks:
+            return b'\n'
+
+        # Comment beginning with //
+        if line_toks[-1].matches(lexer.TokComment):
+            if line_toks[-1].code.startswith(b'//'):
+                line_toks[-1].code = line_toks[-1].code.replace(b'//', b'--', 1)
+
+        # ?...[EOL] -> print(...)
+        short_print_i = self._find_tok(line_toks, lexer.TokName(b'?'))
+        if short_print_i != -1:
+            line_toks[short_print_i].code = b'print'
+            line_toks[short_print_i + 1:] = (
+                [lexer.TokSymbol(b'(')] +
+                line_toks[short_print_i + 1:] +
+                [lexer.TokSymbol(b')')])
+
+        # if (cond) [not-THEN] ... [EOL]
+        try:
+            short_if_i = self._find_tok(
+                line_toks, lexer.TokKeyword(b'if'), check=True)
+            short_if_lparen_i = self._find_tok(
+                line_toks, lexer.TokSymbol(b'('), start=short_if_i, check=True)
+            short_if_rparen_i = self._find_tok(
+                line_toks, lexer.TokSymbol(b')'), start=short_if_lparen_i,
+                check=True)
+            short_if_then_i = self._find_tok(
+                line_toks, lexer.TokKeyword(b'then'), start=short_if_rparen_i)
+            if short_if_then_i == -1:
+                line_toks[short_if_rparen_i + 1:] = (
+                    [lexer.TokSpace(b' '), lexer.TokKeyword(b'then'),
+                     lexer.TokSpace(b' ')] +
+                    line_toks[short_if_rparen_i + 1:] +
+                    [lexer.TokSpace(b' '), lexer.TokKeyword(b'end')])
+        except ValueError:
+            pass
+
+        # lhs += ... [EOL]
+        first_nonspace_i = self._next_nonspace_tok(line_toks)
+        if (first_nonspace_i != -1 and
+                line_toks[first_nonspace_i].matches(lexer.TokName)):
+            assign_i = self._next_nonspace_tok(
+                line_toks, start=first_nonspace_i + 1)
+            if (assign_i != -1 and
+                    (line_toks[assign_i].matches(lexer.TokSymbol(b'+=')) or
+                     line_toks[assign_i].matches(lexer.TokSymbol(b'-=')) or
+                     line_toks[assign_i].matches(lexer.TokSymbol(b'*=')) or
+                     line_toks[assign_i].matches(lexer.TokSymbol(b'/=')) or
+                     line_toks[assign_i].matches(lexer.TokSymbol(b'%=')))):
+                op = line_toks[assign_i].code[0:1]
+                replacement = [
+                    lexer.TokSymbol(b'='),
+                    lexer.TokSpace(b' '),
+                    lexer.TokName(line_toks[first_nonspace_i].code),
+                    lexer.TokSpace(b' '),
+                    lexer.TokSymbol(op),
+                    lexer.TokSpace(b' ')] + line_toks[assign_i + 1:]
+                line_toks[assign_i:] = replacement
+
+        # !=
+        not_equal_i = self._find_tok(line_toks, lexer.TokSymbol(b'!='))
+        if not_equal_i != -1:
+            line_toks[not_equal_i] = lexer.TokSymbol(b'~=')
+
+        return b''.join(tok.code for tok in line_toks) + b'\n'
 
 
 class LuaASTEchoWriter(BaseLuaWriter):
