@@ -378,13 +378,16 @@ class PureLuaWriter(BaseLuaWriter):
             short_if_i = self._find_tok(
                 line_toks, lexer.TokKeyword(b'if'), check=True)
             short_if_lparen_i = self._find_tok(
-                line_toks, lexer.TokSymbol(b'('), start=short_if_i, check=True)
+                line_toks, lexer.TokSymbol(b'('), start=short_if_i + 1, check=True)
             short_if_rparen_i = self._find_tok(
-                line_toks, lexer.TokSymbol(b')'), start=short_if_lparen_i,
+                line_toks, lexer.TokSymbol(b')'), start=short_if_lparen_i + 1,
                 check=True)
-            short_if_then_i = self._find_tok(
-                line_toks, lexer.TokKeyword(b'then'), start=short_if_rparen_i)
-            if short_if_then_i == -1:
+            short_if_then_i = self._next_nonspace_tok(
+                line_toks, start=short_if_rparen_i + 1)
+            next_tok = line_toks[short_if_then_i]
+            if (not next_tok.matches(lexer.TokKeyword(b'then'))
+                    and not next_tok.matches(lexer.TokKeyword(b'and'))
+                    and not next_tok.matches(lexer.TokKeyword(b'or'))):
                 line_toks[short_if_rparen_i + 1:] = (
                     [lexer.TokSpace(b' '), lexer.TokKeyword(b'then'),
                      lexer.TokSpace(b' ')] +
