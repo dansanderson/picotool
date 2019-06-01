@@ -596,7 +596,7 @@ class Game():
         """
         outstr.write(HEADER_TITLE_STR)
 
-        outstr.write(b'version 8\n')
+        outstr.write(bytes('version %s\n' % self.version, 'utf-8'))
 
         # Sanity-check the Lua written by the writer.
         transformed_lua = Lua.from_lines(
