@@ -1,4 +1,0 @@
-pypng
-nose
-coverage
-

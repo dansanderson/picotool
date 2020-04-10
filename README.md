@@ -21,12 +21,14 @@ There are additional tools that are mostly useful for demonstrating and troubles
 
 To install the `picotool` tools and libraries:
 
-1. Download and unpack [the zip archive](https://github.com/dansanderson/picotool/archive/master.zip), or use Git to clone [the Github repository](https://github.com/dansanderson/picotool).
-   * Unpacking the zip archive creates a root directory named `picotool-master`. When cloning the repo, this is just `picotool`, or whatever you named it when you cloned it.
 1. Install [Python 3](https://www.python.org/) version 3.4 or later, if necessary. (picotool has not been tested with Python 2.)
-1. To enable PNG support, install the [PyPNG library](https://github.com/drj11/pypng):
+1. Download and unpack [the zip archive](https://github.com/dansanderson/picotool/archive/master.zip), or use Git to clone [the Github repository](https://github.com/dansanderson/picotool).
+   * Unpacking the zip archive creates a root directory named `picotool-master`.
+   * When cloning the repo, this is just `picotool`, or whatever you named it when you cloned it.
+1. Change to the unpacked archive or clone directory from the above step.
+1. Install the software:
    ```
-   python3 -m pip install pypng
+   python3 setup.py install
    ```
 
 ## Using picotool
@@ -36,7 +38,7 @@ To use a tool, you run the `p8tool` command with the appropriate arguments. With
 For example, to print statistics about a cart named `helloworld.p8.png`:
 
 ```
-./picotool-master/p8tool stats helloworld.p8.png
+p8tool stats helloworld.p8.png
 ```
 
 
@@ -49,13 +51,13 @@ The tool takes the filename of the output cartridge, with additional arguments d
 For example, you can create a cartridge in Pico-8, use Pico-8's built-in graphics and sound editors, then use `p8tool build` to replace the Lua code with the contents of a `.lua` file:
 
 ```
-% ./picotool-master/p8tool build mygame.p8.png --lua mygame.lua
+% p8tool build mygame.p8.png --lua mygame.lua
 ```
 
 As another example, to create a new cartridge using the spritesheet (`gfx`) from one cartridge file, music (`sfx`, `music`) from another, and Lua code from a `.lua` file:
 
 ```
-% ./picotool-master/p8tool build mygame.p8.png --gfx mygamegfx.p8 --sfx radsnds.p8.png --music radsnds.p8.png --lua mygame.lua
+% p8tool build mygame.p8.png --gfx mygamegfx.p8 --sfx radsnds.p8.png --music radsnds.p8.png --lua mygame.lua
 ```
 
 You can also erase a section of an existing cart with an argument such as `--empty-map`. 
@@ -219,7 +221,7 @@ This feature incurs a small amount of overhead in terms of tokens. Each library 
 You can tell `p8tool build` to format or minify the code in the built output using the `--lua-format` or `--lua-minify` command line arguments, respectively.
 
 ``` 
-% ./picotool-master/p8tool build mycart.p8.png --lua=mygame.lua --lua-format
+% p8tool build mycart.p8.png --lua=mygame.lua --lua-format
 ```
 
 This is equivalent to building the cart then running `p8tool luafmt` or `p8tool luamin` on the result.
@@ -230,7 +232,7 @@ This is equivalent to building the cart then running `p8tool luafmt` or `p8tool 
 The `stats` tool prints statistics about one or more carts. Given one or more cart filenames, it analyzes each cart, then prints information about it.
 
 ```
-% ./picotool-master/p8tool stats helloworld.p8.png 
+% p8tool stats helloworld.p8.png 
 hello world (helloworld.p8.png)
 by zep
 version: 0  lines: 48  chars: 419  tokens: 134
@@ -239,7 +241,7 @@ version: 0  lines: 48  chars: 419  tokens: 134
 This command accepts an optional `--csv` argument. If provided, the command prints the statistics in a CSV format suitable for importing into a spreadsheet. This is useful when tallying statistics about multiple carts for comparative analysis.
 
 ```
-% ./picotool-master/p8tool --csv stats mycarts/*.p8* >cartstats.csv
+% p8tool --csv stats mycarts/*.p8* >cartstats.csv
 ```
 
 
@@ -248,7 +250,7 @@ This command accepts an optional `--csv` argument. If provided, the command prin
 The `listlua` tool extracts the Lua code from a cart, then prints it exactly as it appears in the cart.
 
 ```
-% ./picotool-master/p8tool listlua helloworld.p8.png 
+% p8tool listlua helloworld.p8.png 
 -- hello world
 -- by zep
 
@@ -274,7 +276,7 @@ The `luafmt` tool rewrites the Lua region of a cart to make it easier to read, u
 The command takes one or more cart filenames as arguments. For each cart with a name like `xxx.p8.png`, it writes a new cart with a name like `xxx_fmt.p8`.
 
 ```
-% ./picotool-master/p8tool luafmt helloworld.p8.png 
+% p8tool luafmt helloworld.p8.png 
 % cat helloworld_fmt.p8
 pico-8 cartridge // http://www.pico-8.com
 version 5
@@ -303,7 +305,7 @@ function _draw()
 By default, the indentation width is 2 spaces. You can change the desired indentation width by specifying the `--indentwidth=...` argument:
 
 ```
-% ./picotool-master/p8tool luafmt --indentwidth=4 helloworld.p8.png 
+% p8tool luafmt --indentwidth=4 helloworld.p8.png 
 % cat helloworld_fmt.p8
 ...
 function _update()
@@ -330,7 +332,7 @@ The `luafind` tool searches for a string or pattern in the code of one or more c
 Unlike common tools like `grep`, `luafind` can search code in .p8.png carts as well as .p8 carts. This tool is otherwise not particularly smart: it's slow (it runs every file through the parser), and doesn't support fancier `grep`-like features.
 
 ```
-% ./picotool-master/p8tool luafind 'boards\[.*\]' *.p8*
+% p8tool luafind 'boards\[.*\]' *.p8*
 test_gol.p8.png:11:  boards[1][y] = {}
 test_gol.p8.png:12:  boards[2][y] = {}
 test_gol.p8.png:14:    boards[1][y][x] = 0
@@ -350,7 +352,7 @@ test_gol.p8.png:57:        boards[other_i][y][x] = 0
 You can tell `luafind` to just list the names of files containing the pattern without printing the lines using the `--listfiles` argument. Here's an example that looks for carts that contain examples of Lua OO programming:
 
 ```
-% ./picotool-master/p8tool luafind --listfiles 'self,' *.p8*
+% p8tool luafind --listfiles 'self,' *.p8*
 11243.p8.png
 12029.p8.png
 12997.p8.png
@@ -369,7 +371,7 @@ The `writep8` tool writes a game's data to a `.p8` file. This is mostly useful f
 The command takes one or more cart filenames as arguments. For each cart with a name like `xxx.p8.png`, it writes a new cart with a name like `xxx_fmt.p8`.
 
 ```
-% ./picotool-master/p8tool writep8 helloworld.p8.png 
+% p8tool writep8 helloworld.p8.png 
 % cat helloworld_fmt.p8
 pico-8 cartridge // http://www.pico-8.com
 version 5
@@ -401,7 +403,7 @@ The command takes one or more cart filenames as arguments. For each cart with a 
 I don't recommend using this tool when publishing your games. Statistically, you will run out of tokens before you run out of characters, and minifying is unlikely to affect the compressed character count. Carts are more useful to the Pico-8 community if the code in a published cart is readable and well-commented. I only wrote `luamin` because it's an obvious kind of code transformation to try with the library.
 
 ```
-% ./picotool-master/p8tool luamin helloworld.p8.png 
+% p8tool luamin helloworld.p8.png 
 % cat helloworld_fmt.p8
 pico-8 cartridge // http://www.pico-8.com
 version 5
@@ -422,7 +424,7 @@ cls()
 The `listtokens` tool is similar to `listlua`, but it identifies which characters picotool recognizes as a single token.
 
 ```
-% ./picotool-master/p8tool listtokens ./picotool-master/tests/testdata/helloworld.p8.png 
+% p8tool listtokens ./picotool-master/tests/testdata/helloworld.p8.png 
 <-- hello world>
 <-- by zep>
 
@@ -450,7 +452,7 @@ When picotool parses Lua code, it separates out comments, newlines, and spaces, 
 The `printast` tool prints a visualization of the abstract syntax tree (AST) determined by the parser. This is a representation of the structure of the Lua code. This is useful for understanding the AST structure when writing a new tool based on the picotool library.
 
 ```
-% ./picotool-master/p8tool printast ./picotool-master/tests/testdata/helloworld.p8.png 
+% p8tool printast ./picotool-master/tests/testdata/helloworld.p8.png 
 
 Chunk
   * stats: [list:]
@@ -520,19 +522,11 @@ While the library in its current state is featureful enough for building simple 
 
 ## Developing picotool
 
-If you want to change the picotool code and run its test suite, you will need the [Nose test runner](https://nose.readthedocs.org/en/latest/) and the [coverage tool](https://pypi.python.org/pypi/coverage). You can install these with `pip`:
+The picotool code includes tests intended for the [Nose test runner](https://nose.readthedocs.org/en/latest/).  To run the test suite:
 
 ```
-python3 -m pip install nose coverage
+python3 setup.py test
 ```
-
-To run the test suite:
-
-```
-python3 run_tests.py
-```
-
-By default, this produces an HTML coverage report in the `cover` subdirectory. Open `.../picotool-master/cover/index.html` in a browser to see it.
 
 
 ## Known issues
