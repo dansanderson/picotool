@@ -583,7 +583,7 @@ def _get_argparser():
     return parser
 
 
-def main(orig_args):
+def main(orig_args=None):
     try:
         arg_parser = _get_argparser()
         args = arg_parser.parse_args(args=orig_args)

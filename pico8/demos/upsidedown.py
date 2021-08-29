@@ -286,9 +286,9 @@ def upsidedown_game(g, smallmap=False, flipbuttons=False, flipsounds=False):
             it.__next__()
     except StopIteration:
         pass
-    
 
-def main(orig_args):
+
+def main(orig_args=None):
     arg_parser = _get_argparser()
     args = arg_parser.parse_args(args=orig_args)
 
