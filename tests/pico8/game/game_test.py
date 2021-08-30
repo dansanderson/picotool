@@ -283,7 +283,7 @@ class TestGameToP8(unittest.TestCase):
     def testCharCountWarning(self):
         g = game.Game.make_empty_game(filename='test')
         g.lua.update_from_lines(
-            [b'-- 345678901234567890123456789012345678\n'] * 820)
+            [b'-- 345678901234567890123456789012345678\n'] * 1640)
         outstr = io.BytesIO()
         g.to_p8_file(outstr, filename='test')
         self.assertTrue(util._error_stream.getvalue().startswith(

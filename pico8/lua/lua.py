@@ -16,9 +16,9 @@ from . import lexer
 from . import parser
 
 
-PICO8_LUA_CHAR_LIMIT = 32768
+PICO8_LUA_CHAR_LIMIT = 65535
 PICO8_LUA_TOKEN_LIMIT = 8192
-PICO8_LUA_COMPRESSED_CHAR_LIMIT = 15360
+PICO8_LUA_COMPRESSED_CHAR_LIMIT = 15616
 
 # These keywords are defined by PICO-8 and are preserved by luamin.
 # This list is organized similarly to the manual to make new documented
