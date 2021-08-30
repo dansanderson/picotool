@@ -19,10 +19,10 @@ VALID_LUA_EVERY_NODE = [l + b'\n' for l in b'''
 -- doesn't have to make sense
 
 function f(arg1, ...)
-  local t = {}
-  t[arg1] = 999
-  t['extra'] = ...
-  return t
+  local zzz = {}
+  zzz[arg1] = 999
+  zzz['extra'] = ...
+  return zzz
 end
 
 local function myprint(msg)
@@ -97,7 +97,7 @@ class TestLua(unittest.TestCase):
         result = lua.Lua(4)
         self.assertEqual(4, result._lexer._version)
         self.assertEqual(4, result._parser._version)
-        
+
     def testFromLines(self):
         result = lua.Lua.from_lines(VALID_LUA_SHORT_LINES, 4)
         self.assertEqual(17, len(result._lexer._tokens))
@@ -118,7 +118,7 @@ class TestLua(unittest.TestCase):
             b'end\r\n'
         ], 4)
         self.assertEqual(5, result.get_token_count())
-        
+
     def testGetTitle(self):
         result = lua.Lua.from_lines(VALID_LUA_SHORT_LINES, 4)
         self.assertEqual(b'short test', result.get_title())
@@ -132,13 +132,13 @@ class TestLua(unittest.TestCase):
         self.assertRaises(NotImplementedError,
                           lua.BaseLuaWriter(None, None).to_lines)
 
-        
+
 class TestLuaEchoWriter(unittest.TestCase):
     def testToLinesEchoWriter(self):
         result = lua.Lua.from_lines(VALID_LUA_SHORT_LINES, 4)
         lines = list(result.to_lines())
         self.assertEqual(lines, VALID_LUA_SHORT_LINES)
-        
+
     def testToLinesEchoWriterLastCharIsntNewline(self):
         result = lua.Lua.from_lines(VALID_LUA_SHORT_LINES + [b'break'], 4)
         lines = list(result.to_lines())
@@ -163,7 +163,7 @@ class TestLuaMinifyWriter(unittest.TestCase):
         lines = list(result.to_lines(writer_cls=lua.LuaMinifyWriter))
         txt = b''.join(lines)
         self.assertIn(b'function a()', txt)
-        
+
     def testMinifiesNamesEveryNode(self):
         result = lua.Lua.from_lines(VALID_LUA_EVERY_NODE, 4)
         lines = list(result.to_lines(writer_cls=lua.LuaMinifyWriter))
@@ -174,7 +174,7 @@ class TestLuaMinifyWriter(unittest.TestCase):
         self.assertIn(b'return c', txt)
         self.assertIn(b'local function d(e)', txt)
         self.assertIn(b'print(e)', txt)
-        self.assertIn(b'::t::\ngoto t', txt)
+        self.assertIn(b'::u::\ngoto u', txt)
 
     def testMinifiesSpaces(self):
         result = lua.Lua.from_lines(VALID_LUA_SHORT_LINES, 4)
@@ -183,7 +183,7 @@ class TestLuaMinifyWriter(unittest.TestCase):
         self.assertEqual(b'''function a()
 return 999
 end''', txt)
-        
+
     def testMinifiesSpacesEveryNode(self):
         result = lua.Lua.from_lines(VALID_LUA_EVERY_NODE, 4)
         lines = list(result.to_lines(writer_cls=lua.LuaMinifyWriter))
