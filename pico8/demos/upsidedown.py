@@ -14,7 +14,7 @@ Limitations:
 
 * This increases the token count, so large carts can't be turned
   upside down. In many cases, the tool will succeed because picotool
-  under-counts tokens, but the cart won't run when loaded into Pico-8.
+  under-counts tokens, but the cart won't run when loaded into PICO-8.
 
 And probably other shortcomings of the tool or the parser that I
 haven't found yet.
@@ -39,7 +39,7 @@ def _get_argparser():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         usage='%(prog)s [--help] [--smallmap] <in-filename> [<out-filename>]',
         description=textwrap.dedent('''
-        Turns a Pico-8 cart upside down.
+        Turns a PICO-8 cart upside down.
 
           p8upsidedown mycart.p8.png mycart_upsidedown.p8
         '''))

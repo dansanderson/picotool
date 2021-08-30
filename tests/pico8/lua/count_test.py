@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
-"""Tests specifically about refining character and token counts to match Pico-8.
+"""Tests specifically about refining character and token counts to match PICO-8.
 
-So far this represents experiments from Pico-8 1.3.0.
+So far this represents experiments from PICO-8 1.3.0.
 """
 
 import io

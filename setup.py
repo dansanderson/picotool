@@ -7,17 +7,21 @@ setup(
     version='0.1',
     author='Dan Sanderson',
     author_email='contact@dansanderson.com',
-    description='Tools and Python libraries for manipulating Pico-8 game files',
+    description='Tools and Python libraries for manipulating PICO-8 game files',
     license='MIT',
     packages=find_packages(where='.', exclude=['tests', 'tests.*']),
     include_package_data=True,
+    setup_requires=[
+        'pytest-runner',
+    ],
     install_requires=[
         'pypng'
     ],
     tests_require=[
-        'nose',
+        'flake8',
+        'mypy',
+        'pytest',
     ],
-    test_suite='nose.collector',
     entry_points={
         'console_scripts': [
             'p8tool=pico8.tool:main',

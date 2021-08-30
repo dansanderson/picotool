@@ -176,8 +176,8 @@ class TokNumber(Token):
     number part.
 
     The value() method converts the number to a Python number. Keep in mind
-    that Python numbers are not fixed point as Pico-8's are, so the result
-    may not exactly match Pico-8.
+    that Python numbers are not fixed point as PICO-8's are, so the result
+    may not exactly match PICO-8.
     """
     name = 'number'
 
@@ -275,7 +275,7 @@ class Lexer():
         """Initializer.
 
         Args:
-          version: The Pico-8 data version from the game file header.
+          version: The PICO-8 data version from the game file header.
         """
         self._version = version
         self._tokens = []
@@ -324,7 +324,7 @@ class Lexer():
         """
         i = 0
 
-        # TODO: Pico-8 doesn't allow literal newlines in quoted strings,
+        # TODO: PICO-8 doesn't allow literal newlines in quoted strings,
         # so this probably shouldn't either.
         if self._in_string is not None:
             # Continue string literal.

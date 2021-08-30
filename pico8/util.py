@@ -80,7 +80,7 @@ def error(msg):
 
 
 class BaseSection():
-    """A base class for Pico-8 section objects."""
+    """A base class for PICO-8 section objects."""
 
     def __init__(self, data, version):
         """Initializer.
@@ -88,7 +88,7 @@ class BaseSection():
         If loading from a file, prefer from_lines() or from_bytes().
 
         Args:
-          version: The Pico-8 data version from the game file header.
+          version: The PICO-8 data version from the game file header.
           data: The data region, as a sequence of bytes.
         """
         self._version = version
@@ -102,7 +102,7 @@ class BaseSection():
 
         Args:
           lines: .p8 lines for the section.
-          version: The Pico-8 data version from the game file header.
+          version: The PICO-8 data version from the game file header.
         """
         data = b''.join(bytearray.fromhex(str(l.rstrip(), encoding='ascii')) for l in lines)
         return cls(data=data, version=version)
@@ -125,7 +125,7 @@ class BaseSection():
         """
         Args:
           data: Binary data for the section, as a sequence of bytes.
-          version: The Pico-8 data version from the game file header.
+          version: The PICO-8 data version from the game file header.
         """
         return cls(data=data, version=version)
 

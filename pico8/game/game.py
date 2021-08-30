@@ -1,4 +1,4 @@
-"""A container for a Pico-8 game, and routines to load and save game files."""
+"""A container for a PICO-8 game, and routines to load and save game files."""
 
 __all__ = [
     'DEFAULT_VERSION',
@@ -28,8 +28,8 @@ DEFAULT_VERSION = 8
 EMPTY_LABEL_FNAME = os.path.join(os.path.dirname(__file__), 'empty_018.p8.png')
 COMPRESSED_LUA_CHAR_TABLE = list(b'#\n 0123456789abcdefghijklmnopqrstuvwxyz!#%(){}[]<>+=/*:;.,~_')
 
-# Pico-8 adds this automatically to compressed code and removes it
-# automatically from decompressed code to maintain compatibility with Pico-8
+# PICO-8 adds this automatically to compressed code and removes it
+# automatically from decompressed code to maintain compatibility with PICO-8
 # 0.1.7.
 PICO8_FUTURE_CODE1 = (b'if(_update60)_update=function()'
                       b'_update60()_update60()end')
@@ -61,7 +61,7 @@ class InvalidP8PNGError(util.InvalidP8DataError):
 
 
 class Game():
-    """A Pico-8 game."""
+    """A PICO-8 game."""
 
     def __init__(self, filename=None, compressed_size=None):
         """Initializer.
@@ -221,7 +221,7 @@ class Game():
 
     @classmethod
     def get_picodata_from_pngdata(cls, width, height, pngdata, attrs):
-        """Extracts Pico-8 bytes from a .p8.png's PNG data.
+        """Extracts PICO-8 bytes from a .p8.png's PNG data.
 
         The arguments are expected in the format returned by png.Reader's
         read() method.
@@ -234,7 +234,7 @@ class Game():
           attrs: The PNG attrs.
 
         Returns:
-          The Pico-8 data, a list of width * height (0x8000) byte-size numbers.
+          The PICO-8 data, a list of width * height (0x8000) byte-size numbers.
         """
         picodata = [0] * width * height
 
@@ -255,10 +255,10 @@ class Game():
 
     @classmethod
     def get_pngdata_from_picodata(cls, picodata, pngdata, attrs):
-        """Encodes Pico-8 bytes into a given PNG's image data.
+        """Encodes PICO-8 bytes into a given PNG's image data.
 
         Args:
-          picodata: The Pico-8 data, a bytearray of 0x8000 bytes.
+          picodata: The PICO-8 data, a bytearray of 0x8000 bytes.
           pngdata: The PNG image data of the original cart image,
             as an iterable of rows as returned by pypng.
           attrs: The attrs of the original PNG image, as returned by pypng.
@@ -299,7 +299,7 @@ class Game():
     def _find_repeatable_block(cls, dat, pos):
         """Find a repeatable block in the data.
 
-        Part of the literal port of the Pico-8 compression routine. See
+        Part of the literal port of the PICO-8 compression routine. See
         compress_code().
 
         Args:
@@ -335,7 +335,7 @@ class Game():
 
     @classmethod
     def compress_code(cls, in_p):
-        """A literal port of the Pico-8 C compression routine.
+        """A literal port of the PICO-8 C compression routine.
 
         TODO: The original algorithm uses a brute force search for blocks
         (_find_repeatable_block()), which makes the overall algorithm O(n^2).
@@ -367,7 +367,7 @@ class Game():
 
         out = bytearray()
 
-        # The Pico-8 C code adds the preamble here, but we do it in
+        # The PICO-8 C code adds the preamble here, but we do it in
         # get_bytes_from_code().
         #out += b':c:\x00'
         #out.append(len(in_p) // 256)
@@ -606,14 +606,14 @@ class Game():
         if transformed_lua.get_char_count() > PICO8_LUA_CHAR_LIMIT:
             if filename is not None:
                 util.error('{}: '.format(filename))
-            util.error('warning: character count {} exceeds the Pico-8 '
+            util.error('warning: character count {} exceeds the PICO-8 '
                        'limit of {}\n'.format(
                 transformed_lua.get_char_count(),
                 PICO8_LUA_CHAR_LIMIT))
         if transformed_lua.get_token_count() > PICO8_LUA_TOKEN_LIMIT:
             if filename is not None:
                 util.error('{}: '.format(filename))
-            util.error('warning: token count {} exceeds the Pico-8 '
+            util.error('warning: token count {} exceeds the PICO-8 '
                        'limit of {}\n'.format(
                 transformed_lua.get_token_count(),
                 PICO8_LUA_TOKEN_LIMIT))
@@ -636,8 +636,8 @@ class Game():
             for l in self.label.to_lines():
                 outstr.write(l)
 
-        # Pico-8 emits an extra newline before __gff__ for no good reason, as
-        # of 0.1.10c. Pico-8 doesn't care whether we do, but our tests want to
+        # PICO-8 emits an extra newline before __gff__ for no good reason, as
+        # of 0.1.10c. PICO-8 doesn't care whether we do, but our tests want to
         # match the test cart data exactly.
         outstr.write(b'\n')
         outstr.write(b'__gff__\n')
@@ -665,7 +665,7 @@ class Game():
         Args:
           outstr: The output stream.
           label_fname: The .p8.png file (or appropriately spec'd .png file)
-            to use for the label. If None, uses a Pico-8-generated empty label.
+            to use for the label. If None, uses a PICO-8-generated empty label.
           lua_writer_cls: The Lua writer class to use. If None, defaults to
             LuaEchoWriter.
           lua_writer_args: Args to pass to the Lua writer.

@@ -228,7 +228,7 @@ class Parser():
         """Initializer.
 
         Args:
-          version: The Pico-8 data version from the game file header.
+          version: The PICO-8 data version from the game file header.
         """
         self._version = version
         self._tokens = None
@@ -453,7 +453,7 @@ class Parser():
             if (self._accept(lexer.TokKeyword(b'then')) is None and
                 self._accept(lexer.TokKeyword(b'do')) is None and
                 (self._tokens[exp._end_token_pos - 1] == lexer.TokSymbol(b')'))):
-                # Check for Pico-8 short form.
+                # Check for PICO-8 short form.
 
                 then_end_pos = exp._end_token_pos
                 while (then_end_pos < len(self._tokens) and
@@ -466,7 +466,7 @@ class Parser():
                                          'valid chunk in short-if')
                     else_block = None
                     if self._accept(lexer.TokKeyword(b'else')) is not None:
-                        # Pico-8 accepts an else with nothing after it.
+                        # PICO-8 accepts an else with nothing after it.
                         else_block = self._chunk()
                 finally:
                     self._max_pos = None
@@ -483,7 +483,7 @@ class Parser():
 
             # Hack: accept "do" for "then" to support oddball carts that
             # exploit an accidental loophole in short-if. Note that this
-            # is not how Pico-8 works: the accident comes from how Pico-8
+            # is not how PICO-8 works: the accident comes from how PICO-8
             # uses a preprocessing pass to convert short-if syntax to regular
             # if syntax. The erroneous
             #   if (cond) do

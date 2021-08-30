@@ -1,4 +1,4 @@
-"""The map section of a Pico-8 cart.
+"""The map section of a PICO-8 cart.
 
 The map region consists of 4096 bytes. The .p8 representation is 32
 lines of 256 hexadecimal digits (128 bytes).
@@ -15,7 +15,7 @@ from .. import util
 
 
 class Map(util.BaseSection):
-    """The map region of a Pico-8 cart."""
+    """The map region of a PICO-8 cart."""
     HEX_LINE_LENGTH_BYTES = 128
 
     def __init__(self, *args, **kwargs):
@@ -36,7 +36,7 @@ class Map(util.BaseSection):
         """Creates an empty instance.
 
         Args:
-          version: The Pico-8 file version.
+          version: The PICO-8 file version.
           gfx: The Gfx object where lower map data is written.
 
         Returns:
@@ -163,7 +163,7 @@ class Map(util.BaseSection):
         This is similar to get_rect_tiles() except the tiles are
         extracted from Gfx data and returned as a rectangle of pixels.
 
-        Just like Pico-8, tile ID 0 is rendered as empty (all 0's),
+        Just like PICO-8, tile ID 0 is rendered as empty (all 0's),
         not the actual tile at ID 0.
 
         Args:

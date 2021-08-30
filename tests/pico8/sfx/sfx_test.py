@@ -94,7 +94,7 @@ class TestSfx(unittest.TestCase):
     def testGetProperties(self):
         s = sfx.Sfx.empty(version=4)
         
-        # (A Pico-8 default cart has a note duration of 1 for the first
+        # (A PICO-8 default cart has a note duration of 1 for the first
         # pattern.)
         self.assertEqual((0, 1, 0, 0), s.get_properties(0))
         s.set_properties(0,
@@ -102,7 +102,7 @@ class TestSfx(unittest.TestCase):
                          loop_start=3, loop_end=4)
         self.assertEqual((1, 2, 3, 4), s.get_properties(0))
         
-        # (A Pico-8 default cart has a note duration of 16 for all other
+        # (A PICO-8 default cart has a note duration of 16 for all other
         # patterns.)
         self.assertEqual((0, 16, 0, 0), s.get_properties(63))
         s.set_properties(63,
@@ -115,7 +115,7 @@ class TestHelloWorld(unittest.TestCase):
     '''Tests to address a weird case where one sfx pattern in helloworld.p8.png
     was coming out slightly wrong.
 
-    This discrepancy is probably due to an old Pico-8 bug about how
+    This discrepancy is probably due to an old PICO-8 bug about how
     helloworld.p8.png was originally produced, so I don't plan on
     fixing it. I'm leaving this test in for added coverage.
     '''

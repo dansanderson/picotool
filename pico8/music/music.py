@@ -1,4 +1,4 @@
-"""The music (song) region of a Pico-8 cart.
+"""The music (song) region of a PICO-8 cart.
 
 The music region consists of 256 bytes. The .p8 representation is one
 line for each of 64 patterns, with a hex-encoded flags byte, a space,
@@ -34,7 +34,7 @@ class Music(util.BaseSection):
         """Creates an empty instance.
 
         Args:
-          version: The Pico-8 file version.
+          version: The PICO-8 file version.
 
         Returns:
           A Music instance.
@@ -47,7 +47,7 @@ class Music(util.BaseSection):
 
         Args:
           lines: .p8 lines for the music section.
-          version: The Pico-8 data version from the game file header.
+          version: The PICO-8 data version from the game file header.
 
         Returns:
           A Music instance with the loaded data.

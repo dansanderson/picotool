@@ -1,4 +1,4 @@
-"""The graphics flags section of a Pico-8 cart.
+"""The graphics flags section of a PICO-8 cart.
 
 The graphics properties region consists of 256 bytes. The .p8
 representation is 2 lines of 256 hexadecimal digits (128 bytes).
@@ -28,7 +28,7 @@ ALL = 255
 
 
 class Gff(util.BaseSection):
-    """The graphics properties section of a Pico-8 cart."""
+    """The graphics properties section of a PICO-8 cart."""
     HEX_LINE_LENGTH_BYTES = 128
 
     @classmethod
@@ -71,7 +71,7 @@ class Gff(util.BaseSection):
           gff_obj.set_flags(0, RED | BLUE | PEACH)
 
         Args:
-          id: The Pico-8 ID of the tile (0-255).
+          id: The PICO-8 ID of the tile (0-255).
           flags: The flags to set, bitwise-or'd together.
         """
         assert 0 <= id <= 255
@@ -87,7 +87,7 @@ class Gff(util.BaseSection):
           gff_obj.clear_flags(0, RED | BLUE | PEACH)
 
         Args:
-          id: The Pico-8 ID of the tile (0-255).
+          id: The PICO-8 ID of the tile (0-255).
           flags: The flags to clear, bitwise-or'd together.
         """
         assert 0 <= id <= 255
@@ -100,7 +100,7 @@ class Gff(util.BaseSection):
         set.
 
         Args:
-          id: The Pico-8 ID of the tile (0-255).
+          id: The PICO-8 ID of the tile (0-255).
           flags: All flags to be set in the final state, bitwise-or'd together.
         """
         assert 0 <= id <= 255

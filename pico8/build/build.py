@@ -10,7 +10,7 @@ from ..lua import lexer
 # The default Lua load path if neither PICO8_LUA_PATH nor --lua-path are set.
 DEFAULT_LUA_PATH = '?;?.lua'
 
-# Names of the Pico-8 game loop functions stripped from require()'d files
+# Names of the PICO-8 game loop functions stripped from require()'d files
 # (unless told not to).
 GAME_LOOP_FUNCTION_NAMES = (b'_init', b'_update', b'_update60', b'_draw')
 
@@ -188,7 +188,7 @@ def _prepend_package_lua(orig_ast, package_lua):
 def _remove_global_return(ast):
     """Remove return statements from the root level of an AST.
 
-    Pico-8 never allows a return statement at the root level of cart code. To
+    PICO-8 never allows a return statement at the root level of cart code. To
     support a library development workflow where the library code contains a
     game loop that tests the library as well as a Lua module return statement,
     return statements are removed silently from the root of a built cart's

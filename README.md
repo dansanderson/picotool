@@ -1,8 +1,8 @@
-> # picotool: Tools and Python libraries for manipulating Pico-8 game files
+> # picotool: Tools and Python libraries for manipulating PICO-8 game files
 
-[Pico-8](http://www.lexaloffle.com/pico-8.php) is a _fantasy game console_ by [Lexaloffle Games](http://www.lexaloffle.com/). The Pico-8 runtime environment runs _cartridges_ (or _carts_): game files containing code, graphics, sound, and music data. The console includes a built-in editor for writing games. Game cartridge files can be played in a browser, and can be posted to the Lexaloffle bulletin board or exported to any website.
+[PICO-8](http://www.lexaloffle.com/pico-8.php) is a _fantasy game console_ by [Lexaloffle Games](http://www.lexaloffle.com/). The PICO-8 runtime environment runs _cartridges_ (or _carts_): game files containing code, graphics, sound, and music data. The console includes a built-in editor for writing games. Game cartridge files can be played in a browser, and can be posted to the Lexaloffle bulletin board or exported to any website.
 
-`picotool` is a suite of tools and libraries for building and manipulating Pico-8 game cartridge files. The suite is implemented in, and requires, [Python 3](https://www.python.org/). The tools can examine and transform cartridges in various ways, and you can implement your own tools to access and modify cartridge data with the Python libraries.
+`picotool` is a suite of tools and libraries for building and manipulating PICO-8 game cartridge files. The suite is implemented in, and requires, [Python 3](https://www.python.org/). The tools can examine and transform cartridges in various ways, and you can implement your own tools to access and modify cartridge data with the Python libraries.
 
 Useful tools include:
 
@@ -14,13 +14,13 @@ Useful tools include:
 
 There are additional tools that are mostly useful for demonstrating and troubleshooting the library: `writep8`, `listtokens`, `printast`, `luamin`. A separate demo, `p8upsidedown`, uses picotool to transform the code and data of a game to turn it upsidedown.
 
-`picotool` supports reading and writing both of Pico-8's cartridge file formats: the text-based format `.p8`, and the PNG-based binary format `.p8.png`.
+`picotool` supports reading and writing both of PICO-8's cartridge file formats: the text-based format `.p8`, and the PNG-based binary format `.p8.png`.
 
 ### How do most people use picotool?
 
-Most people use `picotool` for the `luamin` command, which condenses the Lua code of a cart to use as few characters as possible. This is useful if you have a large game whose code is above Pico-8's character limit but below the token limit. In this rare case, `luamin` helps you keep your developer version easy to read and modify while you polish the game for publication. In most cases, your cart will exceed the token limit first, and minification doesn't help with unusual cases such as long string data.
+Most people use `picotool` for the `luamin` command, which condenses the Lua code of a cart to use as few characters as possible. This is useful if you have a large game whose code is above PICO-8's character limit but below the token limit. In this rare case, `luamin` helps you keep your developer version easy to read and modify while you polish the game for publication. In most cases, your cart will exceed the token limit first, and minification doesn't help with unusual cases such as long string data.
 
-I originally created `picotool` for general purpose build workflows, especially the `build` tool. Since then, Pico-8 has added features such as `#include` support, making some of the `build` features unnecessary. (`#include` doesn't quite work like `require()` but it's good enough for most things!) I'm still interested in the potential for token optimization features such as dead code elimination, but these are not yet implemented.
+I originally created `picotool` for general purpose build workflows, especially the `build` tool. Since then, PICO-8 has added features such as `#include` support, making some of the `build` features unnecessary. (`#include` doesn't quite work like `require()` but it's good enough for most things!) I'm still interested in the potential for token optimization features such as dead code elimination, but these are not yet implemented.
 
 I hope `picotool` can be the basis for your custom workflows and cart manipulation experiments, so you don't have to write your own cart read/write routines. If there's a feature you'd like to see in the libraries or the tools, please let me know!
 
@@ -60,7 +60,7 @@ The `build` tool creates or updates a cartridge file using other files as source
 
 The tool takes the filename of the output cartridge, with additional arguments describing the build. If the output cartridge does not exist, the build starts with an empty cartridge. Otherwise, it uses the existing cartridge as the default, and overwrites sections of it based on the arguments.
 
-For example, you can create a cartridge in Pico-8, use Pico-8's built-in graphics and sound editors, then use `p8tool build` to replace the Lua code with the contents of a `.lua` file:
+For example, you can create a cartridge in PICO-8, use PICO-8's built-in graphics and sound editors, then use `p8tool build` to replace the Lua code with the contents of a `.lua` file:
 
 ```
 % p8tool build mygame.p8.png --lua mygame.lua
@@ -89,7 +89,7 @@ The available arguments are as follows:
 - `--empty-sfx`: use empty sound effects
 - `--empty-music`: use empty music patterns
 
-If the output cart filename ends with `.p8.png`, the result a cartridge with a label image. If the file already exists, the cartridge label is reused. If the file does not exist, an empty cartridge label is used. To use a non-empty label, you must open the cart in Pico-8, take a screenshot (press F6 while running), set the title and byline in the first two lines of code (as Lua comments), then save the `.p8.png` file from Pico-8. Future runs of `p8tool build` will reuse the label.
+If the output cart filename ends with `.p8.png`, the result a cartridge with a label image. If the file already exists, the cartridge label is reused. If the file does not exist, an empty cartridge label is used. To use a non-empty label, you must open the cart in PICO-8, take a screenshot (press F6 while running), set the title and byline in the first two lines of code (as Lua comments), then save the `.p8.png` file from PICO-8. Future runs of `p8tool build` will reuse the label.
 
 #### Packages and the require() function
 
@@ -187,7 +187,7 @@ As with Lua, packages are remembered by the string name used with `require()`. T
 
 #### Packages and game loop functions
 
-When you write a library of routines for Pico-8, you probably want to write test code for those routines. picotool assumes that this test code would be executed in a Pico-8 game loop, such that the library can be in its own test cart. For this purpose, you can write your library file with `_init()`, `_update()` or `_update60()`, and `_draw()` functions that test the library. By default, `require()` will strip the game loop functions from the library when including it in your game code so they don't cause conflicts or consume tokens.
+When you write a library of routines for PICO-8, you probably want to write test code for those routines. picotool assumes that this test code would be executed in a PICO-8 game loop, such that the library can be in its own test cart. For this purpose, you can write your library file with `_init()`, `_update()` or `_update60()`, and `_draw()` functions that test the library. By default, `require()` will strip the game loop functions from the library when including it in your game code so they don't cause conflicts or consume tokens.
 
 For example:
 
@@ -218,7 +218,7 @@ require("mylib", {use_game_loop=true})
 
 #### How require() actually works
 
-Of course, Pico-8 does not actually load packages from disk when it runs the cartridge. Instead, picotool inserts each package into the cartridge code in a special way that replicates the behavior of the Lua `require()` feature.
+Of course, PICO-8 does not actually load packages from disk when it runs the cartridge. Instead, picotool inserts each package into the cartridge code in a special way that replicates the behavior of the Lua `require()` feature.
 
 When you run `p8tool build` with the `--lua=...` argument, picotool scans the code for calls to the `require()` function. If it sees any, it loads and parses the file associated with the string name, and does so again if the required file also has `require()` calls.
 
@@ -406,7 +406,7 @@ The `luamin` tool rewrites the Lua region of a cart to use as few characters as 
 
 The command takes one or more cart filenames as arguments. For each cart with a name like `xxx.p8.png`, it writes a new cart with a name like `xxx_fmt.p8`.
 
-I don't recommend using this tool when publishing your games. Statistically, you will run out of tokens before you run out of characters, and minifying is unlikely to affect the compressed character count. Carts are more useful to the Pico-8 community if the code in a published cart is readable and well-commented. I only wrote `luamin` because it's an obvious kind of code transformation to try with the library.
+I don't recommend using this tool when publishing your games. Statistically, you will run out of tokens before you run out of characters, and minifying is unlikely to affect the compressed character count. Carts are more useful to the PICO-8 community if the code in a published cart is readable and well-commented. I only wrote `luamin` because it's an obvious kind of code transformation to try with the library.
 
 ```
 % p8tool luamin helloworld.p8.png
@@ -449,7 +449,7 @@ The `listtokens` tool is similar to `listlua`, but it identifies which character
 
 When picotool parses Lua code, it separates out comments, newlines, and spaces, as well as proper Lua tokens. The Lua tokens appear with an ascending number, illustrating how picotool counts the tokens. Non-token elements appear with similar angle brackets but no number. Newlines are rendered as is, without brackets, to make them easy to read.
 
-**Note:** picotool does not currently count tokens the same way Pico-8 does. One purpose of `listtokens` is to help troubleshoot and fix this discrepancy. See "Known issues."
+**Note:** picotool does not currently count tokens the same way PICO-8 does. One purpose of `listtokens` is to help troubleshoot and fix this discrepancy. See "Known issues."
 
 ### p8tool printast
 
@@ -493,7 +493,7 @@ Chunk
 
 ## Building new tools
 
-picotool provides a general purpose library for accessing and manipulating Pico-8 cart data. You can add the `picotool` directory to your `PYTHONPATH` environment variable (or append `sys.path` in code), or just copy the `pico8` module to the directory that contains your code.
+picotool provides a general purpose library for accessing and manipulating PICO-8 cart data. You can add the `picotool` directory to your `PYTHONPATH` environment variable (or append `sys.path` in code), or just copy the `pico8` module to the directory that contains your code.
 
 The easiest way to load a cart from a file is with the `Game.from_filename()` method, in the `pico8.game.game` module:
 
@@ -515,7 +515,7 @@ Aspects of the game are accessible as attributes of the `Game` object:
 - `sfx`
 - `music`
 
-Lua code is treated as bytestrings throughout the API. This is because Pico-8 uses a custom text encoding equivalent to lower ASCII plus arbitrary high characters for the glyph set. Take care to use b'bytestring literals' when creating or comparing values.
+Lua code is treated as bytestrings throughout the API. This is because PICO-8 uses a custom text encoding equivalent to lower ASCII plus arbitrary high characters for the glyph set. Take care to use b'bytestring literals' when creating or comparing values.
 
 ### API under construction!
 
@@ -546,8 +546,8 @@ python3 setup.py test
 
 ## Known issues
 
-- picotool and Pico-8 count tokens in slightly different ways, resulting in different counts. More refinement is needed so that picotool matches Pico-8. As far as I can tell, with picotool making some concessions to match Pico-8 in known cases, Pico-8's counts are consistently higher. So I'm missing a few cases where Pico-8 over-counts (or picotool under-counts). In most cases, the difference is only by a few tokens, even for large carts.
-- Lua allows parentheses to be omitted from a function call if there is exactly one argument and the argument is a string or table literal. picotool does not yet support this case. Pico-8 supports it and offers a one-token discount compared to a similar call with parentheses.
-- I've found a few very obscure cases where picotool rejects a cart with a syntax error but Pico-8 accepts it (13757, 16983, 18012, 18556). I evaluate these based on their rarity, usefulness, and intrusiveness to support, and for now I'm leaving this as is.
+- picotool and PICO-8 count tokens in slightly different ways, resulting in different counts. More refinement is needed so that picotool matches PICO-8. As far as I can tell, with picotool making some concessions to match PICO-8 in known cases, PICO-8's counts are consistently higher. So I'm missing a few cases where PICO-8 over-counts (or picotool under-counts). In most cases, the difference is only by a few tokens, even for large carts.
+- Lua allows parentheses to be omitted from a function call if there is exactly one argument and the argument is a string or table literal. picotool does not yet support this case. PICO-8 supports it and offers a one-token discount compared to a similar call with parentheses.
+- I've found a few very obscure cases where picotool rejects a cart with a syntax error but PICO-8 accepts it (13757, 16983, 18012, 18556). I evaluate these based on their rarity, usefulness, and intrusiveness to support, and for now I'm leaving this as is.
 
 For more known issues, see the issues list in the Github project: https://github.com/dansanderson/picotool/issues

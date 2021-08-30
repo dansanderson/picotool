@@ -132,7 +132,7 @@ foreach(a, function(i) print(i) end)
 
 x = 1 y = 2 print(x+y) -- this line will run ok
 
--- Pico-8 shorthand
+-- PICO-8 shorthand
 if (not b) i=1 j=2
 a += 2
 a -= 2
@@ -218,7 +218,7 @@ class TestLexer(unittest.TestCase):
                          lxr._tokens[0])
 
     def testStringMultipleLines(self):
-        # TODO: Pico-8 doesn't allow multiline strings, so this probably
+        # TODO: PICO-8 doesn't allow multiline strings, so this probably
         # shouldn't either.
         lxr = lexer.Lexer(version=4)
         lxr._process_line(b'"abc def ghi \n')

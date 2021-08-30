@@ -60,7 +60,7 @@ def _as_friendly_string(s):
     """Converts a bytestring to a text string.
 
     To avoid encoding errors caused by arbitrary high characters (allowed in
-    Pico-8 source), this replaces all high characters with underscores.
+    PICO-8 source), this replaces all high characters with underscores.
 
     Args:
         s: The bytestring.

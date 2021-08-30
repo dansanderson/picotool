@@ -51,7 +51,7 @@ class Lua():
         If loading from a file, prefer Lua.from_lines().
 
         Args:
-          version: The Pico-8 data version from the game file header.
+          version: The PICO-8 data version from the game file header.
         """
         self._version = version
         self._lexer = lexer.Lexer(version=version)
@@ -71,10 +71,10 @@ class Lua():
                     t.matches(lexer.TokSymbol(b'}')) or
                     t.matches(lexer.TokKeyword(b'local')) or
                     t.matches(lexer.TokKeyword(b'end'))):
-                # Pico-8 generously does not count these as tokens.
+                # PICO-8 generously does not count these as tokens.
                 pass
             elif t.matches(lexer.TokNumber) and t._data.find(b'e') != -1:
-                # Pico-8 counts 'e' part of number as a separate token.
+                # PICO-8 counts 'e' part of number as a separate token.
                 c += 2
             elif (not isinstance(t, lexer.TokSpace) and
                   not isinstance(t, lexer.TokNewline) and
@@ -123,7 +123,7 @@ class Lua():
 
         Args:
           lines: The Lua source, as an iterable of bytestrings.
-          version: The Pico-8 data version from the game file header.
+          version: The PICO-8 data version from the game file header.
 
         Returns:
           A populated Lua instance.
@@ -1184,7 +1184,7 @@ class LuaMinifyTokenWriter(BaseLuaWriter):
                 token.matches(lexer.TokSpace)):
                 continue
             elif token.matches(lexer.TokNewline):
-                # Preserve non-consecutive newlines. This is the easiest way to handle Pico-8's newline-dependent
+                # Preserve non-consecutive newlines. This is the easiest way to handle PICO-8's newline-dependent
                 # language extensions, especially short-ifs.
                 self._last_was_name_keyword_number = False
                 if not self._last_was_newline:

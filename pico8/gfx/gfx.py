@@ -1,4 +1,4 @@
-"""The sprite graphics section of a Pico-8 cart.
+"""The sprite graphics section of a PICO-8 cart.
 
 The graphics region consists of 8192 bytes. The .p8 representation is
 128 lines of 128 hexadecimal digits (64 bytes).
@@ -14,7 +14,7 @@ __all__ = ['Gfx']
 from .. import util
 
 
-# Constants for the Pico-8 color values.
+# Constants for the PICO-8 color values.
 BLACK = 0
 DARK_BLUE = 1
 DARK_PURPLE = 2
@@ -38,7 +38,7 @@ TRANSPARENT = 16
 
 
 class Gfx(util.BaseSection):
-    """The sprite graphics section for a Pico-8 cart."""
+    """The sprite graphics section for a PICO-8 cart."""
     HEX_LINE_LENGTH_BYTES = 64
 
     @classmethod
@@ -58,7 +58,7 @@ class Gfx(util.BaseSection):
 
         Args:
           lines: .p8 lines for the section.
-          version: The Pico-8 data version from the game file header.
+          version: The PICO-8 data version from the game file header.
 
         Returns:
           A Gfx instance.
@@ -103,20 +103,20 @@ class Gfx(util.BaseSection):
         pixel (0-15).
 
         By default, this returns a sprite consisting of the tile with
-        the given Pico-8 tile ID, an 8x8 pixel region. You can request
+        the given PICO-8 tile ID, an 8x8 pixel region. You can request
         multiple tiles in a single sprite using the tile_width and
         tile_height arguments. The complete sprite is calculated from
         the 16 tile x 16 tile spritesheet with the tile of the given
-        ID in the upper left corner, similar to the Pico-8 spr
+        ID in the upper left corner, similar to the PICO-8 spr
         function. If the given width or height extend off the edge of
         the spritesheet, the extraneous space is filled with zeroes.
 
-        Pico-8 tile IDs start with 0 in the upper left corner, and
+        PICO-8 tile IDs start with 0 in the upper left corner, and
         increase left to right, then top to bottom, in the 16 tile x
         16 tile spritesheet.
 
         Args:
-          id: The Pico-8 tile ID that is the upper-left corner of the requested
+          id: The PICO-8 tile ID that is the upper-left corner of the requested
             sprite.
           tile_width: The width of the requested sprite, as a number of tiles.
             Must be 1 or greater.
@@ -172,7 +172,7 @@ class Gfx(util.BaseSection):
         If a pixel value is gfx.TRANSPARENT, the existing pixel data
         in that location is preserved. A pixel value of gfx.BLACK
         overwrites the pixel (even though "black" is transparent by
-        default when blitting sprites in Pico-8).
+        default when blitting sprites in PICO-8).
 
         All rows of the sprite data are assumed to be
         left-aligned. Rows can be of different lengths to leave pixels
@@ -184,7 +184,7 @@ class Gfx(util.BaseSection):
         on the spritesheet.
 
         Args:
-          id: The Pico-8 tile ID that is the upper-left corner of the requested
+          id: The PICO-8 tile ID that is the upper-left corner of the requested
             sprite.
           sprite: The sprite pixel data, as an iterable of iterables of pixel 
             color values.

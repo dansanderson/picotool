@@ -1,4 +1,4 @@
-"""The sound effects section of a Pico-8 cart.
+"""The sound effects section of a PICO-8 cart.
 
 The sound effects region consists of 4352 bytes. The .p8
 representation is 64 lines of 168 hexadecimal digits (84 bytes).
@@ -70,7 +70,7 @@ EFFECT_ARP_SLOW = 7
 
 
 class Sfx(util.BaseSection):
-    """The sfx region of a Pico-8 cart."""
+    """The sfx region of a PICO-8 cart."""
 
     HEX_LINE_LENGTH_BYTES = 84
 
@@ -79,14 +79,14 @@ class Sfx(util.BaseSection):
         """Creates an empty instance.
 
         Args:
-          version: The Pico-8 file version.
+          version: The PICO-8 file version.
 
         Returns:
           A Sfx instance.
         """
         result = cls(data=bytearray(b'\x00' * 4352), version=version)
         
-        # Emulate Pico-8 defaults:
+        # Emulate PICO-8 defaults:
         result.set_properties(0, note_duration=1)
         for i in range(1,64):
             result.set_properties(i, note_duration=16)
@@ -99,7 +99,7 @@ class Sfx(util.BaseSection):
 
         Args:
           lines: .p8 lines for the section.
-          version: The Pico-8 data version from the game file header.
+          version: The PICO-8 data version from the game file header.
         """
         result = cls.empty(version=version)
         id = 0
