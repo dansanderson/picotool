@@ -530,18 +530,36 @@ To develop `picotool`, set up a Python virtual environment, and install `p8tool`
 ```
 git clone git@github.com:dansanderson/picotool.git
 python3 -m venv ./picotool/pyenv
+
+# (Do this every time you start a new shell:)
 source ./picotool/pyenv/bin/activate
 
-pip install -e picotool
+cd picotool
+pip install -e .
 ```
 
 When you run `p8tool` with the virtual environment active, it will use the code in the repository and notice any changes you make.
 
-The picotool code includes tests intended for the [Nose test runner](https://nose.readthedocs.org/en/latest/). To run the test suite:
+You can run the test suite using the `setup.py test` command, which is aliased to `pytest`:
 
 ```
-cd picotool
 python3 setup.py test
+```
+
+For a nicer test running experience, install the `pytest` and `coverage` commands, and use them together:
+
+```
+# To install the pytest and coverage commands in the virtual environment:
+pip install pytest coverage
+
+# To run the tests and calculate a coverage report:
+coverage run pytest
+
+# To display the coverage report on the console:
+coverage report -m
+
+# To produce an interactive HTML document based on the coverage report, as ./htmlcov/index.html:
+coverage html
 ```
 
 ## Known issues
