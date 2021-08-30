@@ -163,7 +163,7 @@ class TestRequireWalker(unittest.TestCase):
             b'print("hi")',
             b'x = 7\n'], 8)
         result = list(build.RequireWalker(ast.tokens, ast.root).walk())
-        self.assertEquals(0, len(result))
+        self.assertEqual(0, len(result))
 
     def testRequireWalkerOneRequire(self):
         ast = lua.Lua.from_lines([
@@ -171,8 +171,8 @@ class TestRequireWalker(unittest.TestCase):
             b'require("foo")',
             b'x = 7\n'], 8)
         result = list(build.RequireWalker(ast.tokens, ast.root).walk())
-        self.assertEquals(1, len(result))
-        self.assertEquals((b'foo', False, lexer.TokSymbol(b'(')), result[0])
+        self.assertEqual(1, len(result))
+        self.assertEqual((b'foo', False, lexer.TokSymbol(b'(')), result[0])
 
     def testRequireWalkerExpression(self):
         ast = lua.Lua.from_lines([
@@ -180,8 +180,8 @@ class TestRequireWalker(unittest.TestCase):
             b'foomod = require("foo")',
             b'x = 7\n'], 8)
         result = list(build.RequireWalker(ast.tokens, ast.root).walk())
-        self.assertEquals(1, len(result))
-        self.assertEquals((b'foo', False, lexer.TokSymbol(b'(')), result[0])
+        self.assertEqual(1, len(result))
+        self.assertEqual((b'foo', False, lexer.TokSymbol(b'(')), result[0])
 
     def testRequireWalkerOptionsTable(self):
         ast = lua.Lua.from_lines([
@@ -189,8 +189,8 @@ class TestRequireWalker(unittest.TestCase):
             b'require("foo", {use_game_loop=true})',
             b'x = 7\n'], 8)
         result = list(build.RequireWalker(ast.tokens, ast.root).walk())
-        self.assertEquals(1, len(result))
-        self.assertEquals((b'foo', True, lexer.TokSymbol(b'(')), result[0])
+        self.assertEqual(1, len(result))
+        self.assertEqual((b'foo', True, lexer.TokSymbol(b'(')), result[0])
 
     def testRequireWalkerComplexRequires(self):
         ast = lua.Lua.from_lines([
@@ -199,7 +199,7 @@ class TestRequireWalker(unittest.TestCase):
             b'  require("foo", {use_game_loop=true})',
             b'end\n'], 8)
         result = list(build.RequireWalker(ast.tokens, ast.root).walk())
-        self.assertEquals(2, len(result))
+        self.assertEqual(2, len(result))
 
     def testRequireWalkerErrorZeroArgs(self):
         ast = lua.Lua.from_lines([b'require()'], 8)

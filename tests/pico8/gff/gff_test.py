@@ -13,13 +13,13 @@ class TestGff(unittest.TestCase):
         g._data = bytearray([x for x in range(256)])
         for x in range(256):
             self.assertEqual(x, g.get_flags(x, gff.ALL))
-        self.assertEquals(gff.RED, g.get_flags(1, gff.RED))
-        self.assertEquals(0, g.get_flags(1, gff.ORANGE))
-        self.assertEquals(gff.RED, g.get_flags(3, gff.RED))
-        self.assertEquals(gff.ORANGE, g.get_flags(3, gff.ORANGE))
-        self.assertEquals(gff.RED | gff.ORANGE,
+        self.assertEqual(gff.RED, g.get_flags(1, gff.RED))
+        self.assertEqual(0, g.get_flags(1, gff.ORANGE))
+        self.assertEqual(gff.RED, g.get_flags(3, gff.RED))
+        self.assertEqual(gff.ORANGE, g.get_flags(3, gff.ORANGE))
+        self.assertEqual(gff.RED | gff.ORANGE,
                           g.get_flags(3, gff.RED | gff.ORANGE))
-        self.assertEquals(gff.RED | gff.ORANGE,
+        self.assertEqual(gff.RED | gff.ORANGE,
                           g.get_flags(3, gff.ALL))
 
     def testSetFlags(self):
