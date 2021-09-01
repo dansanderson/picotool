@@ -221,6 +221,10 @@ BINOP_PATS = ([lexer.TokSymbol(sym) for sym in [
     b'<', b'>', b'<=', b'>=', b'~=', b'!=', b'==', b'..', b'+', b'-', b'*', b'/', b'%', b'^'
 ]] + [lexer.TokKeyword(b'and'), lexer.TokKeyword(b'or')])
 
+UNOP_PATS = ([lexer.TokSymbol(sym) for sym in [
+    b'-', b'#', b'~', b'@', b'%', b'$'
+]] + [lexer.TokKeyword(b'not')])
+
 
 class Parser():
     """The parser."""
@@ -790,13 +794,13 @@ class Parser():
         if val is not None:
             return ExpValue(val, start=pos, end=self._pos)
 
-        unop = self._accept(lexer.TokSymbol(b'-'))
+        unop = None
+        for unop_pat in UNOP_PATS:
+            unop = self._accept(unop_pat)
+            if unop is not None:
+                break
         if unop is None:
-            unop = self._accept(lexer.TokKeyword(b'not'))
-            if unop is None:
-                unop = self._accept(lexer.TokSymbol(b'#'))
-                if unop is None:
-                    return None
+            return None
         exp = self._assert(self._exp(), 'exp after unary op')
         return ExpUnOp(unop, exp, start=pos, end=self._pos)
 

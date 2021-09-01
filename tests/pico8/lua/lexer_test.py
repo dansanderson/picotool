@@ -153,10 +153,16 @@ a = 0x15 >>> 3
 a = 0x15 <<> 3
 a = 0x15 >>< 3
 
--- Integer division
--- Note: this appears as double slash in this string
+-- integer division
+-- note: this appears as double slash in this string
 -- but it's actually a single slash
-# a = 17 \\ 3
+a = 17 \\ 3
+
+-- unary ops
+x = @0x5200
+y = %0x5300
+z = $0x5400
+a = ~0b11110000
 '''
 
 
@@ -435,7 +441,7 @@ class TestLexer(unittest.TestCase):
     def testLexerError(self):
         lxr = lexer.Lexer(version=4)
         try:
-            lxr._process_line(b'123 @ 456')
+            lxr._process_line(b'123 ` 456')
             self.fail()
         except lexer.LexerError as e:
             txt = str(e)  # coverage test

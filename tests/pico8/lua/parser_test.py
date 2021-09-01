@@ -249,6 +249,15 @@ class TestParser(unittest.TestCase):
         self.assertTrue(isinstance(node.exp, parser.ExpValue))
         self.assertTrue(node.exp.value.matches(lexer.TokNumber(b'45')))
 
+    def testExpUnOpAtPeek(self):
+      p = get_parser(b'@0x5200')
+      node = p._exp()
+      self.assertIsNotNone(node)
+      self.assertTrue(isinstance(node, parser.ExpUnOp))
+      self.assertEqual(b'@', node.unop.value)
+      self.assertTrue(isinstance(node.exp, parser.ExpValue))
+      self.assertTrue(node.exp.value.matches(lexer.TokNumber(b'0x5200')))
+
     def testExpBinOp(self):
         p = get_parser(b'1 + 2')
         node = p._exp()
