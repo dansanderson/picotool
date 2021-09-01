@@ -52,7 +52,7 @@ class ParserError(util.InvalidP8DataError):
     def __init__(self, msg, token=None):
         self.msg = msg
         self.token = token
-        
+
     def __str__(self):
         if self.token is None:
             return '{} at end of file'.format(self.msg)
@@ -217,6 +217,7 @@ for (name, fields) in _ast_node_types:
 
 # (!= is PICO-8 specific.)
 BINOP_PATS = ([lexer.TokSymbol(sym) for sym in [
+    b'&', b'|', b'^^', b'<<', b'>>', b'>>>', b'<<>', b'>><', b'\\',
     b'<', b'>', b'<=', b'>=', b'~=', b'!=', b'==', b'..', b'+', b'-', b'*', b'/', b'%', b'^'
 ]] + [lexer.TokKeyword(b'and'), lexer.TokKeyword(b'or')])
 
@@ -238,7 +239,7 @@ class Parser():
         # If _max_pos is not None, _accept will not advance the cursor beyond
         # it and will return None for any action that would.
         self._max_pos = None
-        
+
     def _peek(self):
         """Return the token under the cursor.
 
@@ -288,7 +289,7 @@ class Parser():
                  not isinstance(cur_tok, lexer.TokComment))):
                 break
             self._pos += 1
-        
+
         if (cur_tok is not None and
             cur_tok.matches(tok_pattern) and
             (self._max_pos is None or self._pos < self._max_pos)):
@@ -339,7 +340,7 @@ class Parser():
 
     def _chunk(self):
         """Parse a chunk / block.
-        
+
         chunk :: = {stat [';']} [laststat [';']]
 
         Returns:
@@ -359,7 +360,7 @@ class Parser():
         # Eat leading and intervening semicolons.
         while self._accept(lexer.TokSymbol(b';')) is not None:
             pass
-        
+
         laststat = self._laststat()
         if laststat is not None:
             stats.append(laststat)
@@ -367,13 +368,13 @@ class Parser():
         # Eat trailing semicolons.
         while self._accept(lexer.TokSymbol(b';')) is not None:
             pass
-        
+
         return Chunk(stats, start=pos, end=self._pos)
 
     def _stat(self):
         """Parse a stat.
 
-        stat ::=  varlist '=' explist | 
+        stat ::=  varlist '=' explist |
          functioncall |
          do block end |
          while exp do block end |
@@ -402,7 +403,7 @@ class Parser():
           StatLabel(label)
         """
         pos = self._pos
-        
+
         varlist = self._varlist()
         if varlist is not None:
             # (Missing '=' is not a fatal error because varlist might also match
@@ -419,7 +420,7 @@ class Parser():
                 return StatAssignment(varlist, assign_op, explist,
                                       start=pos, end=self._pos)
         self._pos = pos
-        
+
         functioncall = self._functioncall()
         if functioncall is not None:
             return StatFunctionCall(functioncall, start=pos, end=self._pos)
@@ -459,7 +460,7 @@ class Parser():
                 while (then_end_pos < len(self._tokens) and
                        not self._tokens[then_end_pos].matches(lexer.TokNewline)):
                     then_end_pos += 1
-                    
+
                 try:
                     self._max_pos = then_end_pos
                     block = self._assert(self._chunk(),
@@ -470,7 +471,7 @@ class Parser():
                         else_block = self._chunk()
                 finally:
                     self._max_pos = None
-                    
+
                 # (Use exp.value here to unwrap the condition from the
                 # bracketed expression.)
                 exp_block_pairs = [(exp.value, block)]
@@ -478,7 +479,7 @@ class Parser():
                     exp_block_pairs.append((None, else_block))
                 return StatIf(exp_block_pairs, start=pos, end=self._pos,
                               short_if=True)
-            
+
             self._pos = then_pos
 
             # Hack: accept "do" for "then" to support oddball carts that
@@ -530,7 +531,7 @@ class Parser():
                 return StatForStep(name, exp_init, exp_end, exp_step, block,
                                    start=pos, end=self._pos)
             self._pos = for_pos
-                
+
             namelist = self._assert(self._namelist(), 'namelist in for-in')
             self._expect(lexer.TokKeyword(b'in'))
             explist = self._assert(self._explist(), 'explist in for-in')
@@ -563,21 +564,21 @@ class Parser():
         if self._accept(lexer.TokKeyword(b'goto')) is not None:
             label = self._expect(lexer.TokName)
             return StatGoto(label.value, start=pos, end=self._pos)
-        
+
         label = self._accept(lexer.TokLabel)
         if label is not None:
             # Remove colons from label.
             label_name = label.value[2:-2]
             return StatLabel(label_name, start=pos, end=self._pos)
-        
+
         self._pos = pos
         return None
-        
+
     def _laststat(self):
         """Parse a laststat.
 
         laststat ::= return [explist] | break
-        
+
         Returns:
           StatBreak()
           StatReturn(explist)
@@ -602,7 +603,7 @@ class Parser():
         pos = self._pos
         namepath = []
         methodname = None
-        
+
         name = self._accept(lexer.TokName)
         if name is None:
             return None
@@ -672,7 +673,7 @@ class Parser():
                 break
             names.append(name)
             last_pos = self._pos
-            
+
         return NameList(names, start=pos, end=self._pos)
 
     def _explist(self):
@@ -752,11 +753,11 @@ class Parser():
 
         self._pos = pos
         return exp_first
-        
+
     def _exp_term(self):
         """Parse a non-recursive expression term.
 
-        exp_term ::=  nil | false | true | Number | String | '...' | function | 
+        exp_term ::=  nil | false | true | Number | String | '...' | function |
                       prefixexp | tableconstructor | unop exp
 
         Returns:
@@ -788,7 +789,7 @@ class Parser():
         val = self._tableconstructor()
         if val is not None:
             return ExpValue(val, start=pos, end=self._pos)
-        
+
         unop = self._accept(lexer.TokSymbol(b'-'))
         if unop is None:
             unop = self._accept(lexer.TokKeyword(b'not'))
@@ -798,7 +799,7 @@ class Parser():
                     return None
         exp = self._assert(self._exp(), 'exp after unary op')
         return ExpUnOp(unop, exp, start=pos, end=self._pos)
-    
+
     def _prefixexp(self):
         """Parse a prefixexp.
 
@@ -835,7 +836,7 @@ class Parser():
         if name is not None:
             return self._prefixexp_recur(
                 VarName(name, start=pos, end=self._pos))
-        
+
         if self._accept(lexer.TokSymbol(b'(')) is not None:
             # (exp can be None.)
             exp = self._exp()
@@ -884,7 +885,7 @@ class Parser():
                 FunctionCallMethod(prefixexp_first, name, args,
                                    start=pos, end=self._pos))
         return prefixexp_first
-    
+
     def _functioncall(self):
         """Parse a functioncall.
 
@@ -920,13 +921,13 @@ class Parser():
         tableconstructor = self._tableconstructor()
         if tableconstructor is not None:
             return tableconstructor
-        
+
         string_lit = self._accept(lexer.TokString)
         if string_lit is not None:
             return string_lit
-        
+
         return None
-        
+
     def _function(self):
         """Parse a function.
 
@@ -970,7 +971,7 @@ class Parser():
         self._expect(lexer.TokSymbol(b')'))
         block = self._assert(self._chunk(), 'block in funcbody')
         self._expect(lexer.TokKeyword(b'end'))
-            
+
         return FunctionBody(namelist, dots, block, start=pos, end=self._pos)
 
     def _tableconstructor(self):
@@ -1027,13 +1028,13 @@ class Parser():
             exp = self._assert(self._exp(), 'exp value in field')
             return FieldNamedKey(key_name, exp, start=pos, end=self._pos)
         self._pos = pos
-        
+
         exp = self._exp()
         if exp is not None:
             return FieldExp(exp, start=pos, end=self._pos)
 
         return None
-        
+
     def process_tokens(self, tokens):
         """Process a list of tokens into an AST.
 

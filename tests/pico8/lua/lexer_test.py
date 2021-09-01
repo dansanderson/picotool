@@ -142,6 +142,21 @@ a %= 2
 if (a != 2) print("ok") end
 if (a ~= 2) print("ok") end
 
+-- bitwise operators
+a = 0x15 & 0x87
+a = 0x15 | 0x87
+a = 0x15 ^^ 0x87
+a = ~0x15
+a = 0x15 << 3
+a = 0x15 >> 3
+a = 0x15 >>> 3
+a = 0x15 <<> 3
+a = 0x15 >>< 3
+
+-- Integer division
+-- Note: this appears as double slash in this string
+-- but it's actually a single slash
+# a = 17 \\ 3
 '''
 
 
@@ -157,7 +172,7 @@ class TestLexer(unittest.TestCase):
         lxr._process_line(b'break')
         self.assertEqual(1, len(lxr._tokens))
         self.assertIn('line 0', repr(lxr._tokens[0]))
-        
+
     def testTokenMatches(self):
         lxr = lexer.Lexer(version=4)
         lxr._process_line(b'break')
@@ -166,7 +181,7 @@ class TestLexer(unittest.TestCase):
         self.assertTrue(lxr._tokens[0].matches(lexer.TokKeyword))
         self.assertFalse(lxr._tokens[0].matches(lexer.TokKeyword(b'and')))
         self.assertFalse(lxr._tokens[0].matches(lexer.TokSpace))
-        
+
     def testWhitespace(self):
         lxr = lexer.Lexer(version=4)
         lxr._process_line(b'    \n')
@@ -196,7 +211,7 @@ class TestLexer(unittest.TestCase):
         lxr._process_line(b'::foobar::\n')
         self.assertEqual(2, len(lxr._tokens))
         self.assertEqual(lexer.TokLabel(b'::foobar::'), lxr._tokens[0])
-        
+
     def testThreeDots(self):
         lxr = lexer.Lexer(version=4)
         lxr._process_line(b'...\n')
@@ -226,7 +241,7 @@ class TestLexer(unittest.TestCase):
         self.assertEqual(2, len(lxr._tokens))
         self.assertEqual(lexer.TokString(b'abc def ghi \nand jkl'),
                          lxr._tokens[0])
-        
+
     def testStringMultipleLinesPlusAToken(self):
         lxr = lexer.Lexer(version=4)
         lxr._process_line(b'"abc def ghi \nand jkl" and\n')
@@ -287,7 +302,7 @@ class TestLexer(unittest.TestCase):
                          lxr._tokens[0])
         self.assertEqual(lexer.TokComment(b'-- comment text and stuff'),
                          lxr._tokens[1])
-        
+
     def testNumberInteger(self):
         lxr = lexer.Lexer(version=4)
         lxr._process_line(b'1234567890\n')
@@ -315,7 +330,7 @@ class TestLexer(unittest.TestCase):
         self.assertEqual(2, len(lxr._tokens))
         self.assertEqual(lexer.TokNumber(b'1.234567890e-6'),
                          lxr._tokens[0])
-        
+
     def testNegatedNumber(self):
         lxr = lexer.Lexer(version=4)
         lxr._process_line(b'-1.234567890e-6\n')
@@ -482,6 +497,6 @@ class TestLexer(unittest.TestCase):
         self.assertEqual(lexer.TokComment(b'-- by zep'), tokens[2])
         self.assertEqual(lexer.TokNewline(b'\n'), tokens[3])
 
-        
+
 if __name__ == '__main__':
     unittest.main()

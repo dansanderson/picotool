@@ -254,6 +254,8 @@ _TOKEN_MATCHERS.extend([
     (re.compile(symbol), TokSymbol) for symbol in [
     br'\+=', b'-=', br'\*=', b'/=', b'%=',
     b'==', b'~=', b'!=', b'<=', b'>=',
+    b'&', br'\|', br'\^\^', b'~', b'<<>', b'>>>', b'>><', b'<<', b'>>',
+    br'\\',
     br'\+', b'-', br'\*', b'/', b'%', br'\^', b'#',
     b'<', b'>', b'=',
     br'\(', br'\)', b'{', b'}', br'\[', br'\]', b';', b':', b',',

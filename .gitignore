@@ -13,3 +13,5 @@ htmlcov/
 docs/_build/
 .idea/
 .pytest_cache/
+
+.DS_Store
