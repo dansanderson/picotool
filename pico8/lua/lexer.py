@@ -250,9 +250,13 @@ _TOKEN_MATCHERS.extend([
 ])
 _TOKEN_MATCHERS.extend([
     (re.compile(br'\b'+keyword+br'\b'), TokKeyword) for keyword in LUA_KEYWORDS])
+# REMINDER: token patterns are ordered! The lexer stops at the first matching
+# pattern. This is especially tricky for the symbols because you have to make
+# sure symbols like >>> appear before >>. (If >> appeared first in this list,
+# >>> would never match.)
 _TOKEN_MATCHERS.extend([
     (re.compile(symbol), TokSymbol) for symbol in [
-    br'\+=', b'-=', br'\*=', b'/=', b'%=',
+    br'\+=', b'-=', br'\*=', b'/=', b'%=', br'\.\.=',
     b'==', b'~=', b'!=', b'<=', b'>=',
     b'&', br'\|', br'\^\^', b'~', b'<<>', b'>>>', b'>><', b'<<', b'>>',
     br'\\',

@@ -417,7 +417,8 @@ class Parser():
                          self._accept(lexer.TokSymbol(b'-=')) or
                          self._accept(lexer.TokSymbol(b'*=')) or
                          self._accept(lexer.TokSymbol(b'/=')) or
-                         self._accept(lexer.TokSymbol(b'%=')))
+                         self._accept(lexer.TokSymbol(b'%=')) or
+                         self._accept(lexer.TokSymbol(b'..=')))
             if assign_op is not None:
                 explist = self._assert(self._explist(),
                                        'Expected expression in assignment')

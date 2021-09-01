@@ -141,6 +141,7 @@ a /= 2
 a %= 2
 if (a != 2) print("ok") end
 if (a ~= 2) print("ok") end
+s ..= 'foo'
 
 -- bitwise operators
 a = 0x15 & 0x87
