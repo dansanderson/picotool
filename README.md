@@ -238,6 +238,8 @@ You can tell `p8tool build` to format or minify the code in the built output usi
 
 This is equivalent to building the cart then running `p8tool luafmt` or `p8tool luamin` on the result.
 
+The `build` command supports the options `--keep-names-from-file=<filename>` and `--keep-all-names`. See `luamin`, below, for more information.
+
 ### p8tool stats
 
 The `stats` tool prints statistics about one or more carts. Given one or more cart filenames, it analyzes each cart, then prints information about it.
@@ -406,7 +408,19 @@ The `luamin` tool rewrites the Lua region of a cart to use as few characters as 
 
 The command takes one or more cart filenames as arguments. For each cart with a name like `xxx.p8.png`, it writes a new cart with a name like `xxx_fmt.p8`.
 
-I don't recommend using this tool when publishing your games. Statistically, you will run out of tokens before you run out of characters, and minifying is unlikely to affect the compressed character count. Carts are more useful to the PICO-8 community if the code in a published cart is readable and well-commented. I only wrote `luamin` because it's an obvious kind of code transformation to try with the library.
+By default, `luamin` renames variables, attributes, and labels to use as few characters as possible. You can disable this behavior with a command line flag: `--keep-all-names`
+
+You can disable renaming just for specific names by providing a text file listing names, with this command line option: `--keep-names-from-file=<filename>` This file supports the following features:
+
+- Each name appears on its own line.
+- Blank lines are ignored.
+- Lines that begin with a `#` are ignored, so you can have comments in this file.
+
+Disabling renaming is useful in cases where code refers to object attributes using both dot syntax (`foo.bar`) and indexing syntax (`foo["bar"]`). In this case, `luamin` renames the dot syntax but can't rename the indexing syntax (because `"bar"` can be any expression). You can add `bar` to the list of names to keep to prevent this, while still allowing renaming for other symbols (including `foo` in this example).
+
+`luamin` always preserves the first two comments that appear before any other code. PICO-8 uses these comments as the title and author metadata for the label when exporting a .p8.png.
+
+Statistically, you will run out of tokens before you run out of characters, and minifying is unlikely to affect the compressed character count. Carts are more useful to the PICO-8 community if the code in a published cart is readable and well-commented. That said, some authors have found luamin useful in the late stages of writing a large cart that includes blob data strings, where you might hit the character limit first and you need to squeeze in a few more characters to finish the game.
 
 ```
 % p8tool luamin helloworld.p8.png
