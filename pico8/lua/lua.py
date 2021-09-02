@@ -1022,9 +1022,23 @@ class MinifyNameFactory():
     NAME_CHARS = b'abcdefghijklmnopqrstuvwxyz'
     PRESERVED_NAMES = lexer.LUA_KEYWORDS | PICO8_BUILTINS
 
-    def __init__(self):
+    def __init__(self,
+        keep_property_names=False,
+        keep_all_names=False,
+        keep_names_from_file=None):
+
         self._name_map = {}
         self._next_name_id = 0
+
+        self._keep_all_names = keep_all_names
+        self._names_to_keep = None
+
+        if keep_property_names:
+            # TODO: crawl file for property names, define self._names_to_keep
+            raise NotImplementedError()
+
+        if keep_names_from_file:
+            self._names_to_keep = MinifyNameFactory.read_names_file(keep_names_from_file)
 
     @classmethod
     def _name_for_id(cls, id):
@@ -1033,9 +1047,32 @@ class MinifyNameFactory():
             first = cls._name_for_id(int(id / len(MinifyNameFactory.NAME_CHARS)))
         return first + bytes([MinifyNameFactory.NAME_CHARS[id % len(MinifyNameFactory.NAME_CHARS)]])
 
+    @classmethod
+    def read_names_file(cls, fname):
+        """Reads a file of names for --keep-names-from-file.
+
+        Names are one per line. Empty lines and lines whose first non-blank character is '#' are ignored.
+
+        Returns:
+            Set of names.
+        """
+        names = set()
+        with open(fname, 'rb') as fh:
+            for line in fh:
+                line = line.strip()
+                if not line or line.startswith(b'#'):
+                    continue
+                names.add(line)
+        return names
+
     def get_short_name(self, name):
+        if self._keep_all_names:
+            return name
         if name in MinifyNameFactory.PRESERVED_NAMES:
             return name
+        if self._names_to_keep is not None and name in self._names_to_keep:
+            return name
+
         if name not in self._name_map:
             new_name = None
             while True:
@@ -1222,7 +1259,11 @@ class LuaMinifyTokenWriter(BaseLuaWriter):
     """
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._name_factory = MinifyNameFactory()
+        self._name_factory = MinifyNameFactory(
+            keep_property_names=self._args.get('keep_property_names', False),
+            keep_all_names=self._args.get('keep_all_names', False),
+            keep_names_from_file=self._args.get('keep_names_from_file'),
+        )
         self._last_was_name_keyword_number = False
         self._last_was_newline = True
 
@@ -1231,7 +1272,25 @@ class LuaMinifyTokenWriter(BaseLuaWriter):
         Yields:
           Chunks of Lua code.
         """
+        seen_header_comments = 0
+        seen_non_comment_token = False
+
         for token in self._tokens:
+            # Preserve the first two comments seen before the first non-comment/space.
+            # (These are used by PICO-8 when generating a label.)
+            if (not seen_non_comment_token and
+                not token.matches(lexer.TokComment) and
+                not token.matches(lexer.TokSpace) and
+                not token.matches(lexer.TokNewline)):
+                seen_non_comment_token = True
+            if (not seen_non_comment_token and
+                seen_header_comments < 2 and
+                token.matches(lexer.TokComment)):
+                seen_header_comments += 1
+                yield token.code
+                yield b'\n'
+                continue
+
             if (token.matches(lexer.TokComment) or
                 token.matches(lexer.TokSpace)):
                 continue

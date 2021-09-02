@@ -297,7 +297,11 @@ def luamin(g, out_fname, args=None):
       args: The argparse parsed args object, or None.
     """
     g.to_file(filename=out_fname,
-              lua_writer_cls=lua.LuaMinifyTokenWriter)
+              lua_writer_cls=lua.LuaMinifyTokenWriter,
+              lua_writer_args={
+                  # 'keep_property_names': args.keep_property_names,
+                  'keep_all_names': args.keep_all_names,
+                  'keep_names_from_file': args.keep_names_from_file})
 
 
 def luafmt(g, out_fname, args=None):
@@ -472,6 +476,15 @@ def _get_argparser():
     sp_luamin.add_argument(
         'filename', type=str, nargs='+',
         help='the names of files to process')
+    sp_luamin.add_argument(
+        '--keep-all-names', action='store_true',
+        help='preserves all variable, property, and label names')
+    # sp_luamin.add_argument(
+    #     '--keep-property-names', action='store_true',
+    #     help='preserves property names')
+    sp_luamin.add_argument(
+        '--keep-names-from-file', type=str, action='store',
+        help='preserves names found in the given text file')
     sp_luamin.set_defaults(func=do_luamin)
 
     sp_luafmt = subparsers.add_parser(
@@ -542,6 +555,15 @@ def _get_argparser():
         '--lua-minify', action='store_true',
         help='minify the number of Lua characters in the final cart '
              '(opposite of --lua-format)')
+    sp_build.add_argument(
+        '--keep-all-names', action='store_true',
+        help='when minifying, preserves all variable, property, and label names')
+    # sp_build.add_argument(
+    #     '--keep-property-names', action='store_true',
+    #     help='when minifying, preserves property names')
+    sp_build.add_argument(
+        '--keep-names-from-file', type=str, action='store',
+        help='when minifying, preserves names found in the given text file')
     sp_build.add_argument(
         '--gfx', type=str,
         help='filename for the cart whose gfx region to use')

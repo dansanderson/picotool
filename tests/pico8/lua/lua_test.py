@@ -15,6 +15,8 @@ end'''.split(b'\n')]
 
 
 VALID_LUA_EVERY_NODE = [l + b'\n' for l in b'''
+-- title comment
+-- author comment
 -- the code with the nodes
 -- doesn't have to make sense
 
@@ -211,6 +213,7 @@ end
         result = lua.Lua.from_lines(VALID_LUA_EVERY_NODE, 4)
         lines = list(result.to_lines(writer_cls=lua.LuaMinifyTokenWriter))
         txt = b''.join(lines)
+        self.assertIn(b'-- author comment', txt)
         self.assertNotIn(b'-- the code with the nodes', txt)
         self.assertIn(b'while f<10 do\nf+=1\nif f%2==0 then\na(f)\nelseif f>5 then\na(f,5)\nelse\na(f,1)\ng*=2\nend\nend', txt)
         self.assertIn(b'for g in i() do\na(g)\nend', txt)

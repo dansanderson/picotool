@@ -277,7 +277,11 @@ def do_build(args):
     lua_writer_args = None
     if getattr(args, 'lua_format', False):
         lua_writer_cls = lua.LuaFormatterWriter,
-        lua_writer_args = {'indentwidth': args.indentwidth}
+        lua_writer_args = {
+            'indentwidth': args.indentwidth,
+            # 'keep_property_names': args.keep_property_names,
+            'keep_all_names': args.keep_all_names,
+            'keep_names_from_file': args.keep_names_from_file}
     elif getattr(args, 'lua_minify', False):
         lua_writer_cls = lua.LuaMinifyTokenWriter
     result.to_file(filename=args.filename,
