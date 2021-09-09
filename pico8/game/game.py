@@ -26,7 +26,8 @@ SECTION_DELIM_RE = re.compile(br'__(\w+)__\n')
 
 DEFAULT_VERSION = 8
 EMPTY_LABEL_FNAME = os.path.join(os.path.dirname(__file__), 'empty_018.p8.png')
-COMPRESSED_LUA_CHAR_TABLE = list(b'#\n 0123456789abcdefghijklmnopqrstuvwxyz!#%(){}[]<>+=/*:;.,~_')
+COMPRESSED_LUA_CHAR_TABLE = list(
+    b'#\n 0123456789abcdefghijklmnopqrstuvwxyz!#%(){}[]<>+=/*:;.,~_')
 
 # PICO-8 adds this automatically to compressed code and removes it
 # automatically from decompressed code to maintain compatibility with PICO-8
@@ -116,7 +117,8 @@ class Game():
         """Loads a game from a named file.
 
         Args:
-          filename: The name of the file. Must end in either ".p8" or ".p8.png".
+          filename: The name of the file. Must end in either ".p8" or
+            ".p8.png".
 
         Returns:
           A Game containing the game data.
@@ -171,14 +173,14 @@ class Game():
     @classmethod
     def from_p8_file(cls, instr, filename=None):
         """Loads a game from a .p8 file.
-    
+
         Args:
           instr: The binary input stream.
           filename: The filename, if any, for tool messages.
-    
+
         Returns:
           A Game containing the game data.
-    
+
         Raises:
           InvalidP8HeaderError
         """
@@ -204,7 +206,9 @@ class Game():
             elif section == 'map':
                 my_gfx = getattr(new_game, 'gfx')
                 new_game.map = Map.from_lines(
-                    data.section_lines[section], version=data.version, gfx=my_gfx)
+                    data.section_lines[section],
+                    version=data.version,
+                    gfx=my_gfx)
             elif section == 'sfx':
                 new_game.sfx = Sfx.from_lines(
                     data.section_lines[section], version=data.version)
@@ -315,7 +319,7 @@ class Game():
         best_i = -100000
 
         max_len = min(max_block_len, len(dat) - pos)
-        max_hist_len = min(max_hist_len, pos);
+        max_hist_len = min(max_hist_len, pos)
 
         i = pos - max_hist_len
         while i < pos:
@@ -341,8 +345,9 @@ class Game():
         (_find_repeatable_block()), which makes the overall algorithm O(n^2).
         I had a previous implementation that was faster but did not produce
         the same compressed result. It should be possible to optimize the
-        working implementation using Python features without changing its result.
-        (A quick attempt at memoization did not result in a speed increase.)
+        working implementation using Python features without changing its
+        result. (A quick attempt at memoization did not result in a speed
+        increase.)
 
         Args:
           in_p: The code to compress, as a bytestring.
@@ -360,7 +365,7 @@ class Game():
             literal_index[COMPRESSED_LUA_CHAR_TABLE[i]] = i
 
         if b'_update60' in in_p and len(in_p) < PICO8_CODE_ALLOC_SIZE - (
-            len(PICO8_FUTURE_CODE2) + 1):
+                len(PICO8_FUTURE_CODE2) + 1):
             if in_p[-1] != b' '[0] and in_p[-1] != b'\n'[0]:
                 in_p += b'\n'
             in_p += PICO8_FUTURE_CODE2
@@ -369,10 +374,10 @@ class Game():
 
         # The PICO-8 C code adds the preamble here, but we do it in
         # get_bytes_from_code().
-        #out += b':c:\x00'
-        #out.append(len(in_p) // 256)
-        #out.append(len(in_p) % 256)
-        #out += b'\x00\x00'
+        # out += b':c:\x00'
+        # out.append(len(in_p) // 256)
+        # out.append(len(in_p) % 256)
+        # out += b'\x00\x00'
 
         while pos < len(in_p):
             block_len, block_offset = cls._find_repeatable_block(in_p, pos)
@@ -542,11 +547,11 @@ class Game():
     @classmethod
     def from_p8png_file(cls, instr, filename=None):
         """Loads a game from a .p8.png file.
-    
+
         Args:
           instr: The input stream.
           filename: The filename, if any, for tool messages.
-    
+
         Returns:
           A Game containing the game data.
         """
@@ -608,53 +613,54 @@ class Game():
                 util.error('{}: '.format(filename))
             util.error('warning: character count {} exceeds the PICO-8 '
                        'limit of {}\n'.format(
-                transformed_lua.get_char_count(),
-                PICO8_LUA_CHAR_LIMIT))
+                           transformed_lua.get_char_count(),
+                           PICO8_LUA_CHAR_LIMIT))
         if transformed_lua.get_token_count() > PICO8_LUA_TOKEN_LIMIT:
             if filename is not None:
                 util.error('{}: '.format(filename))
             util.error('warning: token count {} exceeds the PICO-8 '
                        'limit of {}\n'.format(
-                transformed_lua.get_token_count(),
-                PICO8_LUA_TOKEN_LIMIT))
+                           transformed_lua.get_token_count(),
+                           PICO8_LUA_TOKEN_LIMIT))
 
         outstr.write(b'__lua__\n')
         ended_in_newline = None
-        for l in self.lua.to_lines(writer_cls=lua_writer_cls,
-                                   writer_args=lua_writer_args):
-            outstr.write(l)
-            ended_in_newline = l.endswith(b'\n')
+        for line in self.lua.to_lines(
+                writer_cls=lua_writer_cls,
+                writer_args=lua_writer_args):
+            outstr.write(line)
+            ended_in_newline = line.endswith(b'\n')
         if not ended_in_newline:
             outstr.write(b'\n')
 
         outstr.write(b'__gfx__\n')
-        for l in self.gfx.to_lines():
-            outstr.write(l)
+        for line in self.gfx.to_lines():
+            outstr.write(line)
 
         if self.label:
             outstr.write(b'__label__\n')
-            for l in self.label.to_lines():
-                outstr.write(l)
+            for line in self.label.to_lines():
+                outstr.write(line)
 
         # PICO-8 emits an extra newline before __gff__ for no good reason, as
         # of 0.1.10c. PICO-8 doesn't care whether we do, but our tests want to
         # match the test cart data exactly.
         outstr.write(b'\n')
         outstr.write(b'__gff__\n')
-        for l in self.gff.to_lines():
-            outstr.write(l)
+        for line in self.gff.to_lines():
+            outstr.write(line)
 
         outstr.write(b'__map__\n')
-        for l in self.map.to_lines():
-            outstr.write(l)
+        for line in self.map.to_lines():
+            outstr.write(line)
 
         outstr.write(b'__sfx__\n')
-        for l in self.sfx.to_lines():
-            outstr.write(l)
+        for line in self.sfx.to_lines():
+            outstr.write(line)
 
         outstr.write(b'__music__\n')
-        for l in self.music.to_lines():
-            outstr.write(l)
+        for line in self.music.to_lines():
+            outstr.write(line)
 
         outstr.write(b'\n')
 
@@ -674,7 +680,8 @@ class Game():
         # To install: python3 -m pip install pypng
         import png
 
-        # TODO: If self.label, use EMPTY_LABEL_FNAME and substitute the appropriate img_data
+        # TODO: If self.label, use EMPTY_LABEL_FNAME and substitute the
+        # appropriate img_data
         label_fname = label_fname or EMPTY_LABEL_FNAME
         try:
             with open(label_fname, 'rb') as label_fh:
@@ -689,12 +696,12 @@ class Game():
         code_bytes = self.get_bytes_from_code(b''.join(cart_lua))
 
         picodata = b''.join((self.gfx.to_bytes(),
-                         self.map.to_bytes(),
-                         self.gff.to_bytes(),
-                         self.music.to_bytes(),
-                         self.sfx.to_bytes(),
-                         code_bytes,
-                         bytes((self.version,))))
+                             self.map.to_bytes(),
+                             self.gff.to_bytes(),
+                             self.music.to_bytes(),
+                             self.sfx.to_bytes(),
+                             code_bytes,
+                             bytes((self.version,))))
 
         new_rows = self.get_pngdata_from_picodata(picodata, img_data, attrs)
 
@@ -714,7 +721,7 @@ class Game():
         Args:
             filename: The filename.
         """
-        file_args = {'mode':'wb+'}
+        file_args = {'mode': 'wb+'}
         with tempfile.TemporaryFile(**file_args) as outfh:
             if filename.endswith('.png'):
                 if kwargs.get('label_fname', None) is None:
@@ -737,14 +744,14 @@ class Game():
         if start_addr + len(data) > 0x4300:
             raise ValueError('Data too large: {} bytes starting at {} exceeds '
                              '0x4300'.format(len(data), start_addr))
-        memmap = ((0x0,0x2000,self.gfx._data),
-          (0x2000,0x3000,self.map._data),
-          (0x3000,0x3100,self.gff._data),
-          (0x3100,0x3200,self.music._data),
-          (0x3200,0x4300,self.sfx._data))
+        memmap = ((0x0, 0x2000, self.gfx._data),
+                  (0x2000, 0x3000, self.map._data),
+                  (0x3000, 0x3100, self.gff._data),
+                  (0x3100, 0x3200, self.music._data),
+                  (0x3200, 0x4300, self.sfx._data))
         for start_a, end_a, section_data in memmap:
             if (start_addr > end_a or
-                  start_addr + len(data) < start_a):
+                    start_addr + len(data) < start_a):
                 continue
             data_start_a = (start_addr - start_a
                             if start_addr > start_a
