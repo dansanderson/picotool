@@ -9,7 +9,26 @@ ordering, while the RAM representation uses the most significant
 nibble for the right pixel of each pixel pair.)
 """
 
-__all__ = ['Gfx']
+__all__ = [
+  'Gfx',
+  'BLACK',
+  'DARK_BLUE',
+  'DARK_PURPLE',
+  'DARK_GREEN',
+  'BROWN',
+  'DARK_GRAY',
+  'LIGHT_GRAY',
+  'WHITE',
+  'RED',
+  'ORANGE',
+  'YELLOW',
+  'GREEN',
+  'BLUE',
+  'INDIGO',
+  'PINK',
+  'PEACH',
+  'TRANSPARENT'
+]
 
 from .. import util
 
@@ -49,7 +68,7 @@ class Gfx(util.BaseSection):
           A Gfx instance.
         """
         return cls(data=bytearray(b'\x00' * 128 * 64), version=version)
-    
+
     @classmethod
     def from_lines(cls, lines, version):
         """Create an instance based on .p8 data lines.
@@ -64,12 +83,12 @@ class Gfx(util.BaseSection):
           A Gfx instance.
         """
         datastrs = []
-        for l in lines:
-            if len(l) != 129:
+        for line in lines:
+            if len(line) != 129:
                 continue
-            
-            larray = list(l.rstrip())
-            for i in range(0,128,2):
+
+            larray = list(line.rstrip())
+            for i in range(0, 128, 2):
                 (larray[i], larray[i+1]) = (larray[i+1], larray[i])
 
             larray_str = str(bytes(larray), encoding='ascii')
@@ -92,8 +111,10 @@ class Gfx(util.BaseSection):
             newdata = []
             for b in self._data[start_i:end_i]:
                 newdata.append((b & 0x0f) << 4 | (b & 0xf0) >> 4)
-                
-            yield bytes(util.bytes_to_hex(bytes(newdata)), encoding='ascii') + b'\n'
+
+            yield (
+              bytes(util.bytes_to_hex(bytes(newdata)), encoding='ascii') +
+              b'\n')
 
     def get_sprite(self, id, tile_width=1, tile_height=1):
         """Retrieves the graphics data for a sprite.
@@ -120,8 +141,8 @@ class Gfx(util.BaseSection):
             sprite.
           tile_width: The width of the requested sprite, as a number of tiles.
             Must be 1 or greater.
-          tile_height: The height of the requested sprite, as a number of tiles.
-            Must be 1 or greater.
+          tile_height: The height of the requested sprite, as a number of
+            tiles. Must be 1 or greater.
 
         Returns:
           A list of bytearrays, one bytearray per row, where each cell
@@ -186,7 +207,7 @@ class Gfx(util.BaseSection):
         Args:
           id: The PICO-8 tile ID that is the upper-left corner of the requested
             sprite.
-          sprite: The sprite pixel data, as an iterable of iterables of pixel 
+          sprite: The sprite pixel data, as an iterable of iterables of pixel
             color values.
           tile_x_offset: If non-zero, start drawing the sprite data onto the
             spritesheet this many pixels to the right of the left edge of the
@@ -203,7 +224,7 @@ class Gfx(util.BaseSection):
             for x, val in enumerate(row):
                 if ((val == TRANSPARENT) or
                     ((first_y_coord + y) > 128) or
-                    ((first_x_coord + x) > 128)):
+                        ((first_x_coord + x) > 128)):
                     continue
                 data_loc = (first_y_coord + y) * 64 + (first_x_coord + x) // 2
                 b = self._data[data_loc]

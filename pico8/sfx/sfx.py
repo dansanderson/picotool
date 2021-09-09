@@ -31,7 +31,7 @@ note is encoded in 16 bits, LSB first, like so:
   eee: effect (0-7)
   vvv: volume (0-7)
   w3w2w1: waveform (0-7)
-  pppppp: pitch (0-63) 
+  pppppp: pitch (0-63)
   c: if 1, waveform is a custom instrument corresponding to sfx 0-7;
     otherwise it's one of the eight built-in waveforms
 
@@ -61,7 +61,7 @@ WAVEFORM_CUSTOM_6 = 14
 WAVEFORM_CUSTOM_7 = 15
 EFFECT_NONE = 0
 EFFECT_SLIDE = 1
-EFFECT_VIBRATO = 2 
+EFFECT_VIBRATO = 2
 EFFECT_DROP = 3
 EFFECT_FADE_IN = 4
 EFFECT_FADE_OUT = 5
@@ -85,14 +85,14 @@ class Sfx(util.BaseSection):
           A Sfx instance.
         """
         result = cls(data=bytearray(b'\x00' * 4352), version=version)
-        
+
         # Emulate PICO-8 defaults:
         result.set_properties(0, note_duration=1)
-        for i in range(1,64):
+        for i in range(1, 64):
             result.set_properties(i, note_duration=16)
-            
+
         return result
-    
+
     @classmethod
     def from_lines(cls, lines, version):
         """Create an instance based on .p8 data lines.
@@ -103,25 +103,25 @@ class Sfx(util.BaseSection):
         """
         result = cls.empty(version=version)
         id = 0
-        
-        for l in lines:
-            if len(l) != 169:
+
+        for line in lines:
+            if len(line) != 169:
                 continue
-            editor_mode = int(l[0:2], 16)
-            note_duration = int(l[2:4], 16)
-            loop_start = int(l[4:6], 16)
-            loop_end = int(l[6:8], 16)
+            editor_mode = int(line[0:2], 16)
+            note_duration = int(line[2:4], 16)
+            loop_start = int(line[4:6], 16)
+            loop_end = int(line[6:8], 16)
             result.set_properties(id,
                                   editor_mode=editor_mode,
                                   note_duration=note_duration,
                                   loop_start=loop_start,
                                   loop_end=loop_end)
             note = 0
-            for i in range(8,168,5):
-                pitch = int(l[i:i+2], 16)
-                waveform = int(l[i+2:i+3], 16)
-                volume = int(l[i+3:i+4], 16)
-                effect = int(l[i+4:i+5], 16)
+            for i in range(8, 168, 5):
+                pitch = int(line[i:i+2], 16)
+                waveform = int(line[i+2:i+3], 16)
+                volume = int(line[i+3:i+4], 16)
+                effect = int(line[i+4:i+5], 16)
                 result.set_note(id, note,
                                 pitch=pitch,
                                 waveform=waveform,
@@ -139,11 +139,14 @@ class Sfx(util.BaseSection):
           One line of a hex string.
         """
         for id in range(0, 64):
-            hexstrs = [bytes(util.bytes_to_hex(bytes(self.get_properties(id))), encoding='ascii')]
+            hexstrs = [bytes(util.bytes_to_hex(
+                bytes(self.get_properties(id))), encoding='ascii')]
             for note in range(0, 32):
                 pitch, waveform, volume, effect = self.get_note(id, note)
-                hexstrs.append(bytes(util.bytes_to_hex(bytes([pitch, waveform << 4 | volume])), encoding='ascii'))
-                hexstrs.append(bytes(util.bytes_to_hex(bytes([effect]))[1], encoding='ascii'))
+                hexstrs.append(bytes(util.bytes_to_hex(
+                    bytes([pitch, waveform << 4 | volume])), encoding='ascii'))
+                hexstrs.append(bytes(util.bytes_to_hex(
+                    bytes([effect]))[1], encoding='ascii'))
             yield b''.join(hexstrs) + b'\n'
 
     def get_note(self, id, note):
@@ -168,7 +171,8 @@ class Sfx(util.BaseSection):
         lsb = self._data[id * 68 + note * 2]
         msb = self._data[id * 68 + note * 2 + 1]
         pitch = lsb & 0x3f
-        waveform = ((msb & 0x80) >> 4) | ((msb & 0x01) << 2) | ((lsb & 0xc0) >> 6)
+        waveform = ((msb & 0x80) >> 4) | (
+            (msb & 0x01) << 2) | ((lsb & 0xc0) >> 6)
         volume = (msb & 0x0e) >> 1
         effect = (msb & 0x70) >> 4
         return pitch, waveform, volume, effect
@@ -203,10 +207,10 @@ class Sfx(util.BaseSection):
         if effect is not None:
             assert 0 <= effect <= 7
             msb = (msb & 0x8f) | (effect << 4)
-        
+
         self._data[id * 68 + note * 2] = lsb
         self._data[id * 68 + note * 2 + 1] = msb
-        
+
     def get_properties(self, id):
         """Gets properties for a pattern.
 

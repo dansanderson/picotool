@@ -71,7 +71,7 @@ def _as_friendly_string(s):
     if s is None:
         return None
     s_arr = bytearray(s)
-    for i,c in enumerate(s_arr):
+    for i, c in enumerate(s_arr):
         if c > 127:
             s_arr[i] = 95  # ASCII for b'_'
     return str(s_arr, encoding='ascii')
@@ -131,9 +131,9 @@ def stats(args):
                 util.write(byline + '\n')
             util.write('- version: {}\n- lines: {}\n- chars: {}\n'
                        '- tokens: {}\n- compressed chars: {}\n'.format(
-                g.lua.version, g.lua.get_line_count(),
-                g.lua.get_char_count(), g.lua.get_token_count(),
-                g.get_compressed_size()))
+                           g.lua.version, g.lua.get_line_count(),
+                           g.lua.get_char_count(), g.lua.get_token_count(),
+                           g.get_compressed_size()))
             util.write('\n')
 
     return 0
@@ -157,12 +157,12 @@ def listlua(args):
         if len(args.filename) > 1:
             util.write('=== {} ===\n'.format(g.filename))
 
-        for l in g.lua.to_lines(
-                writer_cls=(lua.PureLuaWriter if args.pure_lua else None)):
+        for index, line in enumerate(g.lua.to_lines(
+                writer_cls=(lua.PureLuaWriter if args.pure_lua else None))):
             if args.show_line_numbers:
-                util.write('{}: {}'.format(i, _as_friendly_string(l)))
+                util.write('{}: {}'.format(index, _as_friendly_string(line)))
             else:
-                util.write(_as_friendly_string(l))
+                util.write(_as_friendly_string(line))
         util.write('\n')
 
     return 0
@@ -193,8 +193,8 @@ def listrawlua(args):
             continue
 
         if len(args.filename) > 1:
-            util.write('=== {} ===\n'.format(g.filename))
-        for i,l in enumerate(raw_lua):
+            util.write('=== {} ===\n'.format(fname))
+        for i, l in enumerate(raw_lua):
             if args.show_line_numbers:
                 util.write('{}: {}\n'.format(i, _as_friendly_string(l)))
             else:
@@ -318,6 +318,8 @@ def luafmt(g, out_fname, args=None):
 
 
 _PRINTAST_INDENT_SIZE = 2
+
+
 def _printast_node(value, indent=0, prefix=''):
     """Recursive procedure for printast.
 
@@ -385,14 +387,15 @@ def luafind(args):
     # token stream to get the lines of code.
     for fname, g in _games_for_filenames(filenames):
         line_count = 0
-        for l in g.lua.to_lines():
+        for line in g.lua.to_lines():
             line_count += 1
-            if pattern.search(l) is None:
+            if pattern.search(line) is None:
                 continue
             if args.listfiles:
                 util.write(fname + '\n')
                 break
-            util.write('{}:{}:{}'.format(fname, line_count, _as_friendly_string(l)))
+            util.write('{}:{}:{}'.format(
+                fname, line_count, _as_friendly_string(line)))
 
     return 0
 
@@ -557,7 +560,8 @@ def _get_argparser():
              '(opposite of --lua-format)')
     sp_build.add_argument(
         '--keep-all-names', action='store_true',
-        help='when minifying, preserves all variable, property, and label names')
+        help='when minifying, preserves all variable, property, '
+             'and label names')
     # sp_build.add_argument(
     #     '--keep-property-names', action='store_true',
     #     help='when minifying, preserves property names')

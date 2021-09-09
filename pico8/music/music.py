@@ -40,7 +40,7 @@ class Music(util.BaseSection):
           A Music instance.
         """
         return cls(data=bytearray(b'\x41\x42\x43\x44' * 64), version=version)
-    
+
     @classmethod
     def from_lines(cls, lines, version):
         """Parse the music .p8 section into memory bytes.
@@ -53,10 +53,10 @@ class Music(util.BaseSection):
           A Music instance with the loaded data.
         """
         data = bytearray()
-        for l in lines:
-            if l.find(b' ') == -1:
+        for line in lines:
+            if line.find(b' ') == -1:
                 continue
-            flagstr, chanstr = l.split(b' ')
+            flagstr, chanstr = line.split(b' ')
             flags = bytes.fromhex(str(flagstr, encoding='ascii'))[0]
             fstop = (flags & 4) >> 2
             frepeat = (flags & 2) >> 1
@@ -70,7 +70,7 @@ class Music(util.BaseSection):
             data.append(chan2[0] | frepeat << 7)
             data.append(chan3[0] | fstop << 7)
             data.append(chan4[0])
-        
+
         return cls(data=data, version=version)
 
     def to_lines(self):
@@ -88,8 +88,12 @@ class Music(util.BaseSection):
             chan2 = self._data[start_i+1] & 127
             chan3 = self._data[start_i+2] & 127
             chan4 = self._data[start_i+3] & 127
-            yield (bytes(util.bytes_to_hex(bytes([p8flags])), encoding='ascii') + b' ' +
-                   bytes(util.bytes_to_hex(bytes([chan1, chan2, chan3, chan4])), encoding='ascii') + b'\n')
+            yield (
+              bytes(util.bytes_to_hex(bytes([p8flags])), encoding='ascii') +
+              b' ' +
+              bytes(util.bytes_to_hex(bytes([chan1, chan2, chan3, chan4])),
+                    encoding='ascii') +
+              b'\n')
 
     def get_channel(self, id, channel):
         """Gets the sfx ID on a channel for a given pattern.
@@ -107,7 +111,7 @@ class Music(util.BaseSection):
         if pattern > 63:
             return None
         return pattern
-    
+
     def set_channel(self, id, channel, pattern):
         """Sets the sfx ID on a channel of a pattern.
 
@@ -123,11 +127,12 @@ class Music(util.BaseSection):
             pattern = 0x40 + channel + 1
         self._data[id * 4 + channel] = ((self._data[id * 4 + channel] & 0x80) |
                                         pattern)
-        
+
     def get_properties(self, id):
         """Gets the properties of the music pattern.
 
-        begin is True if the music pattern is the beginning of a looping region.
+        begin is True if the music pattern is the beginning of a looping
+        region.
 
         end is True if the music pattern is the end of a looping region.
 
@@ -144,7 +149,7 @@ class Music(util.BaseSection):
         end = (self._data[id * 4 + 1] & 0x80) > 0
         stop = (self._data[id * 4 + 2] & 0x80) > 0
         return (begin, end, stop)
-    
+
     def set_properties(self, id, begin=None, end=None, stop=None):
         """Sets the properties of the music pattern.
 

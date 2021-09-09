@@ -5,7 +5,6 @@ import sys
 __all__ = [
     'Error',
     'InvalidP8DataError',
-    'set_quiet',
     'write',
     'error'
 ]
@@ -18,7 +17,7 @@ _verbosity = VERBOSITY_NORMAL
 
 _write_stream = sys.stdout
 _error_stream = sys.stderr
-    
+
 
 class Error(Exception):
     """A base class for all errors in the picotool libraries."""
@@ -50,7 +49,7 @@ def debug(msg):
     if _verbosity >= VERBOSITY_DEBUG:
         _write_stream.write(msg)
 
-        
+
 def write(msg):
     """Writes a message to the user.
 
@@ -104,10 +103,12 @@ class BaseSection():
           lines: .p8 lines for the section.
           version: The PICO-8 data version from the game file header.
         """
-        data = b''.join(bytearray.fromhex(str(l.rstrip(), encoding='ascii')) for l in lines)
+        data = b''.join(bytearray.fromhex(
+            str(line.rstrip(), encoding='ascii')) for line in lines)
         return cls(data=data, version=version)
 
     HEX_LINE_LENGTH_BYTES = 64
+
     def to_lines(self):
         """Generates lines of ASCII-encoded hexadecimal strings.
 
@@ -118,8 +119,9 @@ class BaseSection():
             end_i = start_i + self.HEX_LINE_LENGTH_BYTES
             if end_i > len(self._data):
                 end_i = len(self._data)
-            yield bytes(bytes_to_hex(bytes(self._data[start_i:end_i])), encoding='ascii') + b'\n'
-    
+            yield bytes(bytes_to_hex(bytes(self._data[start_i:end_i])),
+                        encoding='ascii') + b'\n'
+
     @classmethod
     def from_bytes(cls, data, version):
         """

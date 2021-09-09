@@ -1,10 +1,16 @@
+# This file uses dynamically generated class names that confuse Pylance and flake8.
+# flake8: noqa
+# pyright: reportUndefinedVariable=false
+
 """The Lua parser."""
+
+from typing import List
 
 from .. import util
 from . import lexer
 
 
-__all__ = [
+__all__ = [  # noqa: F822
     'Parser',
     'ParserError',
     'Node',
@@ -49,6 +55,7 @@ __all__ = [
 
 class ParserError(util.InvalidP8DataError):
     """A lexer error."""
+
     def __init__(self, msg, token=None):
         self.msg = msg
         self.token = token
@@ -73,17 +80,21 @@ class Node():
 
     def _add_token_group(self, fieldname, fieldvalue, tokenlist, pos):
         if isinstance(fieldvalue, Node):
-            self._token_groups.append((fieldname, tokenlist[pos:fieldvalue.start_pos]))
+            self._token_groups.append(
+                (fieldname, tokenlist[pos:fieldvalue.start_pos]))
             fieldvalue.store_token_groups(tokenlist)
             pos = fieldvalue.end_pos
         elif fieldname == 'exp_block_pairs':
             for block_pairs_i, pair in enumerate(fieldvalue):
                 if pair[0] is not None:
-                    pos = self._add_token_group((fieldname, block_pairs_i, 0), pair[0], tokenlist, pos)
-                pos = self._add_token_group((fieldname, block_pairs_i, 1), pair[1], tokenlist, pos)
+                    pos = self._add_token_group(
+                        (fieldname, block_pairs_i, 0), pair[0], tokenlist, pos)
+                pos = self._add_token_group(
+                    (fieldname, block_pairs_i, 1), pair[1], tokenlist, pos)
         elif hasattr(fieldvalue, '__getitem__'):
             for inner_i, inner in enumerate(fieldvalue):
-                pos = self._add_token_group((fieldname, inner_i), inner, tokenlist, pos)
+                pos = self._add_token_group(
+                    (fieldname, inner_i), inner, tokenlist, pos)
         else:
             self._token_groups.append(tokenlist[pos:pos+1])
             pos += 1
@@ -92,19 +103,22 @@ class Node():
     def store_token_groups(self, tokenlist):
         """Store the tokens for this node inside the node.
 
-        This post-parsing pass stores tokens on AST nodes directly so that the AST can be the source of truth for
-        tokens and it preserves whitespace and comments even after the AST has been transformed.
+        This post-parsing pass stores tokens on AST nodes directly so that the
+        AST can be the source of truth for tokens and it preserves whitespace
+        and comments even after the AST has been transformed.
 
         Args:
             tokenlist: The entire list of tokens for the parsed program.
         """
         pos = self.start_pos
 
-        # Each token group is either a tuple (fieldname, tokens) or a simple list a tokens (literal values).
-        # fieldname is:
+        # Each token group is either a tuple (fieldname, tokens) or a simple
+        # list a tokens (literal values). fieldname is:
         # - a string, the name of the field that follows these tokens
-        # - a tuple of two elements: the name and the index in a field with a list value
-        # - a tuple of three elements: 'exp_block_pairs', the index of the pair, the index of the pair member (0,1)
+        # - a tuple of two elements: the name and the index in a field with a
+        #   list value
+        # - a tuple of three elements: 'exp_block_pairs', the index of the
+        #   pair, the index of the pair member (0,1)
         self._token_groups = []
 
         for fieldname in self._fields:
@@ -128,13 +142,16 @@ class Node():
             for t in tokens:
                 yield t
             if type(fieldspec) == str:
-                for t in getattr(self, fieldspec).tokens:
+                tokens = getattr(self, fieldspec).tokens
+                for t in tokens:
                     yield t
             elif len(fieldspec) == 2:
-                for t in getattr(self, fieldspec[0])[fieldspec[1]].tokens:
+                tokens = getattr(self, fieldspec[0])[fieldspec[1]].tokens
+                for t in tokens:
                     yield t
             else:
-                for t in getattr(self, fieldspec[0])[fieldspec[1]][fieldspec[2]].tokens:
+                tokens = getattr(self, fieldspec[0])[fieldspec[1]][fieldspec[2]].tokens  # noqa: E501
+                for t in tokens:
                     yield t
 
 
@@ -216,14 +233,15 @@ for (name, fields) in _ast_node_types:
 
 
 # (!= is PICO-8 specific.)
-BINOP_PATS = ([lexer.TokSymbol(sym) for sym in [
+BINOP_PATS = (tuple([lexer.TokSymbol(sym) for sym in [
     b'&', b'|', b'^^', b'<<', b'>>', b'>>>', b'<<>', b'>><', b'\\',
-    b'<', b'>', b'<=', b'>=', b'~=', b'!=', b'==', b'..', b'+', b'-', b'*', b'/', b'%', b'^'
-]] + [lexer.TokKeyword(b'and'), lexer.TokKeyword(b'or')])
+    b'<', b'>', b'<=', b'>=', b'~=', b'!=', b'==', b'..', b'+', b'-', b'*',
+    b'/', b'%', b'^'
+]]) + (lexer.TokKeyword(b'and'), lexer.TokKeyword(b'or')))
 
-UNOP_PATS = ([lexer.TokSymbol(sym) for sym in [
+UNOP_PATS = (tuple([lexer.TokSymbol(sym) for sym in [
     b'-', b'#', b'~', b'@', b'%', b'$'
-]] + [lexer.TokKeyword(b'not')])
+]]) + (lexer.TokKeyword(b'not'),))
 
 
 class Parser():
@@ -296,7 +314,7 @@ class Parser():
 
         if (cur_tok is not None and
             cur_tok.matches(tok_pattern) and
-            (self._max_pos is None or self._pos < self._max_pos)):
+                (self._max_pos is None or self._pos < self._max_pos)):
             self._pos += 1
             return cur_tok
 
@@ -410,8 +428,8 @@ class Parser():
 
         varlist = self._varlist()
         if varlist is not None:
-            # (Missing '=' is not a fatal error because varlist might also match
-            # the beginning of a functioncall.)
+            # (Missing '=' is not a fatal error because varlist might also
+            # match the beginning of a functioncall.)
             assign_op = (self._accept(lexer.TokSymbol(b'=')) or
                          self._accept(lexer.TokSymbol(b'+=')) or
                          self._accept(lexer.TokSymbol(b'-=')) or
@@ -458,7 +476,7 @@ class Parser():
             then_pos = self._pos
             if (self._accept(lexer.TokKeyword(b'then')) is None and
                 self._accept(lexer.TokKeyword(b'do')) is None and
-                (self._tokens[exp._end_token_pos - 1] == lexer.TokSymbol(b')'))):
+                    (self._tokens[exp._end_token_pos - 1] == lexer.TokSymbol(b')'))):
                 # Check for PICO-8 short form.
 
                 then_end_pos = exp._end_token_pos
@@ -651,7 +669,7 @@ class Parser():
         exp_prefix = self._prefixexp()
         if (isinstance(exp_prefix, VarName) or
             isinstance(exp_prefix, VarAttribute) or
-            isinstance(exp_prefix, VarIndex)):
+                isinstance(exp_prefix, VarIndex)):
             return exp_prefix
         return None
 
@@ -1029,7 +1047,7 @@ class Parser():
 
         key_name = self._accept(lexer.TokName)
         if (key_name is not None and
-            self._accept(lexer.TokSymbol(b'=')) is not None):
+                self._accept(lexer.TokSymbol(b'=')) is not None):
             exp = self._assert(self._exp(), 'exp value in field')
             return FieldNamedKey(key_name, exp, start=pos, end=self._pos)
         self._pos = pos

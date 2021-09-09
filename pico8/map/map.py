@@ -63,7 +63,7 @@ class Map(util.BaseSection):
         result = super().from_bytes(*args, **kwargs)
         result._gfx = gfx
         return result
-    
+
     def get_cell(self, x, y):
         """Gets the tile ID for a map cell.
 
@@ -155,9 +155,8 @@ class Map(util.BaseSection):
                 if ((tile_y + y) > 127) or ((tile_x + x) > 127):
                     continue
                 self.set_cell(tile_x + x, tile_y + y, val)
-                
-    def get_rect_pixels(self, x, y, width=1, height=1):
 
+    def get_rect_pixels(self, x, y, width=1, height=1):
         """Gets a rectangel of map tiles as pixels.
 
         This is similar to get_rect_tiles() except the tiles are

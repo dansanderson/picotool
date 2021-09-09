@@ -80,7 +80,7 @@ class RequireWalker(lua.BaseASTWalker):
                 error messages
         """
         if (isinstance(node.exp_prefix, parser.VarName) and
-                    node.exp_prefix.name == lexer.TokName(b'require')):
+                node.exp_prefix.name == lexer.TokName(b'require')):
             arg_exps = node.args.explist.exps if node.args.explist else []
             if len(arg_exps) < 1 or len(arg_exps) > 2:
                 self._error_at_node('require() has {} args, should have 1 or 2'
@@ -94,15 +94,17 @@ class RequireWalker(lua.BaseASTWalker):
             use_game_loop = False
             if len(arg_exps) == 2:
                 if (not isinstance(arg_exps[1], parser.ExpValue) or
-                        not isinstance(arg_exps[1].value, parser.TableConstructor)):
+                        not isinstance(arg_exps[1].value, parser.TableConstructor)):  # noqa: E501
                     self._error_at_node('require() second argument must be a '
                                         'table literal', node)
-                # require() only has one valid option for now, so hard-code this expectation
+                # require() only has one valid option for now, so hard-code
+                # this expectation
                 if (len(arg_exps[1].value.fields) != 1 or
-                    arg_exps[1].value.fields[0].key_name != lexer.TokName(b'use_game_loop') or
-                    type(arg_exps[1].value.fields[0].exp.value) != bool):
-                    self._error_at_node('Invalid require() options; did '
-                                        'you mean {use_game_loop=true} ?', node)
+                    arg_exps[1].value.fields[0].key_name != lexer.TokName(b'use_game_loop') or  # noqa: E501
+                        type(arg_exps[1].value.fields[0].exp.value) != bool):
+                    self._error_at_node(
+                        'Invalid require() options; did '
+                        'you mean {use_game_loop=true} ?', node)
                 use_game_loop = arg_exps[1].value.fields[0].exp.value
 
             yield (require_path, use_game_loop, self._tokens[node.start_pos])
@@ -111,7 +113,8 @@ class RequireWalker(lua.BaseASTWalker):
 def _evaluate_require(ast, file_path, package_lua, lua_path=None):
     """Evaluate require() statements in a Lua AST.
 
-    See the picotool README.md for a complete description of the intended behavior of require().
+    See the picotool README.md for a complete description of the intended
+    behavior of require().
 
     This function is called recursively on require()'d files.
 
@@ -130,32 +133,39 @@ def _evaluate_require(ast, file_path, package_lua, lua_path=None):
 
         # Disallow chars that select files outside of the load path.
         if b'./' in require_path or require_path.startswith(b'/'):
-            raise LuaBuildError('require() filename cannot contain "./" or "../" or start with "/"', require_token)
+            raise LuaBuildError(
+                'require() filename cannot contain "./" or "../" or start '
+                'with "/"', require_token)
 
         if require_path not in package_lua:
-            reqd_filepath = _locate_require_file(require_path_str, file_path, lua_path=lua_path)
+            reqd_filepath = _locate_require_file(
+                require_path_str, file_path, lua_path=lua_path)
             if reqd_filepath is None:
-                raise LuaBuildError('require() file {} not found; used load path {}'.format(require_path_str, lua_path),
-                                    require_token)
+                raise LuaBuildError(
+                    'require() file {} not found; used load path {}'.format(require_path_str, lua_path),  # noqa: E501
+                    require_token)
 
             # TODO: support loading required code from .p8 and .p8.png files.
             with open(reqd_filepath, 'rb') as infh:
-                reqd_lua = lua.Lua.from_lines(infh, version=game.DEFAULT_VERSION)
+                reqd_lua = lua.Lua.from_lines(
+                    infh, version=game.DEFAULT_VERSION)
 
-            # TODO: Technically the use_game_loop option needs to be part of the package key
-            # because it results in a different package than that without the option.
-            # As is, the first require() the parser encounters determines the option.
-            # (This is not necessarily the first require() the Lua interpreter encounters.)
+            # TODO: Technically the use_game_loop option needs to be part of
+            # the package key because it results in a different package than
+            # that without the option. As is, the first require() the parser
+            # encounters determines the option. (This is not necessarily the
+            # first require() the Lua interpreter encounters.)
 
             if not use_game_loop:
                 reqd_lua.root.stats[:] = [
                     s for s in reqd_lua.root.stats
                     if not isinstance(s, parser.StatFunction) or
-                       s.funcname.namepath[0].value not in GAME_LOOP_FUNCTION_NAMES]
+                    s.funcname.namepath[0].value not in GAME_LOOP_FUNCTION_NAMES]  # noqa: E501
                 reqd_lua.reparse(writer_cls=lua.LuaASTEchoWriter)
 
             package_lua[require_path] = reqd_lua
-            _evaluate_require(reqd_lua, reqd_filepath, package_lua, lua_path=lua_path)
+            _evaluate_require(reqd_lua, reqd_filepath,
+                              package_lua, lua_path=lua_path)
 
 
 def _prepend_package_lua(orig_ast, package_lua):
@@ -176,7 +186,8 @@ def _prepend_package_lua(orig_ast, package_lua):
     package_header.extend(REQUIRE_LUA_PREAMBLE_PACKAGE)
     for pth, ast in package_lua.items():
         escaped_pth = pth.replace(b'"', b'\\"')
-        package_header.append(b'package._c["' + escaped_pth + b'"]=function()\n')
+        package_header.append(
+            b'package._c["' + escaped_pth + b'"]=function()\n')
         package_header.extend(ast.to_lines())
         package_header.append(b'end\n')
     package_header.extend(REQUIRE_LUA_PREAMBLE_REQUIRE)
@@ -199,10 +210,10 @@ def _remove_global_return(ast):
     Args:
         ast: The lua.Lua object.
     """
-    #ast.root.stats[:] = [
+    # ast.root.stats[:] = [
     #    s for s in ast.root.stats
     #    if not isinstance(s, parser.StatReturn)]
-    #ast.reparse(writer_cls=lua.LuaASTEchoWriter)
+    # ast.reparse(writer_cls=lua.LuaASTEchoWriter)
     pass
 
 
@@ -254,12 +265,15 @@ def do_build(args):
                     result.lua = lua.Lua.from_lines(
                         infh, version=game.DEFAULT_VERSION)
                     package_lua = {}
-                    _evaluate_require(result.lua, file_path=fn, package_lua=package_lua,
-                                     lua_path=getattr(args, 'lua_path', None))
+                    _evaluate_require(
+                        result.lua, file_path=fn, package_lua=package_lua,
+                        lua_path=getattr(args, 'lua_path', None))
 
                     if getattr(args, 'optimize_tokens', False):
-                        # TODO: perform const subst, dead code elim, taking package_lua into account
-                        raise NotImplementedError('--optimize_tokens not yet implemented, sorry')
+                        # TODO: perform const subst, dead code elim, taking
+                        # package_lua into account
+                        raise NotImplementedError(
+                            '--optimize_tokens not yet implemented, sorry')
 
                     result.lua = _prepend_package_lua(result.lua, package_lua)
                     _remove_global_return(result.lua)

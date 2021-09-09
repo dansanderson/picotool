@@ -23,13 +23,14 @@ __all__ = [
 
 LUA_KEYWORDS = {
     b'and', b'break', b'do', b'else', b'elseif', b'end', b'false', b'for',
-    b'function', b'goto', b'if', b'in', b'local', b'nil', b'not', b'or', b'repeat',
-    b'return', b'then', b'true', b'until', b'while'
+    b'function', b'goto', b'if', b'in', b'local', b'nil', b'not', b'or',
+    b'repeat', b'return', b'then', b'true', b'until', b'while'
 }
 
 
 class LexerError(util.InvalidP8DataError):
     """A lexer error."""
+
     def __init__(self, msg, lineno, charno):
         self.msg = msg
         self.lineno = lineno
@@ -75,10 +76,10 @@ class Token():
           other: The other Token to compare.
         """
         if (type(self) != type(other) or
-            not isinstance(self, other.__class__)):
+                not isinstance(self, other.__class__)):
             return False
         if (isinstance(self, TokKeyword) and
-            isinstance(other, TokKeyword)):
+                isinstance(other, TokKeyword)):
             return self._data.lower() == other._data.lower()
         return self._data == other._data
 
@@ -135,6 +136,7 @@ class TokComment(Token):
 class TokString(Token):
     """A string literal."""
     name = 'string literal'
+
     def __init__(self, *args, **kwargs):
         self._quote = None
         self._multiline_quote = None
@@ -167,6 +169,15 @@ class TokString(Token):
                     escaped_chrs.append(c)
             return self._quote + b''.join(escaped_chrs) + self._quote
 
+    @code.setter
+    def code(self, value):
+        """Setter for code.
+
+        Use this wisely! This does not validate that your updated token
+        matches the token type.
+        """
+        self._data = value
+
 
 class TokNumber(Token):
     """A number literal.
@@ -188,12 +199,16 @@ class TokNumber(Token):
         if b'x' in self._data:
             if b'.' in self._data:
                 integer, frac = self._data.split(b'.')
-                return float(int(integer, 16)) + float(int(frac, 16))/(16**len(frac))
+                return (
+                    float(int(integer, 16)) +
+                    float(int(frac, 16))/(16**len(frac)))
             return float(int(self._data, 16))
         if b'b' in self._data:
             if b'.' in self._data:
                 integer, frac = self._data.split(b'.')
-                return float(int(integer, 2)) + float(int(frac, 2))/(2**len(frac))
+                return (
+                    float(int(integer, 2)) +
+                    float(int(frac, 2))/(2**len(frac)))
             return float(int(self._data, 2))
         return float(self._data)
 
@@ -225,7 +240,7 @@ _STRING_ESCAPES = {
     b'r': b'\r', b't': b'\t', b'v': b'\v', b'\\': b'\\', b'"': b'"',
     b"'": b"'"
 }
-_STRING_REVERSE_ESCAPES = dict((v,k) for k,v in _STRING_ESCAPES.items())
+_STRING_REVERSE_ESCAPES = dict((v, k) for k, v in _STRING_ESCAPES.items())
 del _STRING_REVERSE_ESCAPES[b"'"]
 del _STRING_REVERSE_ESCAPES[b'"']
 
@@ -249,22 +264,23 @@ _TOKEN_MATCHERS.extend([
     (re.compile(br'::[a-zA-Z_][a-zA-Z0-9_]*::'), TokLabel),
 ])
 _TOKEN_MATCHERS.extend([
-    (re.compile(br'\b'+keyword+br'\b'), TokKeyword) for keyword in LUA_KEYWORDS])
+    (re.compile(br'\b'+keyword+br'\b'), TokKeyword)
+    for keyword in LUA_KEYWORDS])
 # REMINDER: token patterns are ordered! The lexer stops at the first matching
 # pattern. This is especially tricky for the symbols because you have to make
 # sure symbols like >>> appear before >>. (If >> appeared first in this list,
 # >>> would never match.)
 _TOKEN_MATCHERS.extend([
     (re.compile(symbol), TokSymbol) for symbol in [
-    br'\+=', b'-=', br'\*=', b'/=', b'%=', br'\.\.=',
-    b'==', b'~=', b'!=', b'<=', b'>=',
-    b'&', br'\|', br'\^\^', b'~', b'<<>', b'>>>', b'>><', b'<<', b'>>',
-    br'\\',
-    br'\+', b'-', br'\*', b'/', b'%', br'\^', b'#',
-    b'@', br'\$',
-    b'<', b'>', b'=',
-    br'\(', br'\)', b'{', b'}', br'\[', br'\]', b';', b':', b',',
-    br'\.\.\.', br'\.\.', br'\.']])
+        br'\+=', b'-=', br'\*=', b'/=', b'%=', br'\.\.=',
+        b'==', b'~=', b'!=', b'<=', b'>=',
+        b'&', br'\|', br'\^\^', b'~', b'<<>', b'>>>', b'>><', b'<<', b'>>',
+        br'\\',
+        br'\+', b'-', br'\*', b'/', b'%', br'\^', b'#',
+        b'@', br'\$',
+        b'<', b'>', b'=',
+        br'\(', br'\)', b'{', b'}', br'\[', br'\]', b';', b':', b',',
+        br'\.\.\.', br'\.\.', br'\.']])
 _TOKEN_MATCHERS.extend([
     (re.compile(br'[a-zA-Z_][a-zA-Z0-9_]*'), TokName),
     (re.compile(br'\?'), TokName)
@@ -315,7 +331,8 @@ class Lexer():
         self._in_multiline_string_charno = None
 
     def _debug_lexer_state(self):
-        return ''.join('{}={}\n'.format(p, getattr(self, p)) for p in dir(self))
+        return ''.join(
+            '{}={}\n'.format(p, getattr(self, p)) for p in dir(self))
 
     def _process_token(self, s):
         """Process a token's worth of chars from a string, if possible.

@@ -43,25 +43,31 @@ def _get_argparser():
 
           p8upsidedown mycart.p8.png mycart_upsidedown.p8
         '''))
-    parser.add_argument('--smallmap', action='store_true',
-                        help='assume the cart\'s shared gfx/map region is used '
-                        'as gfx; the default is to assume it is used as map')
-    parser.add_argument('--flipbuttons', action='store_true',
-                        help='switch buttons left and right, up and down')
-    parser.add_argument('--flipsounds', action='store_true',
-                        help='reverse sound effect patterns')
-    parser.add_argument('infile', type=str,
-                        help='the cart to turn upside down; can be .p8 '
-                        'or .p8.png')
-    parser.add_argument('outfile', type=str, nargs='?',
-                        help='the filename of the new cart; must end in .p8; '
-                        'if not specified, adds _upsidedown.p8 to the original '
-                        'base name')
+    parser.add_argument(
+        '--smallmap', action='store_true',
+        help='assume the cart\'s shared gfx/map region is used '
+        'as gfx; the default is to assume it is used as map')
+    parser.add_argument(
+        '--flipbuttons', action='store_true',
+        help='switch buttons left and right, up and down')
+    parser.add_argument(
+        '--flipsounds', action='store_true',
+        help='reverse sound effect patterns')
+    parser.add_argument(
+        'infile', type=str,
+        help='the cart to turn upside down; can be .p8 '
+        'or .p8.png')
+    parser.add_argument(
+        'outfile', type=str, nargs='?',
+        help='the filename of the new cart; must end in .p8; '
+        'if not specified, adds _upsidedown.p8 to the original '
+        'base name')
     return parser
 
 
 class UpsideDownASTTransform(lua.BaseASTWalker):
     """Transforms Lua code to invert coordinates of drawing functions."""
+
     def __init__(self, *args, **kwargs):
         self._smallmap = None
         self._flipbuttons = None
@@ -70,7 +76,7 @@ class UpsideDownASTTransform(lua.BaseASTWalker):
                 setattr(self, '_' + argname, kwargs[argname])
                 del kwargs[argname]
         super().__init__(*args, **kwargs)
-        
+
     def _make_binop(self, val_or_exp1, exp2, binop='-'):
         """Makes an ExpBinOp equivalent to maxval - exp.
 
@@ -85,11 +91,11 @@ class UpsideDownASTTransform(lua.BaseASTWalker):
         if not isinstance(val_or_exp1, parser.Node):
             val_or_exp1 = parser.ExpValue(lexer.TokNumber(str(val_or_exp1)))
         exp2 = parser.ExpValue(exp2)
-            
+
         return parser.ExpBinOp(val_or_exp1,
                                lexer.TokSymbol(binop),
                                exp2)
-    
+
     def _walk_FunctionCall(self, node):
         if not isinstance(node.exp_prefix, parser.VarName):
             # upsidedown only supports directly named calls to graphics
@@ -98,9 +104,10 @@ class UpsideDownASTTransform(lua.BaseASTWalker):
         func_name = node.exp_prefix.name.code
 
         if self._flipbuttons and (func_name == 'btn' or func_name == 'btnp'):
-            # It's not too tricky to swap odds and evens in a Lua expression, but it'd be a pain to write out the AST
-            # for it. So instead, we only support calls to btn/btnp where the first argument is a numeric constant,
-            # so we can swap them statically.
+            # It's not too tricky to swap odds and evens in a Lua expression,
+            # but it'd be a pain to write out the AST for it. So instead, we
+            # only support calls to btn/btnp where the first argument is a
+            # numeric constant, so we can swap them statically.
             if isinstance(node.args.explist.exps[0].value, lexer.TokNumber):
                 numval = int(node.args.explist.exps[0].value.code)
                 if numval % 2 == 0:
@@ -111,26 +118,34 @@ class UpsideDownASTTransform(lua.BaseASTWalker):
 
         elif func_name == 'pget':
             # pget x y
-            node.args.explist.exps[0] = self._make_binop(127, node.args.explist.exps[0])
-            node.args.explist.exps[1] = self._make_binop(127, node.args.explist.exps[1])
-            
+            node.args.explist.exps[0] = self._make_binop(
+                127, node.args.explist.exps[0])
+            node.args.explist.exps[1] = self._make_binop(
+                127, node.args.explist.exps[1])
+
         elif func_name == 'pset':
             # pset x y [c]
-            node.args.explist.exps[0] = self._make_binop(127, node.args.explist.exps[0])
-            node.args.explist.exps[1] = self._make_binop(127, node.args.explist.exps[1])
-            
+            node.args.explist.exps[0] = self._make_binop(
+                127, node.args.explist.exps[0])
+            node.args.explist.exps[1] = self._make_binop(
+                127, node.args.explist.exps[1])
+
         elif func_name == 'sget':
             # sget x y
-            node.args.explist.exps[0] = self._make_binop(127, node.args.explist.exps[0])
-            node.args.explist.exps[1] = self._make_binop(127 if self._smallmap else 63,
-                                                         node.args.explist.exps[1])
-            
+            node.args.explist.exps[0] = self._make_binop(
+                127, node.args.explist.exps[0])
+            node.args.explist.exps[1] = self._make_binop(
+                127 if self._smallmap else 63,
+                node.args.explist.exps[1])
+
         elif func_name == 'sset':
             # sset x y [c]
-            node.args.explist.exps[0] = self._make_binop(127, node.args.explist.exps[0])
-            node.args.explist.exps[1] = self._make_binop(127 if self._smallmap else 63,
-                                                         node.args.explist.exps[1])
-            
+            node.args.explist.exps[0] = self._make_binop(
+                127, node.args.explist.exps[0])
+            node.args.explist.exps[1] = self._make_binop(
+                127 if self._smallmap else 63,
+                node.args.explist.exps[1])
+
         elif func_name == 'print':
             # print str [x y [col]]
             if len(node.args.explist.exps) > 1:
@@ -138,78 +153,106 @@ class UpsideDownASTTransform(lua.BaseASTWalker):
                 # coordinate, and leave a line's worth of space.
                 # (This is still insufficient for carts that use 'cursor' then
                 # print more than one line.)
-                node.args.explist.exps[2] = self._make_binop(119, node.args.explist.exps[2])
-                
+                node.args.explist.exps[2] = self._make_binop(
+                    119, node.args.explist.exps[2])
+
         elif func_name == 'cursor':
             # cursor x y
-            node.args.explist.exps[1] = self._make_binop(119, node.args.explist.exps[1])
+            node.args.explist.exps[1] = self._make_binop(
+                119, node.args.explist.exps[1])
 
         elif func_name == 'camera':
             # camera [x y]
             if node.args.explist is not None:
                 # Invert the sign of the camera offset.
-                node.args.explist.exps[0] = self._make_binop(0, node.args.explist.exps[0])
-                node.args.explist.exps[1] = self._make_binop(0, node.args.explist.exps[1])
+                node.args.explist.exps[0] = self._make_binop(
+                    0, node.args.explist.exps[0])
+                node.args.explist.exps[1] = self._make_binop(
+                    0, node.args.explist.exps[1])
 
         elif func_name == 'circ':
             # circ x y r [col]
-            node.args.explist.exps[0] = self._make_binop(127, node.args.explist.exps[0])
-            node.args.explist.exps[1] = self._make_binop(127, node.args.explist.exps[1])
-            
+            node.args.explist.exps[0] = self._make_binop(
+                127, node.args.explist.exps[0])
+            node.args.explist.exps[1] = self._make_binop(
+                127, node.args.explist.exps[1])
+
         elif func_name == 'circfill':
             # circfill x y r [col]
-            node.args.explist.exps[0] = self._make_binop(127, node.args.explist.exps[0])
-            node.args.explist.exps[1] = self._make_binop(127, node.args.explist.exps[1])
-            
+            node.args.explist.exps[0] = self._make_binop(
+                127, node.args.explist.exps[0])
+            node.args.explist.exps[1] = self._make_binop(
+                127, node.args.explist.exps[1])
+
         elif func_name == 'line':
             # line x0 y0 x1 y1 [col]
-            node.args.explist.exps[0] = self._make_binop(127, node.args.explist.exps[0])
-            node.args.explist.exps[1] = self._make_binop(127, node.args.explist.exps[1])
-            node.args.explist.exps[2] = self._make_binop(127, node.args.explist.exps[2])
-            node.args.explist.exps[3] = self._make_binop(127, node.args.explist.exps[3])
-            
+            node.args.explist.exps[0] = self._make_binop(
+                127, node.args.explist.exps[0])
+            node.args.explist.exps[1] = self._make_binop(
+                127, node.args.explist.exps[1])
+            node.args.explist.exps[2] = self._make_binop(
+                127, node.args.explist.exps[2])
+            node.args.explist.exps[3] = self._make_binop(
+                127, node.args.explist.exps[3])
+
         elif func_name == 'rect':
             # rect x0 y0 x1 y1 [col]
             # swap x0<->x1, y0<->y1
-            node.args.explist.exps[0] = self._make_binop(127, node.args.explist.exps[2])
-            node.args.explist.exps[1] = self._make_binop(127, node.args.explist.exps[1])
-            node.args.explist.exps[2] = self._make_binop(127, node.args.explist.exps[0])
-            node.args.explist.exps[3] = self._make_binop(127, node.args.explist.exps[3])
-            
+            node.args.explist.exps[0] = self._make_binop(
+                127, node.args.explist.exps[2])
+            node.args.explist.exps[1] = self._make_binop(
+                127, node.args.explist.exps[1])
+            node.args.explist.exps[2] = self._make_binop(
+                127, node.args.explist.exps[0])
+            node.args.explist.exps[3] = self._make_binop(
+                127, node.args.explist.exps[3])
+
         elif func_name == 'rectfill':
             # rectfill x0 y0 x1 y1 [col]
             # swap x0<->x1, y0<->y1
-            node.args.explist.exps[0] = self._make_binop(127, node.args.explist.exps[2])
-            node.args.explist.exps[1] = self._make_binop(127, node.args.explist.exps[1])
-            node.args.explist.exps[2] = self._make_binop(127, node.args.explist.exps[0])
-            node.args.explist.exps[3] = self._make_binop(127, node.args.explist.exps[3])
-            
+            node.args.explist.exps[0] = self._make_binop(
+                127, node.args.explist.exps[2])
+            node.args.explist.exps[1] = self._make_binop(
+                127, node.args.explist.exps[1])
+            node.args.explist.exps[2] = self._make_binop(
+                127, node.args.explist.exps[0])
+            node.args.explist.exps[3] = self._make_binop(
+                127, node.args.explist.exps[3])
+
         elif func_name == 'spr':
             # spr n x y [w h] [flip_x] [flip_y]
             if len(node.args.explist.exps) > 3:
-                util.error('Unsupported: can\'t invert blitting more than one tile\n')
+                util.error(
+                    'Unsupported: can\'t invert blitting more than one tile\n')
                 # TODO: invert sprite sheet to support this
-            # TODO: uh, not sure why this is needed to get Jelpi to look right. Why 113?
-            node.args.explist.exps[1] = self._make_binop(113, node.args.explist.exps[1])
-            node.args.explist.exps[2] = self._make_binop(113, node.args.explist.exps[2])
-        
+            # TODO: uh, not sure why this is needed to get Jelpi to look right.
+            # Why 113?
+            node.args.explist.exps[1] = self._make_binop(
+                113, node.args.explist.exps[1])
+            node.args.explist.exps[2] = self._make_binop(
+                113, node.args.explist.exps[2])
+
         elif func_name == 'sspr':
             # sspr sx sy sw sh dx dy [dw dh] [flip_x] [flip_y]
             util.error('Unsupported: can\'t invert sspr\n')
             # TODO: invert sprite sheet to support this
-        
+
         elif func_name == 'mget':
             # mget x y
-            node.args.explist.exps[0] = self._make_binop(127, node.args.explist.exps[0])
-            node.args.explist.exps[1] = self._make_binop(31 if self._smallmap else 63,
-                                                         node.args.explist.exps[1])
-            
+            node.args.explist.exps[0] = self._make_binop(
+                127, node.args.explist.exps[0])
+            node.args.explist.exps[1] = self._make_binop(
+                31 if self._smallmap else 63,
+                node.args.explist.exps[1])
+
         elif func_name == 'mset':
             # mset x y v
-            node.args.explist.exps[0] = self._make_binop(127, node.args.explist.exps[0])
-            node.args.explist.exps[1] = self._make_binop(31 if self._smallmap else 63, 
-                                                         node.args.explist.exps[1])
-            
+            node.args.explist.exps[0] = self._make_binop(
+                127, node.args.explist.exps[0])
+            node.args.explist.exps[1] = self._make_binop(
+                31 if self._smallmap else 63,
+                node.args.explist.exps[1])
+
         elif func_name == 'map' or func_name == 'mapdraw':
             # map cel_x cel_y sx sy cel_w cel_h [layer]
             cel_x = node.args.explist.exps[0]
@@ -222,22 +265,25 @@ class UpsideDownASTTransform(lua.BaseASTWalker):
             # new cel_x = 128 - cel_x - cel_w
             cel_x = self._make_binop(self._make_binop(128, cel_x), cel_w)
             node.args.explist.exps[0] = cel_x
-            
+
             # new cel_y = (32 or 64) - cel_y - cel_h
-            cel_y = self._make_binop(self._make_binop(32 if self._smallmap else 64,
-                                     cel_y), cel_h)
+            cel_y = self._make_binop(
+                self._make_binop(
+                    32 if self._smallmap else 64,
+                    cel_y),
+                cel_h)
             node.args.explist.exps[1] = cel_y
-            
+
             # new sx = 128 - sx - 8 * cel_w
             sx = self._make_binop(self._make_binop(
                 128, sx), self._make_binop(8, cel_w, binop='*'))
             node.args.explist.exps[2] = sx
-            
+
             # new sy = 128 - sy - 8 * cel_h
             sy = self._make_binop(self._make_binop(
                 128, sy), self._make_binop(8, cel_h, binop='*'))
             node.args.explist.exps[3] = sy
-            
+
         yield
 
 
@@ -271,7 +317,8 @@ def upsidedown_game(g, smallmap=False, flipbuttons=False, flipsounds=False):
             notes.reverse()
             for n in range(32):
                 g.sfx.set_note(id, n, *notes[n])
-            (editor_mode, note_duration, loop_start, loop_end) = g.sfx.get_properties(id)
+            (editor_mode, note_duration, loop_start,
+             loop_end) = g.sfx.get_properties(id)
             if loop_start:
                 g.sfx.set_properties(id, loop_start=63-loop_end)
             if loop_end:
@@ -312,7 +359,8 @@ def main(orig_args=None):
 
     upsidedown_game(g, args.smallmap, args.flipbuttons, args.flipsounds)
 
-    g.lua.reparse(writer_cls=lua.LuaASTEchoWriter, writer_args={'ignore_tokens': True})
+    g.lua.reparse(writer_cls=lua.LuaASTEchoWriter,
+                  writer_args={'ignore_tokens': True})
 
     with tempfile.TemporaryFile(mode='w+', encoding='utf-8') as outfh:
         g.to_p8_file(outfh, filename=out_fname,
@@ -320,5 +368,5 @@ def main(orig_args=None):
         outfh.seek(0)
         with open(out_fname, 'w', encoding='utf-8') as finalfh:
             finalfh.write(outfh.read())
-            
+
     return 0

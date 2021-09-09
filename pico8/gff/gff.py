@@ -60,14 +60,14 @@ class Gff(util.BaseSection):
         """
         assert 0 <= id <= 255
         return self._data[id] & flags
-    
+
     def set_flags(self, id, flags):
         """Sets one or more flags for a tile.
 
         This sets the specified flags, and leaves the other flags unchanged.
 
-        You can bitwise-or (|) flag constants together to set more than one with
-        a single call:
+        You can bitwise-or (|) flag constants together to set more than one
+        with a single call:
           gff_obj.set_flags(0, RED | BLUE | PEACH)
 
         Args:
@@ -96,8 +96,8 @@ class Gff(util.BaseSection):
     def reset_flags(self, id, flags):
         """Resets all flags for a tile, then sets the given flags.
 
-        This changes all flags for the tile so that only the specified flags are
-        set.
+        This changes all flags for the tile so that only the specified flags
+        are set.
 
         Args:
           id: The PICO-8 ID of the tile (0-255).
