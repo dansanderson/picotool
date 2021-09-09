@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 
-import png
 import io
 import os
+import png
 import unittest
-from unittest.mock import Mock
-from unittest.mock import patch
 
 from pico8 import util
 from pico8.game import game

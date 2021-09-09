@@ -20,6 +20,7 @@ setup(
     tests_require=[
         'flake8',
         'mypy',
+        'pypng',
         'pytest',
     ],
     entry_points={
