@@ -94,6 +94,22 @@ goto draw
 '''.split(b'\n')]
 
 
+HIGH_CHARS_UNICODE = 'xx \x00 \x07 🐱 ◝'
+HIGH_CHARS_P8SCII = b'xx \x00 \x07 \x82 \xff'
+
+
+class TestUnicodeConversion(unittest.TestCase):
+    def testP8SCIIToUnicode(self):
+        self.assertEqual(
+          HIGH_CHARS_UNICODE,
+          lua.p8scii_to_unicode(HIGH_CHARS_P8SCII))
+
+    def testUnicodeToP8SCII(self):
+        self.assertEqual(
+          HIGH_CHARS_P8SCII,
+          lua.unicode_to_p8scii(HIGH_CHARS_UNICODE))
+
+
 class TestLua(unittest.TestCase):
     def testInit(self):
         result = lua.Lua(4)
