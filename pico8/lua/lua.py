@@ -291,6 +291,7 @@ P8SCII_CHARSET = [
 
 # Map of Unicode strings to P8SCII characters
 UNICODE_TO_P8SCII = dict((c.p8string, c.p8scii) for c in P8SCII_CHARSET)
+UNICODE_CHAR_WIDTHS = dict((k[0], len(k)) for k in UNICODE_TO_P8SCII.keys())
 
 
 def unicode_to_p8scii(s):
@@ -302,7 +303,13 @@ def unicode_to_p8scii(s):
     Returns:
         A bytestring of P8SCII codes.
     """
-    return bytes(UNICODE_TO_P8SCII[c] for c in s)
+    result = []
+    idx = 0
+    while idx < len(s):
+        char_width = UNICODE_CHAR_WIDTHS[s[idx]]
+        result.append(UNICODE_TO_P8SCII[s[idx:idx+char_width]])
+        idx += char_width
+    return bytes(result)
 
 
 def p8scii_to_unicode(bs):
@@ -411,7 +418,7 @@ class Lua():
         """Updates the parser data with new lines of Lua source.
 
         Args:
-          lines: The Lua source, as an iterable of bytestrings.
+          lines: The Lua source, as an iterable of P8SCII bytestrings.
         """
         self._lexer.process_lines(lines)
         self._parser.process_tokens(self._lexer.tokens)
@@ -425,7 +432,7 @@ class Lua():
           writer_args: Args for the writer.
 
         Yields:
-          A line of Lua code, as a bytestring.
+          A line of Lua code, as a P8SCII bytestring.
         """
         if writer_cls is None:
             writer_cls = LuaEchoWriter

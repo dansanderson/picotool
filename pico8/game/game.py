@@ -11,7 +11,7 @@ import os
 import re
 import tempfile
 from .. import util
-from ..lua.lua import Lua
+from ..lua.lua import Lua, unicode_to_p8scii, p8scii_to_unicode
 from ..lua.lua import PICO8_LUA_CHAR_LIMIT
 from ..lua.lua import PICO8_LUA_TOKEN_LIMIT
 from ..gfx.gfx import Gfx
@@ -157,10 +157,12 @@ class Game():
                 break
             section_delim_m = SECTION_DELIM_RE.match(line)
             if section_delim_m:
-                section = str(section_delim_m.group(1), encoding='ascii')
+                section = str(section_delim_m.group(1), encoding='utf-8')
                 section_lines[section] = []
             elif section:
-                section_lines[section].append(line)
+                p8scii_line = unicode_to_p8scii(
+                    str(line, encoding='utf-8'))
+                section_lines[section].append(p8scii_line)
 
         class P8Data(object):
             pass
@@ -628,7 +630,7 @@ class Game():
         for line in self.lua.to_lines(
                 writer_cls=lua_writer_cls,
                 writer_args=lua_writer_args):
-            outstr.write(line)
+            outstr.write(bytes(p8scii_to_unicode(line), 'utf-8'))
             ended_in_newline = line.endswith(b'\n')
         if not ended_in_newline:
             outstr.write(b'\n')

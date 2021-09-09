@@ -492,13 +492,13 @@ class Lexer():
                              self._cur_charno + 1)
 
     def process_lines(self, lines):
-        """Process lines of Lua code.
+        """Process lines of P8SCII Lua code.
 
         Args:
-          lines: The Lua code to process, as an iterable of strings. Newline
-            characters are expected to appear in the strings as they do in the
-            original source, though each string in lines need not end with a
-            newline.
+          lines: The Lua code to process, as an iterable of P8SCII bytestrings.
+            Newline characters are expected to appear in the strings as they do
+            in the original source, though each string in lines need not end
+            with a newline.
         """
         for line in lines:
             self._process_line(line)

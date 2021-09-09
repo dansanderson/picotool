@@ -1,20 +1,18 @@
 #!/usr/bin/env python3
 
 import unittest
-from unittest.mock import Mock
-from unittest.mock import patch
 
 from pico8.lua import lua
 
 
-VALID_LUA_SHORT_LINES = [l + b'\n' for l in b'''-- short test
+VALID_LUA_SHORT_LINES = [line + b'\n' for line in b'''-- short test
 -- by dan
 function foo()
   return 999
 end'''.split(b'\n')]
 
 
-VALID_LUA_EVERY_NODE = [l + b'\n' for l in b'''
+VALID_LUA_EVERY_NODE = [line + b'\n' for line in b'''
 -- title comment
 -- author comment
 -- the code with the nodes
@@ -94,20 +92,22 @@ goto draw
 '''.split(b'\n')]
 
 
-HIGH_CHARS_UNICODE = 'xx \x00 \x07 🐱 ◝'
-HIGH_CHARS_P8SCII = b'xx \x00 \x07 \x82 \xff'
+HIGH_CHARS_UNICODE = 'xx \x00 \x07 🐱 ◝ ⬇️░✽●♥☉웃⌂⬅️😐♪🅾️◆…➡️★⧗⬆️ˇ∧❎▤▥'
+HIGH_CHARS_P8SCII = (
+    b'xx \x00 \x07 \x82 \xff \x83\x84\x85\x86\x87\x88\x89'
+    b'\x8a\x8b\x8c\x8d\x8e\x8f\x90\x91\x92\x93\x94\x95\x96\x97\x98\x99')
 
 
 class TestUnicodeConversion(unittest.TestCase):
     def testP8SCIIToUnicode(self):
         self.assertEqual(
-          HIGH_CHARS_UNICODE,
-          lua.p8scii_to_unicode(HIGH_CHARS_P8SCII))
+            HIGH_CHARS_UNICODE,
+            lua.p8scii_to_unicode(HIGH_CHARS_P8SCII))
 
     def testUnicodeToP8SCII(self):
         self.assertEqual(
-          HIGH_CHARS_P8SCII,
-          lua.unicode_to_p8scii(HIGH_CHARS_UNICODE))
+            HIGH_CHARS_P8SCII,
+            lua.unicode_to_p8scii(HIGH_CHARS_UNICODE))
 
 
 class TestLua(unittest.TestCase):
@@ -122,7 +122,7 @@ class TestLua(unittest.TestCase):
 
     def testGetCharCount(self):
         result = lua.Lua.from_lines(VALID_LUA_SHORT_LINES, 4)
-        self.assertEqual(sum(len(l) for l in VALID_LUA_SHORT_LINES),
+        self.assertEqual(sum(len(line) for line in VALID_LUA_SHORT_LINES),
                          result.get_char_count())
 
     def testGetTokenCount(self):
@@ -231,7 +231,9 @@ end
         txt = b''.join(lines)
         self.assertIn(b'-- author comment', txt)
         self.assertNotIn(b'-- the code with the nodes', txt)
-        self.assertIn(b'while f<10 do\nf+=1\nif f%2==0 then\na(f)\nelseif f>5 then\na(f,5)\nelse\na(f,1)\ng*=2\nend\nend', txt)
+        self.assertIn(
+            b'while f<10 do\nf+=1\nif f%2==0 then\na(f)\nelseif f>5 then\n'
+            b'a(f,5)\nelse\na(f,1)\ng*=2\nend\nend', txt)
         self.assertIn(b'for g in i() do\na(g)\nend', txt)
         self.assertIn(b'f=1;n=2;o=3', txt)
 
@@ -484,7 +486,7 @@ end
 h = 8
 '''], 4)
         lines = list(result.to_lines(writer_cls=lua.LuaFormatterWriter,
-                                     writer_args={'indentwidth':3}))
+                                     writer_args={'indentwidth': 3}))
         txt = b''.join(lines)
         self.assertEqual(b'''
 do
@@ -756,7 +758,7 @@ end
 h = 8
 '''], 4)
         lines = list(result.to_lines(writer_cls=lua.LuaFormatterTokenWriter,
-                                     writer_args={'indentwidth':3}))
+                                     writer_args={'indentwidth': 3}))
         txt = b''.join(lines)
         self.assertEqual(b'''
 do
