@@ -95,7 +95,10 @@ PICO8_BUILTINS = {
     b'self',   # a special name in Lua OO
 
     # Internal
-    b'__index'  # internal function sometimes used by carts
+    b'__index',  # internal function sometimes used by carts
+
+    # btn symbols
+    b'\x83', b'\x8b', b'\x8e', b'\x91', b'\x94', b'\x97',
 }
 
 
