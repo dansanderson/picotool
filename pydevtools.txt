@@ -1,0 +1,11 @@
+# These packages are optional tools for developing picotool. To install:
+#    pip install -r pydevtools.txt
+
+autopep8
+flake8
+mypy
+sphinx
+pytest
+coverage
+ipython
+rstcheck

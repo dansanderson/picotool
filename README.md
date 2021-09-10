@@ -539,7 +539,8 @@ While the library in its current state is featureful enough for building simple 
 
 ## Developing picotool
 
-To start developing `picotool`, set up a Python virtual environment, and install `p8tool` in editable mode:
+To start developing `picotool`, clone the repo, set up a Python virtual
+environment, and install `p8tool` in editable mode:
 
 ```shell
 git clone git@github.com:dansanderson/picotool.git
@@ -552,22 +553,23 @@ pip install -e .
 
 # Install development tools:
 pip install --upgrade pip
-pip install autopep8 flake8 mypy sphinx pytest coverage ipython
+pip install -r pydevtools.txt
 ```
 
 With everything installed and the virtual environment active, you can run some
 useful commands:
 
 ```shell
-# To run the development version of p8tool, just run it:
+# To run the development version of p8tool:
 p8tool
 
 # To open an ipython REPL with picotool on the load path:
 ipython
-# ... Try importing a pico8 module with auto-reload:
+# To enable module auto-reloading:
 #   %autoreload 2
+# To import a pico8 module:
 #   from pico8.lua import lua
-# ... Try autocompletion with the tab key:
+# Autocompletion works with the tab key:
 #   lua.unicode<TAB>
 
 # To run all tests:
@@ -586,13 +588,18 @@ coverage report -m
 coverage html
 ```
 
+See [pytest documentation](https://docs.pytest.org/en/6.2.x/index.html),
+[coverage documentation](https://coverage.readthedocs.io/en/coverage-5.5/).
+
+### Visual Studio Code set-up
+
 I use [Visual Studio Code](https://code.visualstudio.com/) for editing with its
 powerful [Python
 extension](https://marketplace.visualstudio.com/items?itemName=ms-python.python).
-When you open the `picotool` root folder in VSCode, it should find the active
-Python virtual environment and use `./pyenv/bin/python` as its Python
-interpreter. If not, click "Python" in the left of the bottom bar, then select
-this path for the interpreter.
+When you open the `picotool` root folder in VSCode, it finds the active Python
+virtual environment and use `./pyenv/bin/python` as its Python interpreter. If
+it doesn't, click "Python" in the left of the bottom bar, then select this path
+for the interpreter.
 
 When you open a new Terminal within VSCode (press Ctrl + backtick), it
 automatically activates the Python environment. If it doesn't, or if you prefer
@@ -602,6 +609,30 @@ beginning of each session:
 ```shell
 source picotool/pyenv/bin/activate
 ```
+
+### Building Sphinx documentation
+
+The picotool documentation lives in `docs/` as a
+[Sphinx](https://www.sphinx-doc.org/) project. To build the documentation as
+web pages:
+
+```shell
+cd docs
+make html
+```
+
+The generated HTML pages are in `docs/_build/html/`. Open the `index.html` file
+in your browser to use them.
+
+You are welcome and encouraged to contribute pull requests to the Sphinx
+documentation. Once accepted, I'll take care of publishing the changes to [the
+documentation site](http://dansanderson.github.io/picotool/).
+
+(For my own reference: The documentation site uses the
+[gh-pages](https://github.com/dansanderson/picotool/tree/gh-pages) branch of
+the Github repo as its source. There is a crude `make publish` target that
+builds the HTML and pushes the built files to this branch.)
+
 
 ## Known issues
 
