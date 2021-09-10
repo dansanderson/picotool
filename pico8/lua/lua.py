@@ -1562,6 +1562,13 @@ class LuaMinifyTokenWriter(BaseLuaWriter):
                 self._last_was_name_keyword_number = True
                 self._last_was_newline = False
                 yield self._name_factory.get_short_name(token.code)
+            elif token.matches(lexer.TokLabel):
+                self._last_was_name_keyword_number = False
+                self._last_was_newline = False
+                yield (
+                    b'::' +
+                    self._name_factory.get_short_name(token.code[2:-2]) +
+                    b'::')
             elif token.matches(lexer.TokKeyword):
                 if self._last_was_name_keyword_number:
                     yield b' '

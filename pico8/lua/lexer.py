@@ -261,7 +261,7 @@ _TOKEN_MATCHERS.extend([
     (re.compile(br'0[bB]\.[01]+'), TokNumber),
     (re.compile(br'[0-9]+(\.(?!\.)[0-9]*)?([eE]-?[0-9]+)?'), TokNumber),
     (re.compile(br'\.[0-9]+([eE]-?[0-9]+)?'), TokNumber),
-    (re.compile(br'::[a-zA-Z_][a-zA-Z0-9_]*::'), TokLabel),
+    (re.compile(br'::[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*::'), TokLabel),
 ])
 _TOKEN_MATCHERS.extend([
     (re.compile(br'\b'+keyword+br'\b'), TokKeyword)
