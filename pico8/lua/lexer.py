@@ -282,7 +282,7 @@ _TOKEN_MATCHERS.extend([
         br'\(', br'\)', b'{', b'}', br'\[', br'\]', b';', b':', b',',
         br'\.\.\.', br'\.\.', br'\.']])
 _TOKEN_MATCHERS.extend([
-    (re.compile(br'[a-zA-Z_][a-zA-Z0-9_]*'), TokName),
+    (re.compile(br'[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*'), TokName),
     (re.compile(br'\?'), TokName)
 ])
 
