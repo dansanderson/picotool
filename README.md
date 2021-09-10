@@ -539,32 +539,42 @@ While the library in its current state is featureful enough for building simple 
 
 ## Developing picotool
 
-To develop `picotool`, set up a Python virtual environment, and install `p8tool` in editable mode:
+To start developing `picotool`, set up a Python virtual environment, and install `p8tool` in editable mode:
 
-```
+```shell
 git clone git@github.com:dansanderson/picotool.git
-python3 -m venv ./picotool/pyenv
-
-# (Do this every time you start a new shell:)
-source ./picotool/pyenv/bin/activate
-
 cd picotool
+python3 -m venv pyenv
+source pyenv/bin/activate
+
+# Install picotool in the virtual environment, with symlinks to source:
 pip install -e .
+
+# Install development tools:
+pip install --upgrade pip
+pip install autopep8 flake8 mypy sphinx pytest coverage ipython
 ```
 
-When you run `p8tool` with the virtual environment active, it will use the code in the repository and notice any changes you make.
+With everything installed and the virtual environment active, you can run some
+useful commands:
 
-You can run the test suite using the `setup.py test` command, which is aliased to `pytest`:
+```shell
+# To run the development version of p8tool, just run it:
+p8tool
 
-```
-python3 setup.py test
-```
+# To open an ipython REPL with picotool on the load path:
+ipython
+# ... Try importing a pico8 module with auto-reload:
+#   %autoreload 2
+#   from pico8.lua import lua
+# ... Try autocompletion with the tab key:
+#   lua.unicode<TAB>
 
-For a nicer test running experience, install the `pytest` and `coverage` commands, and use them together:
+# To run all tests:
+pytest
 
-```
-# To install the pytest and coverage commands in the virtual environment:
-pip install pytest coverage
+# To run specific tests:
+pytest tests/pico8/lua/lua_tests.py
 
 # To run the tests and calculate a coverage report:
 coverage run pytest
@@ -576,10 +586,44 @@ coverage report -m
 coverage html
 ```
 
+I use [Visual Studio Code](https://code.visualstudio.com/) for editing with its
+powerful [Python
+extension](https://marketplace.visualstudio.com/items?itemName=ms-python.python).
+When you open the `picotool` root folder in VSCode, it should find the active
+Python virtual environment and use `./pyenv/bin/python` as its Python
+interpreter. If not, click "Python" in the left of the bottom bar, then select
+this path for the interpreter.
+
+When you open a new Terminal within VSCode (press Ctrl + backtick), it
+automatically activates the Python environment. If it doesn't, or if you prefer
+a standalone terminal app, remember to activate the environment at the
+beginning of each session:
+
+```shell
+source picotool/pyenv/bin/activate
+```
+
 ## Known issues
 
-- picotool and PICO-8 count tokens in slightly different ways, resulting in different counts. More refinement is needed so that picotool matches PICO-8. As far as I can tell, with picotool making some concessions to match PICO-8 in known cases, PICO-8's counts are consistently higher. So I'm missing a few cases where PICO-8 over-counts (or picotool under-counts). In most cases, the difference is only by a few tokens, even for large carts.
-- Lua allows parentheses to be omitted from a function call if there is exactly one argument and the argument is a string or table literal. picotool does not yet support this case. PICO-8 supports it and offers a one-token discount compared to a similar call with parentheses.
-- I've found a few very obscure cases where picotool rejects a cart with a syntax error but PICO-8 accepts it (13757, 16983, 18012, 18556). I evaluate these based on their rarity, usefulness, and intrusiveness to support, and for now I'm leaving this as is.
+For a complete list of known issues, see the issues list in the Github project:
 
-For more known issues, see the issues list in the Github project: https://github.com/dansanderson/picotool/issues
+https://github.com/dansanderson/picotool/issues
+
+picotool is a hobby project and I have to ration the time I spend on issues. I
+welcome pull requests, and preemptively apologize if I don't review them in a
+timely manner.
+
+I try to triage issues such that picotool's main features work with all
+cartridges made with the '''latest knwon version''' of PICO-8. During the
+PICO-8 beta, picotool has lagged behind on new Lua syntax shortcuts and
+built-in keywords, though this should settle down as PICO-8 reaches version
+1.0. So far, PICO-8 has been largely backwards compatible, but I cannot promise
+continued support for carts made with old beta versions (0.x) of PICO-8.
+
+picotool and PICO-8 count tokens in slightly different ways, resulting in
+different counts. More refinement is needed so that picotool matches PICO-8. As
+far as I can tell, with picotool making some concessions to match PICO-8 in
+known cases, PICO-8's counts are consistently higher. In most cases, the
+difference is only by a few tokens, even for large carts. If you find specific
+cases of token count mismatches, please file them as issues with reproducable
+examples.
