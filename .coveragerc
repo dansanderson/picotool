@@ -1,4 +1,0 @@
-[run]
-include =
-	pico8/*
-	tests/*
