@@ -238,7 +238,14 @@ class TokSymbol(Token):
 _STRING_ESCAPES = {
     b'\n': b'\n', b'a': b'\a', b'b': b'\b', b'f': b'\f', b'n': b'\n',
     b'r': b'\r', b't': b'\t', b'v': b'\v', b'\\': b'\\', b'"': b'"',
-    b"'": b"'"
+    b"'": b"'", b'*': b'\x01', b'#': b'\x02', b'-': b'\x03', b'|': b'\x04',
+    b'+': b'\x05', b'^': b'\x06',
+
+    # Technically "\0", "\14" and "\15" will never match when read because
+    # their values are calculated by their numbers. They are included here to
+    # be written back out as numbered escape codes.
+    b'0': b'\x00',
+    b'14': b'\x0e', b'15': b'\x0f'
 }
 _STRING_REVERSE_ESCAPES = dict((v, k) for k, v in _STRING_ESCAPES.items())
 del _STRING_REVERSE_ESCAPES[b"'"]
