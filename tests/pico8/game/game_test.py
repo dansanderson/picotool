@@ -7,6 +7,8 @@ import unittest
 
 from pico8 import util
 from pico8.game import compress
+from pico8.game.formatter.p8 import P8Formatter, InvalidP8HeaderError, InvalidP8SectionError
+from pico8.game.formatter.p8png import P8PNGFormatter, get_code_from_bytes, get_pngdata_from_picodata, get_picodata_from_pngdata
 from pico8.game import game
 from pico8.lua import lexer
 from pico8.lua import parser
@@ -100,7 +102,7 @@ class TestP8Game(unittest.TestCase):
             'testdata')
 
     def testFromP8File(self):
-        g = game.Game.from_p8_file(io.BytesIO(
+        g = P8Formatter.from_file(io.BytesIO(
             VALID_P8_HEADER +
             VALID_P8_LUA_SECTION_HEADER +
             VALID_P8_FOOTER))
@@ -113,16 +115,16 @@ class TestP8Game(unittest.TestCase):
 
     def testInvalidP8HeaderErrorMsg(self):
         # coverage
-        txt = str(game.InvalidP8HeaderError())
+        str(InvalidP8HeaderError())
 
     def testInvalidP8SectionErrorMsg(self):
         # coverage
-        txt = str(game.InvalidP8SectionError('bad'))
+        str(InvalidP8SectionError('bad'))
 
     def testInvalidP8HeaderLineOne(self):
         self.assertRaises(
-            game.InvalidP8HeaderError,
-            game.Game.from_p8_file,
+            InvalidP8HeaderError,
+            P8Formatter.from_file,
             io.BytesIO(
                 INVALID_P8_HEADER_ONE +
                 VALID_P8_LUA_SECTION_HEADER +
@@ -130,8 +132,8 @@ class TestP8Game(unittest.TestCase):
 
     def testInvalidP8HeaderLineTwo(self):
         self.assertRaises(
-            game.InvalidP8HeaderError,
-            game.Game.from_p8_file,
+            InvalidP8HeaderError,
+            P8Formatter.from_file,
             io.BytesIO(
                 INVALID_P8_HEADER_TWO +
                 VALID_P8_LUA_SECTION_HEADER +
@@ -139,8 +141,8 @@ class TestP8Game(unittest.TestCase):
 
     def testInvalidP8Section(self):
         self.assertRaises(
-            game.InvalidP8SectionError,
-            game.Game.from_p8_file,
+            InvalidP8SectionError,
+            P8Formatter.from_file,
             io.BytesIO(
                 VALID_P8_HEADER +
                 VALID_P8_LUA_SECTION_HEADER +
@@ -150,7 +152,7 @@ class TestP8Game(unittest.TestCase):
     def testFromP8FileGoL(self):
         p8path = os.path.join(self.testdata_path, 'test_gol.p8')
         with open(p8path, 'rb') as fh:
-            p8game = game.Game.from_p8_file(fh)
+            P8Formatter.from_file(fh)
             # TODO: validate game
 
 
@@ -163,7 +165,7 @@ class TestP8PNGGame(unittest.TestCase):
     def testFromP8PNGFileV0(self):
         pngpath = os.path.join(self.testdata_path, 'test_cart_memdump.p8.png')
         with open(pngpath, 'rb') as fh:
-            pnggame = game.Game.from_p8png_file(fh)
+            pnggame = P8PNGFormatter.from_file(fh)
         first_stat = pnggame.lua.root.stats[0]
         self.assertTrue(isinstance(first_stat, parser.StatFunctionCall))
         tokens = pnggame.lua.tokens
@@ -175,14 +177,14 @@ class TestP8PNGGame(unittest.TestCase):
     def testFromP8PNGFile(self):
         pngpath = os.path.join(self.testdata_path, 'test_gol.p8.png')
         with open(pngpath, 'rb') as fh:
-            pnggame = game.Game.from_p8png_file(fh)
+            P8PNGFormatter.from_file(fh)
             # TODO: validate game
 
     def testGetCodeFromBytesUncompressed(self):
         codedata = [0] * (0x8000 - 0x4300)
         codedata[:len(CODE_UNCOMPRESSED_BYTES)] = CODE_UNCOMPRESSED_BYTES
         code_length, code, compressed_size = \
-            game.Game.get_code_from_bytes(codedata, 1)
+            get_code_from_bytes(codedata, 1)
         self.assertEqual(len(CODE_UNCOMPRESSED_BYTES), code_length)
         # (added trailing newline)
         self.assertEqual(CODE_UNCOMPRESSED_BYTES + b'\n', code)
@@ -192,13 +194,13 @@ class TestP8PNGGame(unittest.TestCase):
         codedata = [0] * (0x8000 - 0x4300)
         codedata[:len(CODE_COMPRESSED_BYTES)] = CODE_COMPRESSED_BYTES
         code_length, code, compressed_size = \
-            game.Game.get_code_from_bytes(codedata, 1)
+            get_code_from_bytes(codedata, 1)
         self.assertEqual(len(CODE_COMPRESSED_AS_STRING), code_length)
         self.assertEqual(CODE_COMPRESSED_AS_STRING, code)
         self.assertEqual(len(CODE_COMPRESSED_BYTES), compressed_size)
 
     def testPngToPicodataSimple(self):
-        picodata = game.Game.get_picodata_from_pngdata(
+        picodata = get_picodata_from_pngdata(
             TEST_PNG['width'], TEST_PNG['height'],
             TEST_PNG['data'], TEST_PNG['attrs'])
         self.assertEqual(TEST_PNG_PICODATA, picodata)
@@ -208,17 +210,18 @@ class TestP8PNGGame(unittest.TestCase):
         with open(pngpath, 'rb') as fh:
             width, height, data, attrs = png.Reader(file=fh).read()
             data = list(data)
-        picodata = game.Game.get_picodata_from_pngdata(
+        picodata = get_picodata_from_pngdata(
             width, height, data, attrs)
         self.assertEqual(len(picodata), 32800)
         self.assertEqual(FILE_TEST_GOL_CODE_COMPRESSED_HEAD,
-                         picodata[0x4300:
-                         0x4300 + len(FILE_TEST_GOL_CODE_COMPRESSED_HEAD)])
+                         picodata[
+                            0x4300:
+                            0x4300 + len(FILE_TEST_GOL_CODE_COMPRESSED_HEAD)])
 
     def testPicodataToPngSimple(self):
-        pngdata = game.Game.get_pngdata_from_picodata(TEST_PNG_PICODATA,
-                                                      TEST_PNG_BLANK_DATA,
-                                                      TEST_PNG['attrs'])
+        pngdata = get_pngdata_from_picodata(TEST_PNG_PICODATA,
+                                            TEST_PNG_BLANK_DATA,
+                                            TEST_PNG['attrs'])
         for row_i in range(len(pngdata)):
             self.assertEqual(bytearray(TEST_PNG['data'][row_i]), pngdata[row_i])
 
@@ -253,30 +256,30 @@ class TestGameToP8(unittest.TestCase):
 
     def testToP8FileFromP8(self):
         with open(os.path.join(self.testdata_path, 'test_cart.p8'), 'rb') as fh:
-            orig_game = game.Game.from_p8_file(fh)
+            orig_game = P8Formatter.from_file(fh)
         with open(os.path.join(self.testdata_path, 'test_cart.p8'), 'rb') as fh:
             expected_game_p8 = fh.read()
         outstr = io.BytesIO()
-        orig_game.to_p8_file(outstr)
+        P8Formatter.to_file(orig_game, outstr)
         self.assertEqual(expected_game_p8, outstr.getvalue())
 
     def testToP8FileFromP8PreservesLabel(self):
         with open(os.path.join(self.testdata_path, 'test_cart_with_label.p8'), 'rb') as fh:
-            orig_game = game.Game.from_p8_file(fh)
+            orig_game = P8Formatter.from_file(fh)
         with open(os.path.join(self.testdata_path, 'test_cart_with_label.p8'), 'rb') as fh:
             expected_game_p8 = fh.read()
         outstr = io.BytesIO()
-        orig_game.to_p8_file(outstr)
+        P8Formatter.to_file(orig_game, outstr)
         self.assertEqual(expected_game_p8, outstr.getvalue())
 
     def testToP8FileFromPng(self):
         with open(os.path.join(self.testdata_path, 'test_cart.p8.png'),
                   'rb') as fh:
-            orig_game = game.Game.from_p8png_file(fh)
+            orig_game = P8PNGFormatter.from_file(fh)
         with open(os.path.join(self.testdata_path, 'test_cart.p8'), 'rb') as fh:
             expected_game_p8 = fh.read()
         outstr = io.BytesIO()
-        orig_game.to_p8_file(outstr)
+        P8Formatter.to_file(orig_game, outstr)
         self.assertEqual(expected_game_p8, outstr.getvalue())
 
     def testCharCountWarning(self):
@@ -284,7 +287,7 @@ class TestGameToP8(unittest.TestCase):
         g.lua.update_from_lines(
             [b'-- 345678901234567890123456789012345678\n'] * 1640)
         outstr = io.BytesIO()
-        g.to_p8_file(outstr, filename='test')
+        P8Formatter.to_file(g, outstr, filename='test')
         self.assertTrue(util._error_stream.getvalue().startswith(
             'test: warning: character count'))
 
@@ -294,7 +297,7 @@ class TestGameToP8(unittest.TestCase):
             [b'a=b=c=d=e=f=g=h=i=j=k=l=m=n=o=p=q=r=s=t=u\n'] * 199 +
             [b'a=b=c=d=e=f=g=h=i=j=k=l=m=n=o=p=q=r=s=t=u'])
         outstr = io.BytesIO()
-        g.to_p8_file(outstr)
+        P8Formatter.to_file(g, outstr)
         self.assertTrue(util._error_stream.getvalue().startswith(
             'warning: token count'))
 
@@ -314,7 +317,7 @@ class TestGameToP8PNG(unittest.TestCase):
         # def testToPngFromPng(self):
         #     with open(os.path.join(self.testdata_path, 'test_cart.p8.png'),
         #  'rb') as fh:
-        #         orig_game = game.Game.from_p8png_file(fh)
+        #         orig_game = P8PNGFormatter.from_file(fh)
         #     with open(os.path.join(self.testdata_path, 'test_cart.p8.png'),
         #  'rb') as fh:
         #         expected_game_p8 = fh.read()

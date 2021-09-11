@@ -12,6 +12,7 @@ import traceback
 
 from . import util
 from .build import build
+from .game import file
 from .game import game
 from .lua import lexer
 from .lua import lua
@@ -39,7 +40,7 @@ def _games_for_filenames(filenames):
 
         g = None
         try:
-            g = game.Game.from_filename(fname)
+            g = file.from_file(fname)
         except lexer.LexerError as e:
             util.error('{}: {}\n'.format(fname, e))
             util.debug(traceback.format_exc())
@@ -285,7 +286,7 @@ def writep8(g, out_fname, args=None):
       out_fname: The output filename.
       args: The argparse parsed args object, or None.
     """
-    g.to_file(filename=out_fname)
+    file.to_file(g, filename=out_fname)
 
 
 def luamin(g, out_fname, args=None):
@@ -296,12 +297,13 @@ def luamin(g, out_fname, args=None):
       out_fname: The output filename, for error messages.
       args: The argparse parsed args object, or None.
     """
-    g.to_file(filename=out_fname,
-              lua_writer_cls=lua.LuaMinifyTokenWriter,
-              lua_writer_args={
-                  # 'keep_property_names': args.keep_property_names,
-                  'keep_all_names': args.keep_all_names,
-                  'keep_names_from_file': args.keep_names_from_file})
+    file.to_file(
+        g, filename=out_fname,
+        lua_writer_cls=lua.LuaMinifyTokenWriter,
+        lua_writer_args={
+            # 'keep_property_names': args.keep_property_names,
+            'keep_all_names': args.keep_all_names,
+            'keep_names_from_file': args.keep_names_from_file})
 
 
 def luafmt(g, out_fname, args=None):
@@ -312,9 +314,10 @@ def luafmt(g, out_fname, args=None):
       out_fname: The output filename, for error messages.
       args: The argparse parsed args object, or None.
     """
-    g.to_file(filename=out_fname,
-              lua_writer_cls=lua.LuaFormatterWriter,
-              lua_writer_args={'indentwidth': args.indentwidth})
+    file.to_file(
+        g, filename=out_fname,
+        lua_writer_cls=lua.LuaFormatterWriter,
+        lua_writer_args={'indentwidth': args.indentwidth})
 
 
 _PRINTAST_INDENT_SIZE = 2

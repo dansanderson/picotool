@@ -13,6 +13,7 @@ __all__ = [
 ]
 
 
+import collections
 import re
 
 from .. import util
@@ -102,11 +103,7 @@ PICO8_BUILTINS = {
 }
 
 
-class P8Char:
-    def __init__(self, p8scii, p8string=None, name=None):
-        self.p8scii = p8scii
-        self.p8string = p8string
-        self.name = name or chr(p8scii)
+P8Char = collections.namedtuple('P8Char', ('p8scii', 'p8string', 'name'))
 
 
 # The P8SCII character set

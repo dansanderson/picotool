@@ -1,6 +1,7 @@
 import os
 
 from .. import util
+from ..game import file
 from ..game import game
 from ..lua import lua
 from ..lua import parser
@@ -233,7 +234,7 @@ def do_build(args):
     # Determine whether output file exists and if so load it, otherwise
     # create an empty cart.
     if os.path.exists(args.filename):
-        result = game.Game.from_filename(args.filename)
+        result = file.from_file(args.filename)
     else:
         result = game.Game.make_empty_game(filename=args.filename)
 
@@ -278,7 +279,7 @@ def do_build(args):
                     result.lua = _prepend_package_lua(result.lua, package_lua)
                     _remove_global_return(result.lua)
             else:
-                source = game.Game.from_filename(fn)
+                source = file.from_file(fn)
                 setattr(result, section, getattr(source, section))
 
         elif getattr(args, 'empty_' + section, False):
@@ -298,8 +299,9 @@ def do_build(args):
             'keep_names_from_file': args.keep_names_from_file}
     elif getattr(args, 'lua_minify', False):
         lua_writer_cls = lua.LuaMinifyTokenWriter
-    result.to_file(filename=args.filename,
-                   lua_writer_cls=lua_writer_cls,
-                   lua_writer_args=lua_writer_args)
+    file.to_file(
+        result, filename=args.filename,
+        lua_writer_cls=lua_writer_cls,
+        lua_writer_args=lua_writer_args)
 
     return 0

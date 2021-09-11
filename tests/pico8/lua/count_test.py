@@ -8,8 +8,7 @@ So far this represents experiments from PICO-8 1.3.0.
 import io
 import unittest
 
-from pico8.game import game
-from pico8.lua import lexer
+from pico8.game.formatter.p8 import P8Formatter
 
 
 TESTS = (
@@ -19,7 +18,7 @@ end
 
 t()
 ''', 'tokens': 8, 'chars': 36},
-    
+
     {'code':'', 'tokens': 0, 'chars': 0},
     {'code':'-- comment\n', 'tokens': 0, 'chars': 11},
     {'code':'a=1\n', 'tokens': 3, 'chars': 4},
@@ -185,7 +184,7 @@ VALID_P8_FOOTER = (
 class TestCounts(unittest.TestCase):
     def testCharCounts(self):
         for t in TESTS:
-            g = game.Game.from_p8_file(io.BytesIO(
+            g = P8Formatter.from_file(io.BytesIO(
                 VALID_P8_HEADER +
                 VALID_P8_LUA_SECTION_HEADER +
                 bytes(t['code'], encoding='ascii') +
@@ -195,7 +194,7 @@ class TestCounts(unittest.TestCase):
 
     def testTokenCounts(self):
         for t in TESTS:
-            g = game.Game.from_p8_file(io.BytesIO(
+            g = P8Formatter.from_file(io.BytesIO(
                 VALID_P8_HEADER +
                 VALID_P8_LUA_SECTION_HEADER +
                 bytes(t['code'], encoding='ascii') +

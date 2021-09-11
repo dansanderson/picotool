@@ -509,14 +509,14 @@ Chunk
 
 picotool provides a general purpose library for accessing and manipulating PICO-8 cart data. You can add the `picotool` directory to your `PYTHONPATH` environment variable (or append `sys.path` in code), or just copy the `pico8` module to the directory that contains your code.
 
-The easiest way to load a cart from a file is with the `Game.from_filename()` method, in the `pico8.game.game` module:
+The easiest way to load a cart from a file is with the `from_file()` function, in the `pico8.game.file` module:
 
 ```python
 #!/usr/bin/env python3
 
-from pico8.game import game
+from pico8.game import file
 
-g = game.Game.from_filename('mycart.p8.png')
+g = file.from_file('mycart.p8.png')
 print('Tokens: {}'.format(g.lua.get_token_count()))
 ```
 

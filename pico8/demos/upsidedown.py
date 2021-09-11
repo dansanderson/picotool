@@ -27,7 +27,7 @@ import tempfile
 import textwrap
 
 from .. import util
-from ..game import game
+from ..game import file
 from ..lua import lexer
 from ..lua import lua
 from ..lua import parser
@@ -355,7 +355,7 @@ def main(orig_args=None):
             return 1
         out_fname = basename + '_upsidedown.p8'
 
-    g = game.Game.from_filename(args.infile)
+    g = file.from_file(args.infile)
 
     upsidedown_game(g, args.smallmap, args.flipbuttons, args.flipsounds)
 
