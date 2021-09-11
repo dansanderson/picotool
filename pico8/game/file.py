@@ -11,9 +11,9 @@ import tempfile
 
 from .. import util
 
-from formatter.p8 import P8Formatter
-from formatter.p8png import P8PNGFormatter
-from formatter.rom import ROMFormatter
+from .formatter.p8 import P8Formatter
+from .formatter.p8png import P8PNGFormatter
+from .formatter.rom import ROMFormatter
 
 
 Formatter = collections.namedtuple('Formatter', ('extension', 'cls'))
@@ -49,7 +49,7 @@ def formatter_for_filename(filename):
     raise UnrecognizedFileType(filename)
 
 
-def from_file(cls, filename):
+def from_file(filename):
     """Loads a game from a named file.
 
     Args:
@@ -69,7 +69,7 @@ def from_file(cls, filename):
         return fmt.from_file(fh, filename=filename)
 
 
-def to_file(self, filename, *args, **kwargs):
+def to_file(game, filename, *args, **kwargs):
     """Write the game data to a file, based on a filename.
 
     If filename ends with .p8.png, the output is a .p8.png file. If the
@@ -78,15 +78,16 @@ def to_file(self, filename, *args, **kwargs):
     'label_fname' argument.
 
     Args:
+        game: The game to save.
         filename: The filename.
     """
-    fmt = formatter_for_filename(filename)
+    fmt = formatter_for_filename(filename=filename)
     file_args = {'mode': 'wb+'}
     with tempfile.TemporaryFile(**file_args) as outfh:
         if kwargs.get('label_fname', None) is None:
             if os.path.exists(filename):
                 kwargs['label_fname'] = filename
-        fmt.to_file(self, outfh, filename=filename, *args, **kwargs)
+        fmt.to_file(game, outfh, filename=filename, *args, **kwargs)
         outfh.seek(0)
         with open(filename, **file_args) as finalfh:
             finalfh.write(outfh.read())
