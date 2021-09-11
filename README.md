@@ -1,4 +1,4 @@
-> # picotool: Tools and Python libraries for manipulating PICO-8 game files
+# picotool: Tools and Python libraries for manipulating PICO-8 game files
 
 [PICO-8](http://www.lexaloffle.com/pico-8.php) is a _fantasy game console_ by [Lexaloffle Games](http://www.lexaloffle.com/). The PICO-8 runtime environment runs _cartridges_ (or _carts_): game files containing code, graphics, sound, and music data. The console includes a built-in editor for writing games. Game cartridge files can be played in a browser, and can be posted to the Lexaloffle bulletin board or exported to any website.
 
@@ -16,7 +16,7 @@ There are additional tools that are mostly useful for demonstrating and troubles
 
 `picotool` supports reading and writing both of PICO-8's cartridge file formats: the text-based format `.p8`, and the PNG-based binary format `.p8.png`.
 
-### How do most people use picotool?
+## How do most people use picotool?
 
 Most people use `picotool` for the `luamin` command, which condenses the Lua code of a cart to use as few characters as possible. This is useful if you have a large game whose code is above PICO-8's character limit but below the token limit. In this rare case, `luamin` helps you keep your developer version easy to read and modify while you polish the game for publication. In most cases, your cart will exceed the token limit first, and minification doesn't help with unusual cases such as long string data.
 
@@ -35,7 +35,7 @@ To install the `picotool` tools and libraries:
 1. Change to the unpacked archive or clone directory from the above step.
 1. Install the software:
 
-   ```
+   ```shell
    pip install picotool-master
 
    # Or:
@@ -50,7 +50,7 @@ To use a tool, you run the `p8tool` command with the appropriate arguments. With
 
 For example, to print statistics about a cart named `helloworld.p8.png`:
 
-```
+```shell
 p8tool stats helloworld.p8.png
 ```
 
@@ -62,14 +62,14 @@ The tool takes the filename of the output cartridge, with additional arguments d
 
 For example, you can create a cartridge in PICO-8, use PICO-8's built-in graphics and sound editors, then use `p8tool build` to replace the Lua code with the contents of a `.lua` file:
 
-```
-% p8tool build mygame.p8.png --lua mygame.lua
+```shell
+p8tool build mygame.p8.png --lua mygame.lua
 ```
 
 As another example, to create a new cartridge using the spritesheet (`gfx`) from one cartridge file, music (`sfx`, `music`) from another, and Lua code from a `.lua` file:
 
-```
-% p8tool build mygame.p8.png --gfx mygamegfx.p8 --sfx radsnds.p8.png --music radsnds.p8.png --lua mygame.lua
+```shell
+p8tool build mygame.p8.png --gfx mygamegfx.p8 --sfx radsnds.p8.png --music radsnds.p8.png --lua mygame.lua
 ```
 
 You can also erase a section of an existing cart with an argument such as `--empty-map`.
@@ -97,7 +97,7 @@ p8tool build supports a special feature for organizing your Lua code, called pac
 
 Consider the following simple example. Say you have a function you like to use in several games in a file called `mylib.lua`:
 
-```
+```lua
 function handyfunc(x, y)
   return x + y
 end
@@ -107,7 +107,7 @@ handynumber = 3.14
 
 Your main game code is in a file named `mygame.lua`. To use the `handyfunc()` function within `mygame.lua`, call `require()` to load it:
 
-```
+```lua
 require("mylib")
 
 result = handyfunc(2, 3)
@@ -121,7 +121,7 @@ All globals defined in the required file are set as globals in your program when
 
 A more typical way to write a Lua package is to put everything intended to be used by other programs in a table:
 
-```
+```lua
 HandyPackage = {
   handyfunc = function(x, y)
     return x + y
@@ -132,7 +132,7 @@ HandyPackage = {
 
 Then in `mygame.lua`:
 
-```
+```lua
 require("mylib")
 
 result = HandyPackage.handyfunc(2, 3)
@@ -140,7 +140,7 @@ result = HandyPackage.handyfunc(2, 3)
 
 This is cleaner, but still has the disadvantage that the package must be known by the global name `HandyPackage` wihtin `mygame.lua`. To fix this, Lua packages can return a value with the `return` statement. This becomes the return value for the `require()` call. Furthermore, Lua packages can declare `local` variables that are not accessible to the main program. You can use these features to hide explicit names and return the table for the package:
 
-```
+```lua
 local HandyPackage = {
   handyfunc = function(x, y)
     return x + y
@@ -153,7 +153,7 @@ return HandyPackage
 
 The main program uses the return value of `require()` to access the package:
 
-```
+```lua
 HandyPackage = require("mylib")
 
 result = HandyPackage.handyfunc(2, 3)
@@ -169,13 +169,13 @@ The default lookup path is `?;?.lua`. With this path, `require("mylib")` would c
 
 For example, with this environment variable set:
 
-```
+```shell
 PICO8_LUA_PATH=?;?.lua;/home/dan/p8libs/?/?.p8
 ```
 
 The require("3dlib") statement would look for these files, in this order, with paths relative to the file containing the require() statement:
 
-```
+```text
 3dlib
 3dlib.lua
 /home/dan/p8libs/3dlib/3dlib.p8
@@ -191,7 +191,7 @@ When you write a library of routines for PICO-8, you probably want to write test
 
 For example:
 
-```
+```lua
 local HandyPackage = {
   handyfunc = function(x, y)
     return x + y
@@ -212,7 +212,7 @@ return HandyPackage
 
 If you want to keep the game loop functions present in a package, you can request them with a second argument to `require()`, like so:
 
-```
+```lua
 require("mylib", {use_game_loop=true})
 ```
 
@@ -232,8 +232,8 @@ This feature incurs a small amount of overhead in terms of tokens. Each library 
 
 You can tell `p8tool build` to format or minify the code in the built output using the `--lua-format` or `--lua-minify` command line arguments, respectively.
 
-```
-% p8tool build mycart.p8.png --lua=mygame.lua --lua-format
+```shell
+p8tool build mycart.p8.png --lua=mygame.lua --lua-format
 ```
 
 This is equivalent to building the cart then running `p8tool luafmt` or `p8tool luamin` on the result.
@@ -244,7 +244,7 @@ The `build` command supports the options `--keep-names-from-file=<filename>` and
 
 The `stats` tool prints statistics about one or more carts. Given one or more cart filenames, it analyzes each cart, then prints information about it.
 
-```
+```text
 % p8tool stats helloworld.p8.png
 hello world (helloworld.p8.png)
 by zep
@@ -253,15 +253,15 @@ version: 0  lines: 48  chars: 419  tokens: 134
 
 This command accepts an optional `--csv` argument. If provided, the command prints the statistics in a CSV format suitable for importing into a spreadsheet. This is useful when tallying statistics about multiple carts for comparative analysis.
 
-```
-% p8tool --csv stats mycarts/*.p8* >cartstats.csv
+```shell
+p8tool --csv stats mycarts/*.p8* >cartstats.csv
 ```
 
 ### p8tool listlua
 
 The `listlua` tool extracts the Lua code from a cart, then prints it exactly as it appears in the cart.
 
-```
+```text
 % p8tool listlua helloworld.p8.png
 -- hello world
 -- by zep
@@ -286,7 +286,7 @@ The `luafmt` tool rewrites the Lua region of a cart to make it easier to read, u
 
 The command takes one or more cart filenames as arguments. For each cart with a name like `xxx.p8.png`, it writes a new cart with a name like `xxx_fmt.p8`.
 
-```
+```text
 % p8tool luafmt helloworld.p8.png
 % cat helloworld_fmt.p8
 pico-8 cartridge // http://www.pico-8.com
@@ -315,7 +315,7 @@ function _draw()
 
 By default, the indentation width is 2 spaces. You can change the desired indentation width by specifying the `--indentwidth=...` argument:
 
-```
+```text
 % p8tool luafmt --indentwidth=4 helloworld.p8.png
 % cat helloworld_fmt.p8
 ...
@@ -341,7 +341,7 @@ The `luafind` tool searches for a string or pattern in the code of one or more c
 
 Unlike common tools like `grep`, `luafind` can search code in .p8.png carts as well as .p8 carts. This tool is otherwise not particularly smart: it's slow (it runs every file through the parser), and doesn't support fancier `grep`-like features.
 
-```
+```text
 % p8tool luafind 'boards\[.*\]' *.p8*
 test_gol.p8.png:11:  boards[1][y] = {}
 test_gol.p8.png:12:  boards[2][y] = {}
@@ -361,7 +361,7 @@ test_gol.p8.png:57:        boards[other_i][y][x] = 0
 
 You can tell `luafind` to just list the names of files containing the pattern without printing the lines using the `--listfiles` argument. Here's an example that looks for carts that contain examples of Lua OO programming:
 
-```
+```text
 % p8tool luafind --listfiles 'self,' *.p8*
 11243.p8.png
 12029.p8.png
@@ -379,7 +379,7 @@ The `writep8` tool writes a game's data to a `.p8` file. This is mostly useful f
 
 The command takes one or more cart filenames as arguments. For each cart with a name like `xxx.p8.png`, it writes a new cart with a name like `xxx_fmt.p8`.
 
-```
+```text
 % p8tool writep8 helloworld.p8.png
 % cat helloworld_fmt.p8
 pico-8 cartridge // http://www.pico-8.com
@@ -422,7 +422,7 @@ Disabling renaming is useful in cases where code refers to object attributes usi
 
 Statistically, you will run out of tokens before you run out of characters, and minifying is unlikely to affect the compressed character count. Carts are more useful to the PICO-8 community if the code in a published cart is readable and well-commented. That said, some authors have found luamin useful in the late stages of writing a large cart that includes blob data strings, where you might hit the character limit first and you need to squeeze in a few more characters to finish the game.
 
-```
+```text
 % p8tool luamin helloworld.p8.png
 % cat helloworld_fmt.p8
 pico-8 cartridge // http://www.pico-8.com
@@ -442,7 +442,7 @@ cls()
 
 The `listtokens` tool is similar to `listlua`, but it identifies which characters picotool recognizes as a single token.
 
-```
+```text
 % p8tool listtokens ./picotool-master/tests/testdata/helloworld.p8.png
 <-- hello world>
 <-- by zep>
@@ -469,7 +469,7 @@ When picotool parses Lua code, it separates out comments, newlines, and spaces, 
 
 The `printast` tool prints a visualization of the abstract syntax tree (AST) determined by the parser. This is a representation of the structure of the Lua code. This is useful for understanding the AST structure when writing a new tool based on the picotool library.
 
-```
+```text
 % p8tool printast ./picotool-master/tests/testdata/helloworld.p8.png
 
 Chunk
@@ -531,7 +531,7 @@ Aspects of the game are accessible as attributes of the `Game` object:
 
 Lua code is treated as bytestrings throughout the API. This is because PICO-8 uses a custom text encoding equivalent to lower ASCII plus arbitrary high characters for the glyph set. Take care to use b'bytestring literals' when creating or comparing values.
 
-### API under construction!
+### API under construction
 
 While the library in its current state is featureful enough for building simple tools, it is not yet ready to promise backwards compatibility in future releases. Feel free to mess with it, but please be patient if I change things.
 
@@ -633,12 +633,11 @@ documentation site](http://dansanderson.github.io/picotool/).
 the Github repo as its source. There is a crude `make publish` target that
 builds the HTML and pushes the built files to this branch.)
 
-
 ## Known issues
 
 For a complete list of known issues, see the issues list in the Github project:
 
-https://github.com/dansanderson/picotool/issues
+[https://github.com/dansanderson/picotool/issues]
 
 picotool is a hobby project and I have to ration the time I spend on issues. I
 welcome pull requests, and preemptively apologize if I don't review them in a
