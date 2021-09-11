@@ -6,6 +6,7 @@ import png
 import unittest
 
 from pico8 import util
+from pico8.game import compress
 from pico8.game import game
 from pico8.lua import lexer
 from pico8.lua import parser
@@ -225,11 +226,11 @@ class TestP8PNGGame(unittest.TestCase):
         test_str = (b'a="hello"\nb="hello also"\nb="hello also"\n'
                     b'b="hello also"\nb="hello also"\nb="hello also"\n'
                     b'b="hello also"\n\n')
-        comp_result = game.Game.compress_code(test_str)
+        comp_result = compress.compress_code(test_str)
         code_length_bytes = bytes([len(test_str) >> 8, len(test_str) & 255])
         code_bytes = b''.join([b':c:\0', code_length_bytes, b'\0\0',
                                comp_result])
-        decomp_result = game.Game.decompress_code(code_bytes)
+        decomp_result = compress.decompress_code(code_bytes)
         self.assertEqual(decomp_result[1], test_str)
 
         p8_comp_result = bytearray([
