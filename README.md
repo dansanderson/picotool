@@ -89,7 +89,7 @@ The available arguments are as follows:
 - `--empty-sfx`: use empty sound effects
 - `--empty-music`: use empty music patterns
 
-If the output cart filename ends with `.p8.png`, the result a cartridge with a label image. If the file already exists, the cartridge label is reused. If the file does not exist, an empty cartridge label is used. To use a non-empty label, you must open the cart in PICO-8, take a screenshot (press F6 while running), set the title and byline in the first two lines of code (as Lua comments), then save the `.p8.png` file from PICO-8. Future runs of `p8tool build` will reuse the label.
+If the output cart filename ends with `.p8.png`, the result is a cartridge with a label image. If the file already exists, the cartridge label is reused. If the file does not exist, an empty cartridge label is used. To use a non-empty label, you must open the cart in PICO-8, take a screenshot (press F6 while running), set the title and byline in the first two lines of code (as Lua comments), then save the `.p8.png` file from PICO-8. Future runs of `p8tool build` will reuse the label.
 
 #### Packages and the require() function
 
