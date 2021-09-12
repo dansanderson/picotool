@@ -3,13 +3,16 @@
 import io
 import os
 import png
+import tempfile
 import unittest
 
 from pico8 import util
 from pico8.game import compress
+from pico8.game import file
+from pico8.game import game
 from pico8.game.formatter.p8 import P8Formatter, InvalidP8HeaderError, InvalidP8SectionError
 from pico8.game.formatter.p8png import P8PNGFormatter, get_code_from_bytes, get_pngdata_from_picodata, get_picodata_from_pngdata
-from pico8.game import game
+from pico8.game.formatter.rom import ROMFormatter
 from pico8.lua import lexer
 from pico8.lua import parser
 
@@ -327,6 +330,57 @@ class TestGameToP8PNG(unittest.TestCase):
         #         label_fname=os.path.join(self.testdata_path,
         # 'test_cart.p8.png'))
         #     self.assertEqual(expected_game_p8, outstr.getvalue())
+
+
+class TestFile(unittest.TestCase):
+    def setUp(self):
+        self.tempdir = tempfile.mkdtemp()
+
+    def testSelectsP8Formatter(self):
+        assert file.formatter_for_filename('foo.p8') == P8Formatter
+
+    def testSelectsP8PNGFormatter(self):
+        assert file.formatter_for_filename('foo.p8.png') == P8PNGFormatter
+
+    def testSelectsROMFormatter(self):
+        assert file.formatter_for_filename('foo.rom') == ROMFormatter
+
+    def testUnrecognizedFileType(self):
+        self.assertRaises(
+            file.UnrecognizedFileType,
+            file.formatter_for_filename,
+            'foo.UNRECOGNIZED_FILE_TYPE')
+
+    def testFromP8File(self):
+        test_p8_path = os.path.join(self.tempdir, 'test.p8')
+        with open(test_p8_path, 'wb') as fh:
+            fh.write(
+                VALID_P8_HEADER +
+                VALID_P8_LUA_SECTION_HEADER +
+                VALID_P8_FOOTER)
+        g = file.from_file(test_p8_path)
+        self.assertEqual(4, g.lua._version)
+        self.assertEqual(4, g.gfx._version)
+        self.assertEqual(4, g.gff._version)
+        self.assertEqual(4, g.map._version)
+        self.assertEqual(4, g.sfx._version)
+        self.assertEqual(4, g.music._version)
+
+    def testToFile(self):
+        g = P8Formatter.from_file(io.BytesIO(
+            VALID_P8_HEADER +
+            VALID_P8_LUA_SECTION_HEADER +
+            VALID_P8_FOOTER))
+        test_p8_path = os.path.join(self.tempdir, 'test.p8')
+        file.to_file(g, test_p8_path)
+
+        tg = file.from_file(test_p8_path)
+        self.assertEqual(4, tg.lua._version)
+        self.assertEqual(4, tg.gfx._version)
+        self.assertEqual(4, tg.gff._version)
+        self.assertEqual(4, tg.map._version)
+        self.assertEqual(4, tg.sfx._version)
+        self.assertEqual(4, tg.music._version)
 
 
 if __name__ == '__main__':
