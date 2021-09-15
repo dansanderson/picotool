@@ -3,6 +3,7 @@
 import io
 import os
 import png
+import shutil
 import tempfile
 import unittest
 
@@ -10,9 +11,9 @@ from pico8 import util
 from pico8.game import compress
 from pico8.game import file
 from pico8.game import game
-from pico8.game.formatter.p8 import P8Formatter, InvalidP8HeaderError, InvalidP8SectionError
-from pico8.game.formatter.p8png import P8PNGFormatter, get_code_from_bytes, get_pngdata_from_picodata, get_picodata_from_pngdata
-from pico8.game.formatter.rom import ROMFormatter
+from pico8.game.formatter import p8
+from pico8.game.formatter import p8png
+from pico8.game.formatter import rom
 from pico8.lua import lexer
 from pico8.lua import parser
 
@@ -40,16 +41,16 @@ VALID_P8_FOOTER = (
 
 CODE_UNCOMPRESSED_BYTES = bytearray([
     102, 111, 114, 32, 105, 61, 49, 44, 49, 48, 32, 100, 111, 10, 32, 32, 112,
-    114, 105, 110, 116, 40, 34, 104, 105, 32, 34, 46, 46, 105, 41, 10, 101, 110,
-    100, 10])
+    114, 105, 110, 116, 40, 34, 104, 105, 32, 34, 46, 46, 105, 41, 10, 101,
+    110, 100, 10])
 
 CODE_COMPRESSED_BYTES = bytearray([
-    58, 99, 58, 0, 0, 142, 0, 0, 0, 45, 0, 45, 2, 31, 27, 25, 17, 2, 32, 21, 32,
-    24, 17, 1, 60, 110, 13, 33, 32, 20, 27, 30, 1, 1, 18, 27, 30, 2, 21, 51, 4,
-    57, 4, 3, 2, 16, 27, 1, 2, 2, 28, 30, 21, 26, 32, 42, 0, 34, 20, 21, 2, 0,
-    34, 56, 56, 21, 43, 1, 0, 9, 2, 21, 18, 2, 21, 2, 41, 2, 6, 2, 32, 20, 17,
-    26, 61, 16, 62, 116, 14, 33, 38, 38, 0, 34, 62, 34, 61, 242, 62, 244, 0, 9,
-    2, 17, 26, 16, 1, 60, 36])
+    58, 99, 58, 0, 0, 142, 0, 0, 0, 45, 0, 45, 2, 31, 27, 25, 17, 2, 32, 21,
+    32, 24, 17, 1, 60, 110, 13, 33, 32, 20, 27, 30, 1, 1, 18, 27, 30, 2, 21,
+    51, 4, 57, 4, 3, 2, 16, 27, 1, 2, 2, 28, 30, 21, 26, 32, 42, 0, 34, 20,
+    21, 2, 0, 34, 56, 56, 21, 43, 1, 0, 9, 2, 21, 18, 2, 21, 2, 41, 2, 6, 2,
+    32, 20, 17, 26, 61, 16, 62, 116, 14, 33, 38, 38, 0, 34, 62, 34, 61, 242,
+    62, 244, 0, 9, 2, 17, 26, 16, 1, 60, 36])
 
 # Intentional mix of tabs and spaces, don't change!
 CODE_COMPRESSED_AS_STRING = b'''-- some title
@@ -63,7 +64,7 @@ for i=1,10 do
 	   print("buzz")
 	 end
 end
-'''
+'''  # noqa: E101, W191
 
 FILE_TEST_GOL_CODE_COMPRESSED_HEAD = [
     58, 99, 58, 0, 4, 194, 0, 0, 0, 45, 0, 45, 2, 19, 13, 25, 17, 2, 27, 18,
@@ -97,6 +98,84 @@ TEST_PNG_BLANK_DATA = [
               0xaf, 0x9f, 0x8f, 0xbf,
               0x6f, 0x5f, 0x4f, 0x7f]]
 
+CODE_WITH_TABS = b'''
+print('zero')
+-->8
+print('one')
+-- some other comment
+-->8
+print('two')
+
+if (btnp(8)) mode=2
+-->8
+print('three')
+'''
+
+CODE_WITH_TABS_TAB_TWO = b'''
+print('two')
+
+if (btnp(8)) mode=2
+'''
+
+CODE_WITH_INCLUDE_LUA = b'''
+print('before include')
+#include inc.lua
+print('after include')
+'''
+
+CODE_WITH_INCLUDE_P8 = b'''
+print('before include')
+#include inc.p8
+print('after include')
+'''
+
+CODE_WITH_INCLUDE_P8_TAB = b'''
+print('before include')
+#include inc.p8:2
+print('after include')
+'''
+
+CODE_WITH_INCLUDE_P8PNG = b'''
+print('before include')
+#include inc.p8.png
+print('after include')
+'''
+
+CODE_WITH_INCLUDE_P8PNG_TAB = b'''
+print('before include')
+#include inc.p8.png:2
+print('after include')
+'''
+
+CODE_WITH_INCLUDE_LUA_SUBDIR = b'''
+print('before include')
+#include subdir/inc.lua
+print('after include')
+'''
+
+CODE_WITH_INCLUDE_LUA_PARENT_DIR = b'''
+print('before include')
+#include ../inc.lua
+print('after include')
+'''
+
+
+def make_test_cart_from_code(dirname, fname, luabytes, is_p8png=False):
+    fmtcls = p8png.P8PNGFormatter if is_p8png else p8.P8Formatter
+    g = game.Game.make_empty_game(fname)
+    g.lua.update_from_lines([
+        line + b'\n' for line in luabytes.strip().split(b'\n')])
+    cart_path = os.path.join(dirname, fname)
+    with open(cart_path, 'wb') as fh:
+        fmtcls.to_file(g, fh, filename=os.path.join(dirname, fname))
+
+
+def make_expected_with_include(inner):
+    return (
+        b'print(\'before include\')\n' +
+        inner.strip() +
+        b'\nprint(\'after include\')\n')
+
 
 class TestP8Game(unittest.TestCase):
     def setUp(self):
@@ -105,7 +184,7 @@ class TestP8Game(unittest.TestCase):
             'testdata')
 
     def testFromP8File(self):
-        g = P8Formatter.from_file(io.BytesIO(
+        g = p8.P8Formatter.from_file(io.BytesIO(
             VALID_P8_HEADER +
             VALID_P8_LUA_SECTION_HEADER +
             VALID_P8_FOOTER))
@@ -118,16 +197,16 @@ class TestP8Game(unittest.TestCase):
 
     def testInvalidP8HeaderErrorMsg(self):
         # coverage
-        str(InvalidP8HeaderError())
+        str(p8.InvalidP8HeaderError())
 
     def testInvalidP8SectionErrorMsg(self):
         # coverage
-        str(InvalidP8SectionError('bad'))
+        str(p8.InvalidP8SectionError('bad'))
 
     def testInvalidP8HeaderLineOne(self):
         self.assertRaises(
-            InvalidP8HeaderError,
-            P8Formatter.from_file,
+            p8.InvalidP8HeaderError,
+            p8.P8Formatter.from_file,
             io.BytesIO(
                 INVALID_P8_HEADER_ONE +
                 VALID_P8_LUA_SECTION_HEADER +
@@ -135,8 +214,8 @@ class TestP8Game(unittest.TestCase):
 
     def testInvalidP8HeaderLineTwo(self):
         self.assertRaises(
-            InvalidP8HeaderError,
-            P8Formatter.from_file,
+            p8.InvalidP8HeaderError,
+            p8.P8Formatter.from_file,
             io.BytesIO(
                 INVALID_P8_HEADER_TWO +
                 VALID_P8_LUA_SECTION_HEADER +
@@ -144,8 +223,8 @@ class TestP8Game(unittest.TestCase):
 
     def testInvalidP8Section(self):
         self.assertRaises(
-            InvalidP8SectionError,
-            P8Formatter.from_file,
+            p8.InvalidP8SectionError,
+            p8.P8Formatter.from_file,
             io.BytesIO(
                 VALID_P8_HEADER +
                 VALID_P8_LUA_SECTION_HEADER +
@@ -155,7 +234,7 @@ class TestP8Game(unittest.TestCase):
     def testFromP8FileGoL(self):
         p8path = os.path.join(self.testdata_path, 'test_gol.p8')
         with open(p8path, 'rb') as fh:
-            P8Formatter.from_file(fh)
+            p8.P8Formatter.from_file(fh)
             # TODO: validate game
 
 
@@ -168,7 +247,7 @@ class TestP8PNGGame(unittest.TestCase):
     def testFromP8PNGFileV0(self):
         pngpath = os.path.join(self.testdata_path, 'test_cart_memdump.p8.png')
         with open(pngpath, 'rb') as fh:
-            pnggame = P8PNGFormatter.from_file(fh)
+            pnggame = p8png.P8PNGFormatter.from_file(fh)
         first_stat = pnggame.lua.root.stats[0]
         self.assertTrue(isinstance(first_stat, parser.StatFunctionCall))
         tokens = pnggame.lua.tokens
@@ -180,14 +259,14 @@ class TestP8PNGGame(unittest.TestCase):
     def testFromP8PNGFile(self):
         pngpath = os.path.join(self.testdata_path, 'test_gol.p8.png')
         with open(pngpath, 'rb') as fh:
-            P8PNGFormatter.from_file(fh)
+            p8png.P8PNGFormatter.from_file(fh)
             # TODO: validate game
 
     def testGetCodeFromBytesUncompressed(self):
         codedata = [0] * (0x8000 - 0x4300)
         codedata[:len(CODE_UNCOMPRESSED_BYTES)] = CODE_UNCOMPRESSED_BYTES
         code_length, code, compressed_size = \
-            get_code_from_bytes(codedata, 1)
+            p8png.get_code_from_bytes(codedata, 1)
         self.assertEqual(len(CODE_UNCOMPRESSED_BYTES), code_length)
         # (added trailing newline)
         self.assertEqual(CODE_UNCOMPRESSED_BYTES + b'\n', code)
@@ -197,13 +276,13 @@ class TestP8PNGGame(unittest.TestCase):
         codedata = [0] * (0x8000 - 0x4300)
         codedata[:len(CODE_COMPRESSED_BYTES)] = CODE_COMPRESSED_BYTES
         code_length, code, compressed_size = \
-            get_code_from_bytes(codedata, 1)
+            p8png.get_code_from_bytes(codedata, 1)
         self.assertEqual(len(CODE_COMPRESSED_AS_STRING), code_length)
         self.assertEqual(CODE_COMPRESSED_AS_STRING, code)
         self.assertEqual(len(CODE_COMPRESSED_BYTES), compressed_size)
 
     def testPngToPicodataSimple(self):
-        picodata = get_picodata_from_pngdata(
+        picodata = p8png.get_picodata_from_pngdata(
             TEST_PNG['width'], TEST_PNG['height'],
             TEST_PNG['data'], TEST_PNG['attrs'])
         self.assertEqual(TEST_PNG_PICODATA, picodata)
@@ -213,7 +292,7 @@ class TestP8PNGGame(unittest.TestCase):
         with open(pngpath, 'rb') as fh:
             width, height, data, attrs = png.Reader(file=fh).read()
             data = list(data)
-        picodata = get_picodata_from_pngdata(
+        picodata = p8png.get_picodata_from_pngdata(
             width, height, data, attrs)
         self.assertEqual(len(picodata), 32800)
         self.assertEqual(FILE_TEST_GOL_CODE_COMPRESSED_HEAD,
@@ -222,11 +301,14 @@ class TestP8PNGGame(unittest.TestCase):
                             0x4300 + len(FILE_TEST_GOL_CODE_COMPRESSED_HEAD)])
 
     def testPicodataToPngSimple(self):
-        pngdata = get_pngdata_from_picodata(TEST_PNG_PICODATA,
-                                            TEST_PNG_BLANK_DATA,
-                                            TEST_PNG['attrs'])
+        pngdata = p8png.get_pngdata_from_picodata(
+            TEST_PNG_PICODATA,
+            TEST_PNG_BLANK_DATA,
+            TEST_PNG['attrs'])
         for row_i in range(len(pngdata)):
-            self.assertEqual(bytearray(TEST_PNG['data'][row_i]), pngdata[row_i])
+            self.assertEqual(
+                bytearray(TEST_PNG['data'][row_i]),
+                pngdata[row_i])
 
     def testCompressCodeHelloExample(self):
         test_str = (b'a="hello"\nb="hello also"\nb="hello also"\n'
@@ -258,31 +340,37 @@ class TestGameToP8(unittest.TestCase):
         util._error_stream = self.orig_error_stream
 
     def testToP8FileFromP8(self):
-        with open(os.path.join(self.testdata_path, 'test_cart.p8'), 'rb') as fh:
-            orig_game = P8Formatter.from_file(fh)
-        with open(os.path.join(self.testdata_path, 'test_cart.p8'), 'rb') as fh:
+        test_cart_path = os.path.join(self.testdata_path, 'test_cart.p8')
+        with open(test_cart_path, 'rb') as fh:
+            orig_game = p8.P8Formatter.from_file(fh)
+        with open(test_cart_path, 'rb') as fh:
             expected_game_p8 = fh.read()
         outstr = io.BytesIO()
-        P8Formatter.to_file(orig_game, outstr)
+        p8.P8Formatter.to_file(orig_game, outstr)
         self.assertEqual(expected_game_p8, outstr.getvalue())
 
     def testToP8FileFromP8PreservesLabel(self):
-        with open(os.path.join(self.testdata_path, 'test_cart_with_label.p8'), 'rb') as fh:
-            orig_game = P8Formatter.from_file(fh)
-        with open(os.path.join(self.testdata_path, 'test_cart_with_label.p8'), 'rb') as fh:
+        test_cart_path = os.path.join(
+            self.testdata_path, 'test_cart_with_label.p8')
+        with open(test_cart_path, 'rb') as fh:
+            orig_game = p8.P8Formatter.from_file(fh)
+        with open(test_cart_path, 'rb') as fh:
             expected_game_p8 = fh.read()
         outstr = io.BytesIO()
-        P8Formatter.to_file(orig_game, outstr)
+        p8.P8Formatter.to_file(orig_game, outstr)
         self.assertEqual(expected_game_p8, outstr.getvalue())
 
     def testToP8FileFromPng(self):
-        with open(os.path.join(self.testdata_path, 'test_cart.p8.png'),
-                  'rb') as fh:
-            orig_game = P8PNGFormatter.from_file(fh)
-        with open(os.path.join(self.testdata_path, 'test_cart.p8'), 'rb') as fh:
+        test_cart_path_p8png = os.path.join(
+            self.testdata_path, 'test_cart.p8.png')
+        with open(test_cart_path_p8png, 'rb') as fh:
+            orig_game = p8png.P8PNGFormatter.from_file(fh)
+        test_cart_path_p8 = os.path.join(
+            self.testdata_path, 'test_cart.p8')
+        with open(test_cart_path_p8, 'rb') as fh:
             expected_game_p8 = fh.read()
         outstr = io.BytesIO()
-        P8Formatter.to_file(orig_game, outstr)
+        p8.P8Formatter.to_file(orig_game, outstr)
         self.assertEqual(expected_game_p8, outstr.getvalue())
 
     def testCharCountWarning(self):
@@ -290,7 +378,7 @@ class TestGameToP8(unittest.TestCase):
         g.lua.update_from_lines(
             [b'-- 345678901234567890123456789012345678\n'] * 1640)
         outstr = io.BytesIO()
-        P8Formatter.to_file(g, outstr, filename='test')
+        p8.P8Formatter.to_file(g, outstr, filename='test')
         self.assertTrue(util._error_stream.getvalue().startswith(
             'test: warning: character count'))
 
@@ -300,7 +388,7 @@ class TestGameToP8(unittest.TestCase):
             [b'a=b=c=d=e=f=g=h=i=j=k=l=m=n=o=p=q=r=s=t=u\n'] * 199 +
             [b'a=b=c=d=e=f=g=h=i=j=k=l=m=n=o=p=q=r=s=t=u'])
         outstr = io.BytesIO()
-        P8Formatter.to_file(g, outstr)
+        p8.P8Formatter.to_file(g, outstr)
         self.assertTrue(util._error_stream.getvalue().startswith(
             'warning: token count'))
 
@@ -320,7 +408,7 @@ class TestGameToP8PNG(unittest.TestCase):
         # def testToPngFromPng(self):
         #     with open(os.path.join(self.testdata_path, 'test_cart.p8.png'),
         #  'rb') as fh:
-        #         orig_game = P8PNGFormatter.from_file(fh)
+        #         orig_game = p8png.P8PNGFormatter.from_file(fh)
         #     with open(os.path.join(self.testdata_path, 'test_cart.p8.png'),
         #  'rb') as fh:
         #         expected_game_p8 = fh.read()
@@ -336,14 +424,19 @@ class TestFile(unittest.TestCase):
     def setUp(self):
         self.tempdir = tempfile.mkdtemp()
 
+    def tearDown(self):
+        shutil.rmtree(self.tempdir)
+
     def testSelectsP8Formatter(self):
-        assert file.formatter_for_filename('foo.p8') == P8Formatter
+        assert file.formatter_for_filename('foo.p8') == p8.P8Formatter
 
     def testSelectsP8PNGFormatter(self):
-        assert file.formatter_for_filename('foo.p8.png') == P8PNGFormatter
+        assert (
+            file.formatter_for_filename('foo.p8.png') ==
+            p8png.P8PNGFormatter)
 
     def testSelectsROMFormatter(self):
-        assert file.formatter_for_filename('foo.rom') == ROMFormatter
+        assert file.formatter_for_filename('foo.rom') == rom.ROMFormatter
 
     def testUnrecognizedFileType(self):
         self.assertRaises(
@@ -367,7 +460,7 @@ class TestFile(unittest.TestCase):
         self.assertEqual(4, g.music._version)
 
     def testToFile(self):
-        g = P8Formatter.from_file(io.BytesIO(
+        g = p8.P8Formatter.from_file(io.BytesIO(
             VALID_P8_HEADER +
             VALID_P8_LUA_SECTION_HEADER +
             VALID_P8_FOOTER))
@@ -381,6 +474,127 @@ class TestFile(unittest.TestCase):
         self.assertEqual(4, tg.map._version)
         self.assertEqual(4, tg.sfx._version)
         self.assertEqual(4, tg.music._version)
+
+
+class TestP8Include(unittest.TestCase):
+    def setUp(self):
+        self.tempdir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.tempdir)
+
+    def testGetRootIncludePathMacOSCartRoot(self):
+        cartpath = os.path.abspath(
+            os.path.normpath(
+                os.path.expanduser(
+                    '~/Library/Application Support/'
+                    'pico-8/carts/subdir/somecart.p8')))
+        expected = os.path.abspath(
+            os.path.normpath(
+                os.path.expanduser(
+                    '~/Library/Application Support/pico-8/carts')))
+        self.assertEqual(
+            expected,
+            p8.get_root_include_path(cartpath))
+
+    def testGetRootIncludePathLinuxCartRoot(self):
+        cartpath = os.path.abspath(
+            os.path.normpath(
+                os.path.expanduser(
+                    '~/.lexaloffle/pico-8/carts/subdir/somecart.p8')))
+        expected = os.path.abspath(
+            os.path.normpath(
+                os.path.expanduser('~/.lexaloffle/pico-8/carts')))
+        self.assertEqual(
+            expected,
+            p8.get_root_include_path(cartpath))
+
+    def testGetRootIncludePathUnrecognizedRoot(self):
+        cartpath = '/tmp/subdir/somecart.p8'
+        expected = '/tmp/subdir'
+        self.assertEqual(
+            expected,
+            p8.get_root_include_path(cartpath))
+
+    def testLinesForTabYieldsAll(self):
+        lines = CODE_WITH_TABS.split(b'\n')
+        result = list(p8.lines_for_tab(lines, None))
+        self.assertEqual(result, lines)
+
+    def testLinesForTabYieldsOneTab(self):
+        lines = CODE_WITH_TABS.split(b'\n')
+        expected = CODE_WITH_TABS_TAB_TWO.strip().split(b'\n')
+        result = list(p8.lines_for_tab(lines, 2))
+        self.assertEqual(expected, result)
+
+    def assertP8CartCodeEquals(self, expected, filepath=None):
+        test_cart_path = filepath or os.path.join(self.tempdir, 't.p8')
+        with open(test_cart_path, 'rb') as fh:
+            g = p8.P8Formatter.from_file(fh, filename=test_cart_path)
+        self.assertEqual(expected, b''.join(list(g.lua.to_lines())))
+
+    def testIncludeLua(self):
+        with open(os.path.join(self.tempdir, 'inc.lua'), 'wb') as fh:
+            fh.write(CODE_WITH_TABS.strip() + b'\n')
+        make_test_cart_from_code(
+            self.tempdir, 't.p8', CODE_WITH_INCLUDE_LUA)
+        expected = make_expected_with_include(CODE_WITH_TABS)
+        self.assertP8CartCodeEquals(expected)
+
+    def testIncludeP8(self):
+        make_test_cart_from_code(
+            self.tempdir, 'inc.p8', CODE_WITH_TABS)
+        make_test_cart_from_code(
+            self.tempdir, 't.p8', CODE_WITH_INCLUDE_P8)
+        expected = make_expected_with_include(CODE_WITH_TABS)
+        self.assertP8CartCodeEquals(expected)
+
+    def testIncludeP8Tab(self):
+        make_test_cart_from_code(
+            self.tempdir, 'inc.p8', CODE_WITH_TABS)
+        make_test_cart_from_code(
+            self.tempdir, 't.p8', CODE_WITH_INCLUDE_P8_TAB)
+        expected = make_expected_with_include(CODE_WITH_TABS_TAB_TWO)
+        self.assertP8CartCodeEquals(expected)
+
+    def testIncludeP8PNG(self):
+        make_test_cart_from_code(
+            self.tempdir, 'inc.p8.png', CODE_WITH_TABS, is_p8png=True)
+        make_test_cart_from_code(
+            self.tempdir, 't.p8', CODE_WITH_INCLUDE_P8PNG)
+        expected = make_expected_with_include(CODE_WITH_TABS)
+        self.assertP8CartCodeEquals(expected)
+
+    def testIncludeP8PNGTab(self):
+        make_test_cart_from_code(
+            self.tempdir, 'inc.p8.png', CODE_WITH_TABS, is_p8png=True)
+        make_test_cart_from_code(
+            self.tempdir, 't.p8', CODE_WITH_INCLUDE_P8PNG_TAB)
+        expected = make_expected_with_include(CODE_WITH_TABS_TAB_TWO)
+        self.assertP8CartCodeEquals(expected)
+
+    def testIncludeLuaSubdir(self):
+        os.makedirs(os.path.join(self.tempdir, 'subdir'))
+        with open(os.path.join(self.tempdir, 'subdir', 'inc.lua'), 'wb') as fh:
+            fh.write(CODE_WITH_TABS.strip() + b'\n')
+        make_test_cart_from_code(
+            self.tempdir, 't.p8', CODE_WITH_INCLUDE_LUA_SUBDIR)
+        expected = make_expected_with_include(CODE_WITH_TABS)
+        self.assertP8CartCodeEquals(expected)
+
+    def testIncludeLuaParentDirFails(self):
+        make_test_cart_from_code(
+            self.tempdir, 't.p8', CODE_WITH_INCLUDE_LUA_PARENT_DIR)
+        self.assertRaises(
+            p8.P8IncludeOutsideOfAllowedDirectory,
+            self.assertP8CartCodeEquals,
+            b'')
+
+    # TODO: test that parent dirs are allowed when in a subdir of a recognized
+    # cart directory. We'd need a test-only override for the root path.
+    # def testIncludeLuaParentDirSucceeds(self):
+    #     make_test_cart_from_code(
+    #         self.tempdir, 't.p8', CODE_WITH_INCLUDE_LUA_PARENT_DIR)
 
 
 if __name__ == '__main__':

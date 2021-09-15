@@ -1,3 +1,5 @@
 {
-    "restructuredtext.confPath": "${workspaceFolder}/docs/source"
+    "restructuredtext.confPath": "${workspaceFolder}/docs/source",
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true
 }

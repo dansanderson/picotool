@@ -4,10 +4,15 @@ __all__ = [
     'P8Formatter',
     'InvalidP8HeaderError',
     'InvalidP8SectionError',
+    'P8IncludeNotFound',
+    'P8IncludeOutsideOfAllowedDirectory',
+    'InvalidP8Include'
 ]
 
+import os.path
 import re
 
+from .p8png import P8PNGFormatter
 from .base import BaseFormatter
 from ..game import Game
 from ... import util
@@ -21,6 +26,14 @@ from ...music.music import Music
 HEADER_TITLE_STR = b'pico-8 cartridge // http://www.pico-8.com\n'
 HEADER_VERSION_RE = re.compile(br'version (\d+)\n')
 SECTION_DELIM_RE = re.compile(br'__(\w+)__\n')
+INCLUDE_LINE_RE = re.compile(
+    br'\s*#include\s+(\S+)(\.p8\.png|\.p8|\.lua)(\:\d+)?')
+PICO8_CART_PATHS = [
+    '~/AppData/Roaming/pico-8/carts',  # Windows
+    '~/Library/Application Support/pico-8/carts',  # macOS
+    '~/.lexaloffle/pico-8/carts',  # Linux
+]
+TAB_LINE_RE = re.compile(br'-->8')
 
 
 class InvalidP8HeaderError(util.InvalidP8DataError):
@@ -39,6 +52,18 @@ class InvalidP8SectionError(util.InvalidP8DataError):
     def __str__(self):
         return 'Invalid .p8: bad section delimiter {}'.format(
             repr(self.bad_delim))
+
+
+class P8IncludeNotFound(util.InvalidP8DataError):
+    pass
+
+
+class P8IncludeOutsideOfAllowedDirectory(util.InvalidP8DataError):
+    pass
+
+
+class InvalidP8Include(util.InvalidP8DataError):
+    pass
 
 
 def _get_raw_data_from_p8_file(instr, filename=None):
@@ -76,14 +101,121 @@ def _get_raw_data_from_p8_file(instr, filename=None):
     return data
 
 
+def get_root_include_path(filename):
+    """Determines the root path for the purposes of includes.
+
+    PICO-8 restricts include paths to files in the PICO-8 cart root directory.
+    If picotool detects that the input cart file is in such a path, it uses the
+    cart root for includes. If the input cart is not in a recognized PICO-8
+    cart path, includes are restricted to the directory containing the input
+    file.
+
+    Args:
+        filename: The filename of the input cart.
+
+    Returns:
+        The include root path, or None if filename is None.
+    """
+    if filename is None:
+        return None
+    root_path = None
+    full_file_path = os.path.abspath(
+        os.path.normpath(
+            os.path.expanduser(filename)))
+    for candidate in PICO8_CART_PATHS:
+        full_candidate_path = os.path.abspath(
+            os.path.normpath(
+                os.path.expanduser(candidate)))
+        if full_file_path.startswith(full_candidate_path):
+            root_path = full_candidate_path
+    if root_path is None:
+        root_path = os.path.dirname(full_file_path)
+    return root_path
+
+
+def lines_for_tab(lines_iter, inc_tab):
+    """Yield just the lines for a given code tab.
+
+    Args:
+        lines_iter: An iterator of all code lines.
+        inc_tab: The tab number, or None to yield all code lines.
+
+    Yields:
+        Each line of code for the requested tab, or for all tabs if inc_tab is
+        None.
+    """
+    cur_tab = 0
+    for line in lines_iter:
+        if TAB_LINE_RE.match(line):
+            cur_tab += 1
+            if inc_tab is None:
+                # Preserve tab cut lines if we're not actually selecting a tab.
+                yield line
+        elif inc_tab is None or inc_tab == cur_tab:
+            yield line
+
+
+def process_includes(lualines, filename=None):
+    """Processes #include lines.
+
+    Args:
+        lualines: An iterable of lines of Lua code, as P8SCII bytestrings.
+        filename: The filename of the input cart.
+
+    Yields:
+        Each line of Lua code, with #include lines processed.
+    """
+    root_path = get_root_include_path(filename)
+    for line in lualines:
+        m = INCLUDE_LINE_RE.match(line)
+        if not m:
+            yield line
+            continue
+
+        # (Only assert filename if there's an #include.)
+        assert root_path is not None
+
+        inc_path_b, inc_extension_b, inc_tab_b = m.groups()
+        inc_path = str(inc_path_b, encoding='utf-8')
+        inc_extension = str(inc_extension_b, encoding='utf-8')
+        inc_tab = None
+        if inc_tab_b:
+            inc_tab_str = str(inc_tab_b, encoding='utf-8')
+            inc_tab = int(inc_tab_str[1:])
+        inc_full_path = os.path.abspath(
+            os.path.normpath(
+                os.path.join(
+                    os.path.dirname(filename), inc_path + inc_extension)))
+        if not inc_full_path.startswith(root_path):
+            raise P8IncludeOutsideOfAllowedDirectory()
+        if not os.path.isfile(inc_full_path):
+            raise P8IncludeNotFound()
+
+        if inc_extension == '.p8' or inc_extension == '.p8.png':
+            p8_fmt_cls = (
+                P8Formatter if inc_extension == '.p8'
+                else P8PNGFormatter)
+            with open(inc_full_path, 'rb') as fh:
+                inc_game = p8_fmt_cls.from_file(
+                    fh, filename=inc_full_path, do_includes=False)
+                for line in lines_for_tab(inc_game.lua.to_lines(), inc_tab):
+                    yield line
+        else:
+            with open(inc_full_path, 'rb') as fh:
+                for line in fh:
+                    yield line
+
+
 class P8Formatter(BaseFormatter):
     @classmethod
-    def from_file(cls, instr, filename=None, *args, **kwargs):
+    def from_file(
+            cls, instr, filename=None, do_includes=True, *args, **kwargs):
         """Reads a game from a .p8.png file.
 
         Args:
           instr: The input stream.
           filename: The filename, if any, for tool messages.
+          do_includes: If True, process #include directives.
 
         Returns:
           A Game containing the game data.
@@ -99,8 +231,11 @@ class P8Formatter(BaseFormatter):
         new_game.version = data.version
         for section in data.section_lines:
             if section == 'lua':
+                lualines = data.section_lines[section]
+                if do_includes:
+                    lualines = process_includes(lualines, filename)
                 new_game.lua = lua.Lua.from_lines(
-                    data.section_lines[section], version=data.version)
+                    lualines, version=data.version)
             elif section == 'gfx':
                 new_game.gfx = Gfx.from_lines(
                     data.section_lines[section], version=data.version)

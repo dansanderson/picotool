@@ -272,7 +272,7 @@ class P8PNGFormatter(BaseFormatter):
 
         cart_lua = game.lua.to_lines(writer_cls=lua_writer_cls,
                                      writer_args=lua_writer_args)
-        code_bytes = game.get_bytes_from_code(b''.join(cart_lua))
+        code_bytes = get_bytes_from_code(b''.join(cart_lua))
 
         picodata = b''.join((game.gfx.to_bytes(),
                              game.map.to_bytes(),
@@ -282,7 +282,7 @@ class P8PNGFormatter(BaseFormatter):
                              code_bytes,
                              bytes((game.version,))))
 
-        new_rows = game.get_pngdata_from_picodata(picodata, img_data, attrs)
+        new_rows = get_pngdata_from_picodata(picodata, img_data, attrs)
 
         wr = png.Writer(width, height, **attrs)
         wr.write(outstr, new_rows)
