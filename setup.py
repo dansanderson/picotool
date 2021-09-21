@@ -10,7 +10,7 @@ setup(
     description='Tools and Python libraries for manipulating PICO-8 game files',
     license='MIT',
     packages=find_packages(where='.', exclude=['tests', 'tests.*']),
-    include_package_data=True,
+    package_data={'pico8': ['game/empty_023.p8.png']},
     setup_requires=[
         'pytest-runner',
     ],
