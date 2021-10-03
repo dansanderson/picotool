@@ -790,7 +790,7 @@ class LuaASTEchoWriter(BaseLuaWriter):
 
         spaces = self._get_code_for_spaces(node)
         assert (self._tokens[self._pos].matches(lexer.TokKeyword(keyword)) or
-                self._tokens[self._pos].matches(lexer.TokSymbol(keyword)))
+                self._tokens[self._pos].matches(lexer.TokSymbol(keyword))), f"{self._tokens[self._pos]} != {lexer.TokSymbol(keyword)} ({keyword})\n{self._tokens[self._pos-3:self._pos+3]}"
         self._pos += 1
         return spaces + keyword
 
