@@ -33,13 +33,10 @@ To install the `picotool` tools and libraries:
    - Unpacking the zip archive creates a root directory named `picotool-master`.
    - When cloning the repo, this is just `picotool`, or whatever you named it when you cloned it.
 1. Change to the unpacked archive or clone directory from the above step.
-1. Install the software:
+1. Install the software. The dot (`.`) tells `pip install` to use the current working directory, which should be `picotool-master` (from the .zip file) or `picotool` (from git clone).
 
    ```shell
-   pip install picotool-master
-
-   # Or:
-   pip install picotool
+   pip install .
    ```
 
 You should now have a `p8tool` command in your path.
