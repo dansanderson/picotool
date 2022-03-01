@@ -261,7 +261,9 @@ def process_game_files(filenames, procfunc, overwrite=False, args=None):
             out_fname = fname
         else:
             if fname.endswith('.p8.png'):
-                out_fname = fname[:-len('.p8.png')] + '_fmt.p8.png'
+                out_fname = fname[:-len('.p8.png')] + '_fmt.p8'
+                if procfunc != writep8:
+                    out_fname += '.png'
             else:
                 out_fname = fname[:-len('.p8')] + '_fmt.p8'
 
