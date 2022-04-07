@@ -351,6 +351,8 @@ class Lua():
                     t.matches(lexer.TokSymbol(b')')) or
                     t.matches(lexer.TokSymbol(b']')) or
                     t.matches(lexer.TokSymbol(b'}')) or
+                    t.matches(lexer.TokSymbol(b',')) or
+                    t.matches(lexer.TokSymbol(b';')) or
                     t.matches(lexer.TokKeyword(b'local')) or
                     t.matches(lexer.TokKeyword(b'end'))):
                 # PICO-8 generously does not count these as tokens.
