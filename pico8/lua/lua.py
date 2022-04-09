@@ -1324,7 +1324,7 @@ class MinifyNameFactory():
             while True:
                 new_name = self._name_for_id(self._next_name_id)
                 self._next_name_id += 1
-                if new_name not in MinifyNameFactory.PRESERVED_NAMES:
+                if (new_name not in MinifyNameFactory.PRESERVED_NAMES) and (new_name not in self._names_to_keep):
                     break
             self._name_map[name] = new_name
             util.debug('- minifying name "{}" to "{}"\n'.format(
