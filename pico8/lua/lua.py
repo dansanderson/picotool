@@ -79,6 +79,7 @@ PICO8_BUILTINS = {
     b'setmetatable', b'getmetatable',
     b'rawget', b'rawset', b'rawequal', b'rawlen',
     b'cocreate', b'coresume', b'costatus', b'yield',
+    b'pack', b'unpack'
 
     # Mentioned in manual but not fully documented
     b'assert', b'sgn',
