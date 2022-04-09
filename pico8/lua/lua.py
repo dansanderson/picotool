@@ -1270,7 +1270,7 @@ class MinifyNameFactory():
         self._next_name_id = 0
 
         self._keep_all_names = keep_all_names
-        self._names_to_keep = None
+        self._names_to_keep = set()
 
         if keep_property_names:
             # TODO: crawl file for property names, define self._names_to_keep
@@ -1316,7 +1316,7 @@ class MinifyNameFactory():
             return name
         if name in MinifyNameFactory.PRESERVED_NAMES:
             return name
-        if self._names_to_keep is not None and name in self._names_to_keep:
+        if name in self._names_to_keep:
             return name
 
         if name not in self._name_map:
