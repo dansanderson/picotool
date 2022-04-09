@@ -1,4 +1,5 @@
 import os
+import time
 
 from .. import util
 from ..game import file
@@ -7,6 +8,17 @@ from ..lua import lua
 from ..lua import parser
 from ..lua import lexer
 
+try:
+    from watchdog.observers import Observer
+    from watchdog.events import PatternMatchingEventHandler
+    HAVE_WATCHDOG=True
+except ImportError:
+    HAVE_WATCHDOG=False
+    # Build stubs to keep things happy
+    class Observer:
+        pass
+    class PatternMatchingEventHandler:
+        pass
 
 # The default Lua load path if neither PICO8_LUA_PATH nor --lua-path are set.
 DEFAULT_LUA_PATH = '?;?.lua'
@@ -110,6 +122,39 @@ class RequireWalker(lua.BaseASTWalker):
 
             yield (require_path, use_game_loop, self._tokens[node.start_pos])
 
+class DirWatcher:
+    def __init__(self, watchdir, callback, args):
+        # Watch has done its job, strip it
+        args.watch = None
+        handler = BuildEventHandler(callback, args,
+            patterns=args.watch_glob.split(','),
+            ignore_patterns=['*/' + args.filename]
+        )
+
+        self.observer = Observer()
+        self.observer.schedule(handler, watchdir, recursive=True)
+        self.observer.start()
+
+        util.write('Watching for changes in "{}"...\n'.format(watchdir))
+
+    def stop(self):
+        self.observer.stop()
+
+    def join(self):
+        self.observer.join()
+
+
+class BuildEventHandler(PatternMatchingEventHandler):
+    def __init__(self, callback, args, **kwargs):
+        # Function to call on change
+        self.callback = callback
+        # Args to pass through to the callback
+        self.args = args
+        super().__init__(**kwargs)
+
+    def on_any_event(self, evt):
+        util.write('Change detected to {}, building...\n'.format(evt.src_path))
+        self.callback(self.args)
 
 def _evaluate_require(ast, file_path, package_lua, lua_path=None):
     """Evaluate require() statements in a Lua AST.
@@ -224,6 +269,9 @@ def do_build(args):
     Args:
         args: The argparse.Namespace arguments object.
     """
+    if args.watch is not None:
+        return do_watch(args)
+
     if (not args.filename.endswith('.p8') and
             not args.filename.endswith('.p8.png')):
         util.error('Output filename must end with .p8 or .p8.png.')
@@ -303,5 +351,35 @@ def do_build(args):
         result, filename=args.filename,
         lua_writer_cls=lua_writer_cls,
         lua_writer_args=lua_writer_args)
+
+    return 0
+
+def do_watch(args):
+    if not HAVE_WATCHDOG:
+        util.error('optional python library "watchdog" not installed\n'
+        'to use --watch, install watchdog however you see fit\n'
+        'using pip, that would be "pip install watchdog"\n')
+        return 1
+
+    # Check for valid directory
+    if args.watch:
+        if not os.path.exists(args.watch):
+            util.error('watch directory doesn\'t exist!\n')
+            return 1
+        if not os.path.isdir(args.watch):
+            util.error('watch directory isn\'t a directory!\n')
+            return 1
+        watchdir = args.filename
+    else:
+        util.write('no directory specified, defaulting to current directory\n')
+        watchdir = '.'
+
+    watcher = DirWatcher(watchdir, do_build, args)
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        watcher.stop()
+    watcher.join()
 
     return 0
