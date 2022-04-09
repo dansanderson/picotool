@@ -43,7 +43,7 @@ PICO8_BUILTINS = {
     b'sspr', b'fillp',
 
     # Tables
-    b'add', b'del', b'deli', b'count', b'all', b'foreach', b'pairs',
+    b'add', b'del', b'deli', b'count', b'all', b'foreach', b'ipairs', b'pairs',
 
     # Input
     b'btn', b'btnp',
