@@ -43,7 +43,7 @@ PICO8_BUILTINS = {
     b'sspr', b'fillp',
 
     # Tables
-    b'add', b'del', b'deli', b'count', b'all', b'foreach', b'pairs',
+    b'add', b'del', b'deli', b'count', b'all', b'foreach', b'ipairs', b'pairs',
 
     # Input
     b'btn', b'btnp',
@@ -79,6 +79,7 @@ PICO8_BUILTINS = {
     b'setmetatable', b'getmetatable',
     b'rawget', b'rawset', b'rawequal', b'rawlen',
     b'cocreate', b'coresume', b'costatus', b'yield',
+    b'pack', b'unpack'
 
     # Mentioned in manual but not fully documented
     b'assert', b'sgn',
