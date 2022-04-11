@@ -9,3 +9,4 @@ pytest
 coverage
 ipython
 rstcheck
+pypng
