@@ -84,7 +84,8 @@ class Gfx(util.BaseSection):
         """
         datastrs = []
         for line in lines:
-            if len(line) != 129:
+            # Each line of the GFX section is 128 characters followed by either an LF or CRLF line ending
+            if len(line.rstrip()) != 128:
                 continue
 
             larray = list(line.rstrip())

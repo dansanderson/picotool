@@ -197,7 +197,11 @@ class TestP8Game(unittest.TestCase):
 
     def testInvalidP8HeaderErrorMsg(self):
         # coverage
-        str(p8.InvalidP8HeaderError())
+        str(p8.InvalidP8HeaderError('bad', 'expected'))
+
+    def testInvalidP8VersionErrorMsg(self):
+        # coverage
+        str(p8.InvalidP8VersionError('bad version'))
 
     def testInvalidP8SectionErrorMsg(self):
         # coverage
@@ -214,7 +218,7 @@ class TestP8Game(unittest.TestCase):
 
     def testInvalidP8HeaderLineTwo(self):
         self.assertRaises(
-            p8.InvalidP8HeaderError,
+            p8.InvalidP8VersionError,
             p8.P8Formatter.from_file,
             io.BytesIO(
                 INVALID_P8_HEADER_TWO +
@@ -348,6 +352,22 @@ class TestGameToP8(unittest.TestCase):
         outstr = io.BytesIO()
         p8.P8Formatter.to_file(orig_game, outstr)
         self.assertEqual(expected_game_p8, outstr.getvalue())
+
+    def testToP8FileFromP8WithCrlf(self):
+        test_cart_path = os.path.join(self.testdata_path, 'test_cart_crlf.p8')
+        with open(test_cart_path, 'rb') as fh:
+            orig_game = p8.P8Formatter.from_file(fh)
+        with open(test_cart_path, 'rb') as fh:
+            expected_game_p8 = fh.read()
+        outstr = io.BytesIO()
+        p8.P8Formatter.to_file(orig_game, outstr)
+
+        # It's not (yet) important for this tool to retain CRLF endings when building from a source p8 cart
+        # which uses CRLF endings. It's ok for the resulting generated cart to use LF endings.
+        expected_game_p8 = expected_game_p8.replace(b"\r", b"")
+        outstr = outstr.getvalue().replace(b"\r", b"")
+
+        self.assertEqual(expected_game_p8, outstr)
 
     def testToP8FileFromP8PreservesLabel(self):
         test_cart_path = os.path.join(
@@ -511,7 +531,7 @@ class TestP8Include(unittest.TestCase):
 
     def testGetRootIncludePathUnrecognizedRoot(self):
         cartpath = '/tmp/subdir/somecart.p8'
-        expected = '/tmp/subdir'
+        expected = os.path.abspath('/tmp/subdir')
         self.assertEqual(
             expected,
             p8.get_root_include_path(cartpath))
