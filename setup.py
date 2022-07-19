@@ -22,6 +22,7 @@ setup(
         'mypy',
         'pypng',
         'pytest',
+        'pytest-xdist',
     ],
     entry_points={
         'console_scripts': [
