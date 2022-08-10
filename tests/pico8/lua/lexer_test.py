@@ -257,13 +257,6 @@ class TestLexer(unittest.TestCase):
                          lxr._tokens[0])
         self.assertEqual(lexer.TokKeyword(b'and'), lxr._tokens[2])
 
-    def testStringEscapes(self):
-        lxr = lexer.Lexer(version=4)
-        lxr._process_line(b'"\\\n\\a\\b\\f\\n\\r\\t\\v\\\\\\"\\\'\\65"\n')
-        self.assertEqual(2, len(lxr._tokens))
-        self.assertEqual(lexer.TokString(b'\n\a\b\f\n\r\t\v\\"\'A'),
-                         lxr._tokens[0])
-
     def testComment(self):
         lxr = lexer.Lexer(version=4)
         lxr._process_line(b'-- comment text and stuff\n')
