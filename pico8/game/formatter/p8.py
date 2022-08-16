@@ -39,8 +39,14 @@ TAB_LINE_RE = re.compile(br'-->8')
 class InvalidP8HeaderError(util.InvalidP8DataError):
     """Exception for invalid .p8 file header."""
 
+    def __init__(self, note=None):
+        self.note = note
+
     def __str__(self):
-        return 'Invalid .p8: missing or corrupt header'
+        if self.note:
+            return f"Invalid .p8: missing or corrupt header: {self.note!r}"
+        else:
+            return 'Invalid .p8: missing or corrupt header'
 
 
 class InvalidP8SectionError(util.InvalidP8DataError):
@@ -69,11 +75,11 @@ class InvalidP8Include(util.InvalidP8DataError):
 def _get_raw_data_from_p8_file(instr, filename=None):
     header_title_str = instr.readline()
     if header_title_str != HEADER_TITLE_STR:
-        raise InvalidP8HeaderError()
+        raise InvalidP8HeaderError(header_title_str)
     header_version_str = instr.readline()
     version_m = HEADER_VERSION_RE.match(header_version_str)
     if version_m is None:
-        raise InvalidP8HeaderError()
+        raise InvalidP8HeaderError(header_title_str)
     version = int(version_m.group(1))
 
     # (section is a text str.)
