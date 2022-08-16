@@ -513,7 +513,7 @@ class TestP8Include(unittest.TestCase):
         cartpath = '/tmp/subdir/somecart.p8'
         expected = '/tmp/subdir'
         self.assertEqual(
-            expected,
+            os.path.abspath(expected),
             p8.get_root_include_path(cartpath))
 
     def testLinesForTabYieldsAll(self):
