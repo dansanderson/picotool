@@ -314,7 +314,7 @@ class P8Formatter(BaseFormatter):
         for line in game.lua.to_lines(
                 writer_cls=lua_writer_cls,
                 writer_args=lua_writer_args):
-            outstr.write(bytes(lua.p8scii_to_unicode(line), 'utf-8'))
+            outstr.write(line)
             ended_in_newline = line.endswith(b'\n')
         if not ended_in_newline:
             outstr.write(b'\n')
