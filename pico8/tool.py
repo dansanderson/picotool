@@ -10,6 +10,8 @@ import re
 import sys
 import traceback
 
+from pico8.game.formatter.p8 import _get_raw_data_from_p8_file
+
 from . import util
 from .build import build
 from .game import file
@@ -185,7 +187,7 @@ def listrawlua(args):
                 raw_lua = data.code.split(b'\n')
         elif fname.endswith('.p8'):
             with open(fname, 'rb') as fh:
-                data = game.Game.get_raw_data_from_p8_file(fh, fname)
+                data = _get_raw_data_from_p8_file(fh, fname)
                 raw_lua = data.section_lines['lua']
         else:
             util.error('{}: must be .p8 or .p8.png\n'.format(fname))

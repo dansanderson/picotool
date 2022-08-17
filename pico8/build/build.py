@@ -89,7 +89,7 @@ class RequireWalker(lua.BaseASTWalker):
             if (not isinstance(arg_exps[0], parser.ExpValue) or
                     not isinstance(arg_exps[0].value, lexer.TokString)):
                 self._error_at_node('require() first argument must be a '
-                                    'string literal', node)
+                                    f'string literal, but first argument is {arg_exps[0]}', node)
             require_path = arg_exps[0].value.value
 
             use_game_loop = False
@@ -266,9 +266,19 @@ def do_build(args):
                     result.lua = lua.Lua.from_lines(
                         infh, version=game.DEFAULT_VERSION)
                     package_lua = {}
-                    _evaluate_require(
-                        result.lua, file_path=fn, package_lua=package_lua,
-                        lua_path=getattr(args, 'lua_path', None))
+
+                    # ADDED: try-except
+                    try:
+                        _evaluate_require(
+                            result.lua, file_path=fn, package_lua=package_lua,
+                            lua_path=getattr(args, 'lua_path', None))
+                    except LuaBuildError as e:
+                        print(f"LuaBuildError caught on _evaluate_require with top file: {fn}")
+                        print("The error may be located in any file recursively required, comment out until you find the culprit.")
+                        print(f"msg: {e.msg}")
+                        print(f"token: {e.token}")
+                        print("Passing error upward")
+                        raise
 
                     if getattr(args, 'optimize_tokens', False):
                         # TODO: perform const subst, dead code elim, taking
