@@ -65,11 +65,11 @@ end
     {'code':'''for x=1,10,2 do
   abc = 123
 end
-''', 'tokens': 12, 'chars': 32},
+''', 'tokens': 10, 'chars': 32},
     {'code':'''for a,b,c in 1,2,3 do
   abc = 123
 end
-''', 'tokens': 16, 'chars': 38},
+''', 'tokens': 12, 'chars': 38},
     {'code':'''function f()
   return 999
 end
@@ -78,8 +78,8 @@ end
   return 999
 end
 ''', 'tokens': 5, 'chars': 36},
-    {'code':'local a,b,c\n', 'tokens': 5, 'chars': 12},
-    {'code':'local a,b,c = 1,2,3\n', 'tokens': 11, 'chars': 20},
+    {'code':'local a,b,c\n', 'tokens': 3, 'chars': 12},
+    {'code':'local a,b,c = 1,2,3\n', 'tokens': 7, 'chars': 20},
     {'code':'''function f.a.b()
   return 999
 end
@@ -95,10 +95,10 @@ b=false
 c=true
 ''', 'tokens': 9, 'chars': 21},
     {'code':'a = 123\n', 'tokens': 3, 'chars': 8},
-    {'code':'a = -123\n', 'tokens': 4, 'chars': 9},
+    {'code':'a = -123\n', 'tokens': 3, 'chars': 9},
     {'code':'a = 123.45\n', 'tokens': 3, 'chars': 11},
     {'code':'a = 123.45e2\n', 'tokens': 4, 'chars': 13},
-    {'code':'a = -123.45e2\n', 'tokens': 5, 'chars': 14},
+    {'code':'a = -123.45e2\n', 'tokens': 4, 'chars': 14},
     {'code':'a = \'string\'\n', 'tokens': 3, 'chars': 13},
     {'code':'a = "string"\n', 'tokens': 3, 'chars': 13},
     {'code':'function f(...)\nend\n', 'tokens': 4, 'chars': 20},
@@ -107,7 +107,7 @@ c=true
     {'code':'c = #a\n', 'tokens': 4, 'chars': 7},
     {'code':'c:m()\n', 'tokens': 3, 'chars': 6},
     {'code':'a = {}\n', 'tokens': 3, 'chars': 7},
-    {'code':'a = {[a]=3;b=4,999}\n', 'tokens': 13, 'chars': 20},
+    {'code':'a = {[a]=3;b=4,999}\n', 'tokens': 11, 'chars': 20},
     {'code':'print(a..b)\n', 'tokens': 5, 'chars': 12},
     {'code':'''goto label
 print('one')

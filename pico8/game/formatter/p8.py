@@ -3,6 +3,7 @@
 __all__ = [
     'P8Formatter',
     'InvalidP8HeaderError',
+    'InvalidP8VersionError',
     'InvalidP8SectionError',
     'P8IncludeNotFound',
     'P8IncludeOutsideOfAllowedDirectory',
@@ -24,8 +25,8 @@ from ...sfx.sfx import Sfx
 from ...music.music import Music
 
 HEADER_TITLE_STR = b'pico-8 cartridge // http://www.pico-8.com\n'
-HEADER_VERSION_RE = re.compile(br'version (\d+)\n')
-SECTION_DELIM_RE = re.compile(br'__(\w+)__\n')
+HEADER_VERSION_RE = re.compile(br'version (\d+)\r?\n')
+SECTION_DELIM_RE = re.compile(br'__(\w+)__\r?\n')
 INCLUDE_LINE_RE = re.compile(
     br'\s*#include\s+(\S+)(\.p8\.png|\.p8|\.lua)(\:\d+)?')
 PICO8_CART_PATHS = [
@@ -39,14 +40,22 @@ TAB_LINE_RE = re.compile(br'-->8')
 class InvalidP8HeaderError(util.InvalidP8DataError):
     """Exception for invalid .p8 file header."""
 
-    def __init__(self, note=None):
-        self.note = note
+    def __init__(self, bad_header, expected_header):
+        self.bad_header = bad_header
+        self.expected_header = expected_header
 
     def __str__(self):
-        if self.note:
-            return f"Invalid .p8: missing or corrupt header: {self.note!r}"
-        else:
-            return 'Invalid .p8: missing or corrupt header'
+        return 'Invalid .p8: missing or corrupt header. Found {self.bad_header!r}, expected {self.expected_header!r}'
+
+
+class InvalidP8VersionError(util.InvalidP8DataError):
+    """Exception for invalid .p8 version header."""
+
+    def __init__(self, bad_version_line):
+        self.bad_version_line = bad_version_line 
+
+    def __str__(self):
+        return ('Invalid .p8: invalid version header. found "%s"' % self.bad_version_line)
 
 
 class InvalidP8SectionError(util.InvalidP8DataError):
@@ -74,12 +83,13 @@ class InvalidP8Include(util.InvalidP8DataError):
 
 def _get_raw_data_from_p8_file(instr, filename=None):
     header_title_str = instr.readline()
-    if header_title_str != HEADER_TITLE_STR:
-        raise InvalidP8HeaderError(header_title_str)
+    # use rstrip to normalize line endings
+    if header_title_str.rstrip() != HEADER_TITLE_STR.rstrip():
+        raise InvalidP8HeaderError(header_title_str, HEADER_TITLE_STR)
     header_version_str = instr.readline()
     version_m = HEADER_VERSION_RE.match(header_version_str)
     if version_m is None:
-        raise InvalidP8HeaderError(header_title_str)
+        raise InvalidP8VersionError(header_version_str)
     version = int(version_m.group(1))
 
     # (section is a text str.)

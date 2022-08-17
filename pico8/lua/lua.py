@@ -344,24 +344,49 @@ class Lua():
 
     def get_token_count(self):
         c = 0
-        for t in self._lexer._tokens:
+        prev_op=False #whether previous non whitespace token was an operator (for unary -)
+        unary_minus_ops=parser.BINOP_PATS + parser.UNOP_PATS+tuple(lexer.TokSymbol(x) for x in
+          (b'&=', b'|=', b'^^=', b'<<=', b'>>=', b'>>>=', b'<<>=', b'>><=', b'\\=',
+          b'..=', b'+=', b'-=', b'*=', b'/=', b'%=', b'^=',
+          b'(', b',', b'{', b'[' ,b'=') ) # these ops are not 100% accurate to how pico8 does it (pico8's list is slightly different)
+          #but all the edge cases left are pretty niche
+        for i,t in enumerate(self._lexer._tokens):
             # TODO: As of 0.1.8, "1 .. 5" is three tokens, "1..5" is one token
+            if (isinstance(t, lexer.TokSpace) or
+                  isinstance(t, lexer.TokNewline) or
+                  isinstance(t, lexer.TokComment)):
+              continue
+
             if (t.matches(lexer.TokSymbol(b':')) or
                     t.matches(lexer.TokSymbol(b'.')) or
                     t.matches(lexer.TokSymbol(b')')) or
                     t.matches(lexer.TokSymbol(b']')) or
                     t.matches(lexer.TokSymbol(b'}')) or
+                    t.matches(lexer.TokSymbol(b',')) or
+                    t.matches(lexer.TokSymbol(b';')) or
                     t.matches(lexer.TokKeyword(b'local')) or
                     t.matches(lexer.TokKeyword(b'end'))):
                 # PICO-8 generously does not count these as tokens.
                 pass
+            elif ((t.matches(lexer.TokSymbol(b'-')) or t.matches(lexer.TokSymbol(b'~'))) and
+                i+1<len(self._lexer._tokens) and
+                self._lexer._tokens[i+1].matches(lexer.TokNumber) and
+                prev_op):
+                #unary - and ~
+                pass
+
+
+
             elif t.matches(lexer.TokNumber) and t._data.find(b'e') != -1:
                 # PICO-8 counts 'e' part of number as a separate token.
                 c += 2
-            elif (not isinstance(t, lexer.TokSpace) and
-                  not isinstance(t, lexer.TokNewline) and
-                  not isinstance(t, lexer.TokComment)):
+            else:
                 c += 1
+            prev_op=False
+            for op in unary_minus_ops:
+                if t.matches(op):
+                    prev_op=True
+
         return c
 
     def get_line_count(self):
@@ -411,13 +436,7 @@ class Lua():
           A populated Lua instance.
         """
         result = Lua(version)
-        # ADDED: try-except
-        try:
-            result.update_from_lines(lines)
-        except IndexError as e:
-            print("IndexError caught on tokens from lines: {}".format(list(lines)))
-            print("Passing error upward")
-            raise
+        result.update_from_lines(lines)
         return result
 
     def update_from_lines(self, lines):
@@ -426,22 +445,8 @@ class Lua():
         Args:
           lines: The Lua source, as an iterable of P8SCII bytestrings.
         """
-        # MODIFIED to output file lines (or file name if buffered) when parse error is caught
-        try:
-            self._lexer.process_lines(lines)
-            self._parser.process_tokens(self._lexer.tokens)
-        except lexer.LexerError as e:
-            print("LexerError caught on tokens from lines: {}".format(list(lines)))
-            print("Passing error upward")
-            raise
-        except IndexError as e:
-            print("IndexError caught on tokens from lines: {}".format(list(lines)))
-            print("Passing error upward")
-            raise
-        except parser.ParserError as e:
-            print("ParserError caught on token {} from lines: {}, tokens: {}".format(e.token, list(lines), self._lexer.tokens))
-            print("Passing error upward")
-            raise
+        self._lexer.process_lines(lines)
+        self._parser.process_tokens(self._lexer.tokens)
 
     def to_lines(self, writer_cls=None, writer_args=None):
         """Generates lines of Lua source based on the parser output.
@@ -809,13 +814,8 @@ class LuaASTEchoWriter(BaseLuaWriter):
             return b' ' + keyword
 
         spaces = self._get_code_for_spaces(node)
-        # HOT DEBUG for unclear assert message on failure
-        matches_keyword = self._tokens[self._pos].matches(lexer.TokKeyword(keyword))
-        matches_symbol = self._tokens[self._pos].matches(lexer.TokSymbol(keyword))
-        if not matches_keyword and not matches_symbol:
-            raise parser.ParserError("token {} does not match keyword nor symbol {}".format(self._tokens[self._pos], keyword), self._tokens[self._pos])
-        # assert (self._tokens[self._pos].matches(lexer.TokKeyword(keyword)) or
-        #         self._tokens[self._pos].matches(lexer.TokSymbol(keyword)))
+        assert (self._tokens[self._pos].matches(lexer.TokKeyword(keyword)) or
+                self._tokens[self._pos].matches(lexer.TokSymbol(keyword)))
         self._pos += 1
         return spaces + keyword
 
@@ -832,11 +832,9 @@ class LuaASTEchoWriter(BaseLuaWriter):
             return b' '
 
         spaces_and_semis = []
-
         while True:
             spaces = self._get_code_for_spaces(node)
-            # HOT FIX for IndexError on self._tokens[self._pos]
-            if self._tokens and self._tokens[self._pos].matches(lexer.TokSymbol(b';')):
+            if self._tokens[self._pos].matches(lexer.TokSymbol(b';')):
                 self._pos += 1
                 spaces_and_semis.append(spaces + b';')
             else:

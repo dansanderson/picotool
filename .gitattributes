@@ -1,0 +1,3 @@
+# test p8 cart files should not have their line endings changed on checkout
+# use 'binary' settings for p8 cart files to force this
+*.p8 binary

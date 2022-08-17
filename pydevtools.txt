@@ -10,3 +10,4 @@ pytest-xdist
 coverage
 ipython
 rstcheck
+pypng
