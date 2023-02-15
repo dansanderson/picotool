@@ -161,9 +161,7 @@ class TokString(Token):
             escaped_chrs = []
             for c in self._data:
                 c = bytes([c])
-                if c in _STRING_REVERSE_ESCAPES:
-                    escaped_chrs.append(b'\\' + _STRING_REVERSE_ESCAPES[c])
-                elif c == self._quote:
+                if c == self._quote:
                     escaped_chrs.append(b'\\' + c)
                 else:
                     escaped_chrs.append(c)
@@ -375,18 +373,6 @@ class Lexer():
                     self._in_string = None
                     i += 1
                     break
-
-                if c == b'\\':
-                    # Escape character.
-                    num_m = re.match(br'\d{1,3}', s[i+1:])
-                    if num_m:
-                        c = bytes([int(num_m.group(0))])
-                        i += len(num_m.group(0))
-                    else:
-                        next_c = s[i+1:i+2]
-                        if next_c in _STRING_ESCAPES:
-                            c = _STRING_ESCAPES[next_c]
-                            i += 1
 
                 self._in_string.append(c)
                 i += 1

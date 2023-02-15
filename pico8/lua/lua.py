@@ -344,24 +344,49 @@ class Lua():
 
     def get_token_count(self):
         c = 0
-        for t in self._lexer._tokens:
+        prev_op=False #whether previous non whitespace token was an operator (for unary -)
+        unary_minus_ops=parser.BINOP_PATS + parser.UNOP_PATS+tuple(lexer.TokSymbol(x) for x in
+          (b'&=', b'|=', b'^^=', b'<<=', b'>>=', b'>>>=', b'<<>=', b'>><=', b'\\=',
+          b'..=', b'+=', b'-=', b'*=', b'/=', b'%=', b'^=',
+          b'(', b',', b'{', b'[' ,b'=') ) # these ops are not 100% accurate to how pico8 does it (pico8's list is slightly different)
+          #but all the edge cases left are pretty niche
+        for i,t in enumerate(self._lexer._tokens):
             # TODO: As of 0.1.8, "1 .. 5" is three tokens, "1..5" is one token
+            if (isinstance(t, lexer.TokSpace) or
+                  isinstance(t, lexer.TokNewline) or
+                  isinstance(t, lexer.TokComment)):
+              continue
+
             if (t.matches(lexer.TokSymbol(b':')) or
                     t.matches(lexer.TokSymbol(b'.')) or
                     t.matches(lexer.TokSymbol(b')')) or
                     t.matches(lexer.TokSymbol(b']')) or
                     t.matches(lexer.TokSymbol(b'}')) or
+                    t.matches(lexer.TokSymbol(b',')) or
+                    t.matches(lexer.TokSymbol(b';')) or
                     t.matches(lexer.TokKeyword(b'local')) or
                     t.matches(lexer.TokKeyword(b'end'))):
                 # PICO-8 generously does not count these as tokens.
                 pass
+            elif ((t.matches(lexer.TokSymbol(b'-')) or t.matches(lexer.TokSymbol(b'~'))) and
+                i+1<len(self._lexer._tokens) and
+                self._lexer._tokens[i+1].matches(lexer.TokNumber) and
+                prev_op):
+                #unary - and ~
+                pass
+
+
+
             elif t.matches(lexer.TokNumber) and t._data.find(b'e') != -1:
                 # PICO-8 counts 'e' part of number as a separate token.
                 c += 2
-            elif (not isinstance(t, lexer.TokSpace) and
-                  not isinstance(t, lexer.TokNewline) and
-                  not isinstance(t, lexer.TokComment)):
+            else:
                 c += 1
+            prev_op=False
+            for op in unary_minus_ops:
+                if t.matches(op):
+                    prev_op=True
+
         return c
 
     def get_line_count(self):

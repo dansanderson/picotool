@@ -6,6 +6,8 @@ flake8
 mypy
 sphinx
 pytest
+pytest-xdist
 coverage
 ipython
 rstcheck
+pypng

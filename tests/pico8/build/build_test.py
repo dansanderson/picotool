@@ -5,8 +5,6 @@ import os
 import shutil
 import tempfile
 import unittest
-from unittest.mock import Mock
-from unittest.mock import patch
 
 from pico8.build import build
 from pico8.game import game
