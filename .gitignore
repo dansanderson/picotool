@@ -15,3 +15,4 @@ docs/_build/
 .pytest_cache/
 
 .DS_Store
+build/

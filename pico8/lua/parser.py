@@ -47,8 +47,8 @@ __all__ = [  # noqa: F822
     'Function',
     'FunctionBody',
     'TableConstructor',
-    'FieldOtherThing',
-    'FieldNamed',
+    'FieldExpKey',
+    'FieldNamedKey',
     'FieldExp',
 ]
 
