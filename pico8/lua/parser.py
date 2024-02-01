@@ -465,6 +465,22 @@ class Parser():
 
         if self._accept(lexer.TokKeyword(b'while')) is not None:
             exp = self._assert(self._exp(), 'exp in while')
+            do_pos = self._pos
+            if (self._accept(lexer.TokKeyword(b'do')) is None and
+                    (self._tokens[exp._end_token_pos - 1] == lexer.TokSymbol(b')'))):
+                # Check for PICO-8 short form.
+                do_end_pos = exp._end_token_pos
+                while (do_end_pos < len(self._tokens) and
+                       not self._tokens[do_end_pos].matches(lexer.TokNewline)):
+                    do_end_pos += 1
+                try:
+                    self._max_pos = do_end_pos
+                    block = self._assert(self._chunk(),
+                                         'valid chunk in short-while')
+                finally:
+                    self._max_pos = None
+                return StatWhile(exp, block, start=pos, end=self._pos, short_while=True)
+            self._pos = do_pos
             self._expect(lexer.TokKeyword(b'do'))
             block = self._assert(self._chunk(), 'block in while')
             self._expect(lexer.TokKeyword(b'end'))
