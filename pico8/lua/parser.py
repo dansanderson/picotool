@@ -9,7 +9,6 @@ from typing import List
 from .. import util
 from . import lexer
 
-
 __all__ = [  # noqa: F822
     'Parser',
     'ParserError',
@@ -47,8 +46,8 @@ __all__ = [  # noqa: F822
     'Function',
     'FunctionBody',
     'TableConstructor',
-    'FieldOtherThing',
-    'FieldNamed',
+    'FieldExpKey',
+    'FieldNamedKey',
     'FieldExp',
 ]
 
@@ -96,7 +95,7 @@ class Node():
                 pos = self._add_token_group(
                     (fieldname, inner_i), inner, tokenlist, pos)
         else:
-            self._token_groups.append(tokenlist[pos:pos+1])
+            self._token_groups.append(tokenlist[pos:pos + 1])
             pos += 1
         return pos
 
@@ -226,11 +225,11 @@ for (name, fields) in _ast_node_types:
         for k in kwargs:
             setattr(self, k, kwargs[k])
 
+
     cls = type(name, (Node,), {'__init__': node_init,
                                '_name': name, '_fields': fields,
                                '_children': None})
     globals()[name] = cls
-
 
 # (!= is PICO-8 specific.)
 BINOP_PATS = (tuple([lexer.TokSymbol(sym) for sym in [
@@ -305,15 +304,15 @@ class Parser():
         while True:
             cur_tok = self._peek()
             if (cur_tok is None or
-                cur_tok.matches(tok_pattern) or
-                (not isinstance(cur_tok, lexer.TokSpace) and
-                 not isinstance(cur_tok, lexer.TokNewline) and
-                 not isinstance(cur_tok, lexer.TokComment))):
+                    cur_tok.matches(tok_pattern) or
+                    (not isinstance(cur_tok, lexer.TokSpace) and
+                     not isinstance(cur_tok, lexer.TokNewline) and
+                     not isinstance(cur_tok, lexer.TokComment))):
                 break
             self._pos += 1
 
         if (cur_tok is not None and
-            cur_tok.matches(tok_pattern) and
+                cur_tok.matches(tok_pattern) and
                 (self._max_pos is None or self._pos < self._max_pos)):
             self._pos += 1
             return cur_tok
@@ -435,8 +434,18 @@ class Parser():
                          self._accept(lexer.TokSymbol(b'-=')) or
                          self._accept(lexer.TokSymbol(b'*=')) or
                          self._accept(lexer.TokSymbol(b'/=')) or
+                         self._accept(lexer.TokSymbol(b'\=')) or
                          self._accept(lexer.TokSymbol(b'%=')) or
-                         self._accept(lexer.TokSymbol(b'..=')))
+                         self._accept(lexer.TokSymbol(b'^=')) or
+                         self._accept(lexer.TokSymbol(b'..=')) or
+                         self._accept(lexer.TokSymbol(b'|=')) or
+                         self._accept(lexer.TokSymbol(b'&=')) or
+                         self._accept(lexer.TokSymbol(b'^^=')) or
+                         self._accept(lexer.TokSymbol(b'<<=')) or
+                         self._accept(lexer.TokSymbol(b'>>=')) or
+                         self._accept(lexer.TokSymbol(b'>>>=')) or
+                         self._accept(lexer.TokSymbol(b'<<>=')) or
+                         self._accept(lexer.TokSymbol(b'>><=')))
             if assign_op is not None:
                 explist = self._assert(self._explist(),
                                        'Expected expression in assignment')
@@ -456,6 +465,22 @@ class Parser():
 
         if self._accept(lexer.TokKeyword(b'while')) is not None:
             exp = self._assert(self._exp(), 'exp in while')
+            do_pos = self._pos
+            if (self._accept(lexer.TokKeyword(b'do')) is None and
+                    (self._tokens[exp._end_token_pos - 1] == lexer.TokSymbol(b')'))):
+                # Check for PICO-8 short form.
+                do_end_pos = exp._end_token_pos
+                while (do_end_pos < len(self._tokens) and
+                       not self._tokens[do_end_pos].matches(lexer.TokNewline)):
+                    do_end_pos += 1
+                try:
+                    self._max_pos = do_end_pos
+                    block = self._assert(self._chunk(),
+                                         'valid chunk in short-while')
+                finally:
+                    self._max_pos = None
+                return StatWhile(exp, block, start=pos, end=self._pos, short_while=True)
+            self._pos = do_pos
             self._expect(lexer.TokKeyword(b'do'))
             block = self._assert(self._chunk(), 'block in while')
             self._expect(lexer.TokKeyword(b'end'))
@@ -475,7 +500,7 @@ class Parser():
 
             then_pos = self._pos
             if (self._accept(lexer.TokKeyword(b'then')) is None and
-                self._accept(lexer.TokKeyword(b'do')) is None and
+                    self._accept(lexer.TokKeyword(b'do')) is None and
                     (self._tokens[exp._end_token_pos - 1] == lexer.TokSymbol(b')'))):
                 # Check for PICO-8 short form.
 
@@ -668,7 +693,7 @@ class Parser():
         """
         exp_prefix = self._prefixexp()
         if (isinstance(exp_prefix, VarName) or
-            isinstance(exp_prefix, VarAttribute) or
+                isinstance(exp_prefix, VarAttribute) or
                 isinstance(exp_prefix, VarIndex)):
             return exp_prefix
         return None
@@ -920,8 +945,8 @@ class Parser():
 
         full_exp = self._prefixexp()
         if (full_exp is None or
-            (not isinstance(full_exp, FunctionCall) and
-             not isinstance(full_exp, FunctionCallMethod))):
+                (not isinstance(full_exp, FunctionCall) and
+                 not isinstance(full_exp, FunctionCallMethod))):
             self._pos = pos
             return None
         return full_exp

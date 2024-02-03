@@ -4,7 +4,6 @@ import re
 
 from .. import util
 
-
 __all__ = [
     'LexerError',
     'Token',
@@ -200,15 +199,15 @@ class TokNumber(Token):
             if b'.' in self._data:
                 integer, frac = self._data.split(b'.')
                 return (
-                    float(int(integer, 16)) +
-                    float(int(frac, 16))/(16**len(frac)))
+                        float(int(integer, 16)) +
+                        float(int(frac, 16)) / (16 ** len(frac)))
             return float(int(self._data, 16))
         if b'b' in self._data:
             if b'.' in self._data:
                 integer, frac = self._data.split(b'.')
                 return (
-                    float(int(integer, 2)) +
-                    float(int(frac, 2))/(2**len(frac)))
+                        float(int(integer, 2)) +
+                        float(int(frac, 2)) / (2 ** len(frac)))
             return float(int(self._data, 2))
         return float(self._data)
 
@@ -271,7 +270,7 @@ _TOKEN_MATCHERS.extend([
     (re.compile(br'::[a-zA-Z_\x80-\xff][a-zA-Z0-9_\x80-\xff]*::'), TokLabel),
 ])
 _TOKEN_MATCHERS.extend([
-    (re.compile(br'\b'+keyword+br'\b'), TokKeyword)
+    (re.compile(br'\b' + keyword + br'\b'), TokKeyword)
     for keyword in LUA_KEYWORDS])
 # REMINDER: token patterns are ordered! The lexer stops at the first matching
 # pattern. This is especially tricky for the symbols because you have to make
@@ -279,7 +278,14 @@ _TOKEN_MATCHERS.extend([
 # >>> would never match.)
 _TOKEN_MATCHERS.extend([
     (re.compile(symbol), TokSymbol) for symbol in [
+
+    ]])
+_TOKEN_MATCHERS.extend([
+    (re.compile(symbol), TokSymbol) for symbol in [
+        br'\\=',
         br'\+=', b'-=', br'\*=', b'/=', b'%=', br'\.\.=',
+        br'\^=', br'\|=', b'&=', br'\^\^=', b'<<=',
+        b'>>=', b'>>>=', b'<<>=', b'>><=',
         b'==', b'~=', b'!=', b'<=', b'>=',
         b'&', br'\|', br'\^\^', b'~', b'<<>', b'>>>', b'>><', b'<<', b'>>',
         br'\\',
@@ -311,7 +317,6 @@ class Lexer():
         self._tokens = []
         self._cur_lineno = 0
         self._cur_charno = 0
-
         # If inside a string literal (else None):
         # * the pos of the start of the string
         self._in_string_lineno = None
@@ -360,7 +365,7 @@ class Lexer():
         if self._in_string is not None:
             # Continue string literal.
             while i < len(s):
-                c = s[i:i+1]
+                c = s[i:i + 1]
 
                 if c == self._in_string_delim:
                     # End string literal.
@@ -378,12 +383,12 @@ class Lexer():
 
                 if c == b'\\':
                     # Escape character.
-                    num_m = re.match(br'\d{1,3}', s[i+1:])
+                    num_m = re.match(br'\d{1,3}', s[i + 1:])
                     if num_m:
                         c = bytes([int(num_m.group(0))])
                         i += len(num_m.group(0))
                     else:
-                        next_c = s[i+1:i+2]
+                        next_c = s[i + 1:i + 2]
                         if next_c in _STRING_ESCAPES:
                             c = _STRING_ESCAPES[next_c]
                             i += 1
